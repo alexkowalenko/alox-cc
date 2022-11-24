@@ -5,6 +5,7 @@
 #pragma once
 
 #include "common.hh"
+#include "val_array.hh"
 #include "value.hh"
 
 enum OpCode {

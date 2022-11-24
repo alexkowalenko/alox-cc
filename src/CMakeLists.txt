@@ -10,6 +10,7 @@ add_library(lox STATIC
    scanner.cc
    table.cc
    value.cc
+   val_array.cc
    vm.cc
    )
    
