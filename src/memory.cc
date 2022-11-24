@@ -1,8 +1,12 @@
+//
+// ALOX-CC
+//
+
 #include <stdlib.h>
 
-#include "compiler.h"
-#include "memory.h"
-#include "vm.h"
+#include "compiler.hh"
+#include "memory.hh"
+#include "vm.hh"
 
 #ifdef DEBUG_LOG_GC
 #include "debug.h"

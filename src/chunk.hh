@@ -1,10 +1,13 @@
-#ifndef clox_chunk_h
-#define clox_chunk_h
+//
+// ALOX-CC
+//
 
-#include "common.h"
-#include "value.h"
+#pragma once
 
-typedef enum {
+#include "common.hh"
+#include "value.hh"
+
+enum OpCode {
     OP_CONSTANT,
     OP_NIL,
     OP_TRUE,
@@ -42,19 +45,17 @@ typedef enum {
     OP_CLASS,
     OP_INHERIT,
     OP_METHOD
-} OpCode;
+};
 
-typedef struct {
+struct Chunk {
     int        count;
     int        capacity;
     uint8_t   *code;
     int       *lines;
     ValueArray constants;
-} Chunk;
+};
 
 void initChunk(Chunk *chunk);
 void freeChunk(Chunk *chunk);
 void writeChunk(Chunk *chunk, uint8_t byte, int line);
 int  addConstant(Chunk *chunk, Value value);
-
-#endif

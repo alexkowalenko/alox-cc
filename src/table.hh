@@ -1,8 +1,11 @@
-#ifndef clox_table_h
-#define clox_table_h
+//
+// ALOX-CC
+//
 
-#include "common.h"
-#include "value.h"
+#pragma once
+
+#include "common.hh"
+#include "value.hh"
 
 typedef struct {
     ObjString *key;
@@ -25,5 +28,3 @@ ObjString *tableFindString(Table *table, const char *chars, int length, uint32_t
 
 void tableRemoveWhite(Table *table);
 void markTable(Table *table);
-
-#endif

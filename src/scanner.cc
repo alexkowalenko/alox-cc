@@ -1,8 +1,12 @@
+//
+// ALOX-CC
+//
+
 #include <stdio.h>
 #include <string.h>
 
-#include "common.h"
-#include "scanner.h"
+#include "common.hh"
+#include "scanner.hh"
 
 typedef struct {
     const char *start;

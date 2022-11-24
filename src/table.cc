@@ -1,10 +1,14 @@
+//
+// ALOX-CC
+//
+
 #include <stdlib.h>
 #include <string.h>
 
-#include "memory.h"
-#include "object.h"
-#include "table.h"
-#include "value.h"
+#include "memory.hh"
+#include "object.hh"
+#include "table.hh"
+#include "value.hh"
 
 #define TABLE_MAX_LOAD 0.75
 

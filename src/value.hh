@@ -1,9 +1,12 @@
-#ifndef clox_value_h
-#define clox_value_h
+//
+// ALOX-CC
+//
+
+#pragma once
 
 #include <string.h>
 
-#include "common.h"
+#include "common.hh"
 
 typedef struct Obj       Obj;
 typedef struct ObjString ObjString;
@@ -92,5 +95,3 @@ void initValueArray(ValueArray *array);
 void writeValueArray(ValueArray *array, Value value);
 void freeValueArray(ValueArray *array);
 void printValue(Value value);
-
-#endif

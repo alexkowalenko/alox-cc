@@ -1,14 +1,18 @@
+//
+// ALOX-CC
+//
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
-#include "common.h"
-#include "compiler.h"
-#include "debug.h"
-#include "memory.h"
-#include "object.h"
-#include "vm.h"
+#include "common.hh"
+#include "compiler.hh"
+#include "debug.hh"
+#include "memory.hh"
+#include "object.hh"
+#include "vm.hh"
 
 VM vm; // [one]
 

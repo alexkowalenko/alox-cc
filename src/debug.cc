@@ -1,8 +1,12 @@
+//
+// ALOX-CC
+//
+
 #include <stdio.h>
 
-#include "debug.h"
-#include "object.h"
-#include "value.h"
+#include "debug.hh"
+#include "object.hh"
+#include "value.hh"
 
 void disassembleChunk(Chunk *chunk, const char *name) {
     printf("== %s ==\n", name);

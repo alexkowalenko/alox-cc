@@ -1,9 +1,12 @@
-#ifndef clox_vm_h
-#define clox_vm_h
+//
+// ALOX-CC
+//
 
-#include "object.h"
-#include "table.h"
-#include "value.h"
+#pragma once
+
+#include "object.hh"
+#include "table.hh"
+#include "value.hh"
 
 #define FRAMES_MAX 64
 #define STACK_MAX  (FRAMES_MAX * UINT8_COUNT)
@@ -46,5 +49,3 @@ void            freeVM();
 InterpretResult interpret(const char *source);
 void            push(Value value);
 Value           pop();
-
-#endif

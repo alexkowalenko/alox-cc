@@ -1,9 +1,10 @@
-#ifndef clox_debug_h
-#define clox_debug_h
+//
+// ALOX-CC
+//
 
-#include "chunk.h"
+#pragma once
+
+#include "chunk.hh"
 
 void disassembleChunk(Chunk *chunk, const char *name);
 int  disassembleInstruction(Chunk *chunk, int offset);
-
-#endif

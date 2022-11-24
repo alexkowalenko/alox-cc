@@ -1,8 +1,12 @@
+//
+// ALOX-CC
+//
+
 #include <stdlib.h>
 
-#include "chunk.h"
-#include "memory.h"
-#include "vm.h"
+#include "chunk.hh"
+#include "memory.hh"
+#include "vm.hh"
 
 void initChunk(Chunk *chunk) {
     chunk->count = 0;

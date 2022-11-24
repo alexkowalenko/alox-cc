@@ -1,9 +1,13 @@
+//
+// ALOX-CC
+//
+
 #include <stdio.h>
 #include <string.h>
 
-#include "memory.h"
-#include "object.h"
-#include "value.h"
+#include "memory.hh"
+#include "object.hh"
+#include "value.hh"
 
 void initValueArray(ValueArray *array) {
     array->values = NULL;

@@ -1,15 +1,19 @@
+//
+// ALOX-CC
+//
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "linenoise.h"
 
-#include "chunk.h"
-#include "common.h"
-#include "debug.h"
-#include "vm.h"
+#include "chunk.hh"
+#include "common.hh"
+#include "debug.hh"
+#include "vm.hh"
 
-const char *history_file = "./alox-cc";
+constexpr auto history_file = "./alox-cc";
 
 static void repl() {
     for (;;) {
@@ -25,17 +29,17 @@ static void repl() {
 
 static char *readFile(const char *path) {
     FILE *file = fopen(path, "rb");
-    if (file == NULL) {
+    if (file == nullptr) {
         fprintf(stderr, "Could not open file \"%s\".\n", path);
         exit(74);
     }
 
     fseek(file, 0L, SEEK_END);
-    size_t fileSize = size_t(ftell(file));
+    auto fileSize = size_t(ftell(file));
     rewind(file);
 
     char *buffer = (char *)malloc(fileSize + 1);
-    if (buffer == NULL) {
+    if (buffer == nullptr) {
         fprintf(stderr, "Not enough memory to read \"%s\".\n", path);
         exit(74);
     }

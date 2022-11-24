@@ -1,10 +1,13 @@
-#ifndef clox_object_h
-#define clox_object_h
+//
+// ALOX-CC
+//
 
-#include "chunk.h"
-#include "common.h"
-#include "table.h"
-#include "value.h"
+#pragma once
+
+#include "chunk.hh"
+#include "common.hh"
+#include "table.hh"
+#include "value.hh"
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 
@@ -108,5 +111,3 @@ void            printObject(Value value);
 static inline bool isObjType(Value value, ObjType type) {
     return IS_OBJ(value) && AS_OBJ(value)->type == type;
 }
-
-#endif

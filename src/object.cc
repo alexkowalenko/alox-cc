@@ -1,11 +1,15 @@
+//
+// ALOX-CC
+//
+
 #include <stdio.h>
 #include <string.h>
 
-#include "memory.h"
-#include "object.h"
-#include "table.h"
-#include "value.h"
-#include "vm.h"
+#include "memory.hh"
+#include "object.hh"
+#include "table.hh"
+#include "value.hh"
+#include "vm.hh"
 
 #define ALLOCATE_OBJ(type, objectType) (type *)allocateObject(sizeof(type), objectType)
 

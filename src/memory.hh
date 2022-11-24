@@ -1,8 +1,11 @@
-#ifndef clox_memory_h
-#define clox_memory_h
+//
+// ALOX-CC
+//
 
-#include "common.h"
-#include "object.h"
+#pragma once
+
+#include "common.hh"
+#include "object.hh"
 
 #define ALLOCATE(type, count) (type *)reallocate(NULL, 0, sizeof(type) * (count))
 
@@ -21,5 +24,3 @@ void  markObject(Obj *object);
 void  markValue(Value value);
 void  collectGarbage();
 void  freeObjects();
-
-#endif
