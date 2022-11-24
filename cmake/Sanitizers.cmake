@@ -34,7 +34,7 @@ function(enable_sanitizers project_name)
       endif()
     endif()
 
-    option(ENABLE_SANITIZER_MEMORY "Enable memory sanitizer" TRUE)
+    option(ENABLE_SANITIZER_MEMORY "Enable memory sanitizer" FALSE)
     if(ENABLE_SANITIZER_MEMORY AND CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
       if("address" IN_LIST SANITIZERS
          OR "thread" IN_LIST SANITIZERS

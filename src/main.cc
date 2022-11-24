@@ -2,22 +2,24 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "linenoise.h"
+
 #include "chunk.h"
 #include "common.h"
 #include "debug.h"
 #include "vm.h"
 
-static void repl() {
-    char line[1024];
-    for (;;) {
-        printf("> ");
+const char *history_file = "./alox-cc";
 
-        if (!fgets(line, sizeof(line), stdin)) {
-            printf("\n");
+static void repl() {
+    for (;;) {
+        auto *result = linenoise("> ");
+        if (result == nullptr) {
             break;
         }
-
-        interpret(line);
+        interpret(result);
+        linenoiseHistoryAdd(result);
+        free(result);
     }
 }
 
@@ -29,7 +31,7 @@ static char *readFile(const char *path) {
     }
 
     fseek(file, 0L, SEEK_END);
-    size_t fileSize = ftell(file);
+    size_t fileSize = size_t(ftell(file));
     rewind(file);
 
     char *buffer = (char *)malloc(fileSize + 1);
@@ -62,10 +64,16 @@ static void runFile(const char *path) {
 }
 
 int main(int argc, const char *argv[]) {
+    linenoiseInstallWindowChangeHandler();
+
     initVM();
 
     if (argc == 1) {
+        linenoiseInstallWindowChangeHandler();
+        linenoiseHistoryLoad(history_file);
         repl();
+        linenoiseHistorySave(history_file);
+        linenoiseHistoryFree();
     } else if (argc == 2) {
         runFile(argv[1]);
     } else {

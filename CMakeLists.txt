@@ -8,7 +8,7 @@ message(STATUS "C++ compiler = ${CMAKE_CXX_COMPILER}")
 # set(CMAKE_BUILD_TYPE Debug)
 
 # Set the project name to your project name, my project isn't very descriptive
-project(alox-cc C)
+project(alox-cc CXX)
 include(cmake/StandardProjectSettings.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
