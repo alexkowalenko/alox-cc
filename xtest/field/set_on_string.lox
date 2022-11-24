@@ -1,0 +1,3 @@
+"str".foo = "value"; // error: Only instances have fields.
+
+// option: bytecode 

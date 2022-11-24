@@ -1,0 +1,1 @@
+"1" <= 1; // error: Operands must be numbers.

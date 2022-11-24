@@ -1,0 +1,4 @@
+var Nil = nil;
+class Foo < Nil {} // error: Superclass must be a class.
+
+// option: bytecode

@@ -1,0 +1,3 @@
+true.foo; // error: Only instances have properties.
+
+// option: bytecode

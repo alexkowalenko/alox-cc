@@ -1,0 +1,3 @@
+print nil; // expect: nil
+
+// option: bytecode

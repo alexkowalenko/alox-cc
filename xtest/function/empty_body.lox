@@ -1,0 +1,4 @@
+fun f() {}
+print f(); // expect: nil
+
+// option: bytecode

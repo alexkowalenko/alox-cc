@@ -1,0 +1,8 @@
+{
+  var a = "outer";
+  {
+    print a; // expect: outer
+  }
+}
+
+// option: bytecode

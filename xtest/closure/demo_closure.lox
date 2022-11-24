@@ -1,0 +1,18 @@
+// Test for closures
+
+// Without proper closures this would print 1 and then 2.
+
+var a = 1;
+
+fun f() {
+    fun g() {
+        print a;
+    }
+    g();
+    var a = 2;
+    g();
+}
+f();
+
+//expect: 1
+//expect: 1

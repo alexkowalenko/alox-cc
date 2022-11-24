@@ -1,0 +1,5 @@
+fun foo() {}
+
+foo.bar = "value"; // error: Only instances have fields.
+
+// option: bytecode 

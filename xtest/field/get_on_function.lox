@@ -1,0 +1,5 @@
+fun foo() {}
+
+foo.bar; // error: Only instances have properties.
+
+// option: bytecode

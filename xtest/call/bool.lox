@@ -1,0 +1,1 @@
+true(); // error: Can only call functions and classes.

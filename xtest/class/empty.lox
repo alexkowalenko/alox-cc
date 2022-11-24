@@ -1,0 +1,5 @@
+class Foo {}
+
+print Foo; // expect: Foo
+
+// option: bytecode 

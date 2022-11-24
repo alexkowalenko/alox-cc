@@ -1,0 +1,4 @@
+class Foo {}
+Foo.bar; // error: Only instances have properties.
+
+// option: bytecode

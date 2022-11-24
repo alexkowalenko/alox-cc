@@ -1,0 +1,5 @@
+class Foo {}
+
+Foo().unknown(); // error: Undefined property 'unknown'.
+
+// option: bytecode

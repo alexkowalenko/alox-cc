@@ -1,0 +1,4 @@
+undefined1.bar // error: Undefined variable 'undefined1'.
+  = undefined2;
+
+// option: bytecode 

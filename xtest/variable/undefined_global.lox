@@ -1,0 +1,1 @@
+print notDefined;  // error: Undefined variable 'notDefined'.

@@ -1,0 +1,4 @@
+class Foo {}
+Foo.bar = "value"; // error: Only instances have fields.
+
+// option: bytecode 

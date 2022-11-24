@@ -1,0 +1,9 @@
+class Tree {
+    init(item, depth) {
+        print item; // expect: 0
+        this.item = item;
+        print this.item; // expect: 0
+    }
+}
+
+var t = Tree(0, 14);

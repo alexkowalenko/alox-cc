@@ -1,0 +1,3 @@
+123.foo = "value"; // error: Only instances have fields.
+
+// option: bytecode 

@@ -1,0 +1,5 @@
+fun foo() {}
+
+class Subclass < foo {} // error: Superclass must be a class.
+
+// option: bytecode

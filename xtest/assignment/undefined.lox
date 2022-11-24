@@ -1,0 +1,3 @@
+unknown = "what"; // error: Undefined variable 'unknown'.
+
+// option: bytecode

@@ -1,0 +1,4 @@
+var Number = 123;
+class Foo < Number {} // error: Superclass must be a class.
+
+// option: bytecode

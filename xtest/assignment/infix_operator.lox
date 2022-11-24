@@ -1,0 +1,5 @@
+var a = "a";
+var b = "b";
+a + b = "value"; // error: [line 3] Error at '=': Invalid assignment target.
+
+// option: bytecode
