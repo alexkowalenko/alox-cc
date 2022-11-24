@@ -21,7 +21,6 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
 #ifdef DEBUG_STRESS_GC
         collectGarbage();
 #endif
-
         if (vm.bytesAllocated > vm.nextGC) {
             collectGarbage();
         }
@@ -29,20 +28,23 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
 
     if (newSize == 0) {
         free(pointer);
-        return NULL;
+        return nullptr;
     }
 
     void *result = realloc(pointer, newSize);
-    if (result == NULL)
+    if (result == nullptr) {
         exit(1);
+    }
     return result;
 }
 
 void markObject(Obj *object) {
-    if (object == NULL)
+    if (object == nullptr) {
         return;
-    if (object->isMarked)
+    }
+    if (object->isMarked) {
         return;
+    }
 
 #ifdef DEBUG_LOG_GC
     printf("%p mark ", (void *)object);
@@ -56,16 +58,18 @@ void markObject(Obj *object) {
         vm.grayCapacity = GROW_CAPACITY(vm.grayCapacity);
         vm.grayStack = (Obj **)realloc(vm.grayStack, sizeof(Obj *) * vm.grayCapacity);
 
-        if (vm.grayStack == NULL)
+        if (vm.grayStack == nullptr) {
             exit(1);
+        }
     }
 
     vm.grayStack[vm.grayCount++] = object;
 }
 
 void markValue(Value value) {
-    if (IS_OBJ(value))
+    if (IS_OBJ(value)) {
         markObject(AS_OBJ(value));
+    }
 }
 
 static void markArray(ValueArray *array) {
@@ -180,7 +184,7 @@ static void markRoots() {
         markObject((Obj *)vm.frames[i].closure);
     }
 
-    for (ObjUpvalue *upvalue = vm.openUpvalues; upvalue != NULL;
+    for (ObjUpvalue *upvalue = vm.openUpvalues; upvalue != nullptr;
          upvalue = upvalue->next) {
         markObject((Obj *)upvalue);
     }
@@ -198,9 +202,9 @@ static void traceReferences() {
 }
 
 static void sweep() {
-    Obj *previous = NULL;
+    Obj *previous = nullptr;
     Obj *object = vm.objects;
-    while (object != NULL) {
+    while (object != nullptr) {
         if (object->isMarked) {
             object->isMarked = false;
             previous = object;
@@ -208,7 +212,7 @@ static void sweep() {
         } else {
             Obj *unreached = object;
             object = object->next;
-            if (previous != NULL) {
+            if (previous != nullptr) {
                 previous->next = object;
             } else {
                 vm.objects = object;

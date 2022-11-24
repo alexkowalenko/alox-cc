@@ -2,6 +2,7 @@
 // ALOX-CC
 //
 
+#include <memory>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,9 +72,10 @@ typedef struct ClassCompiler {
     bool                  hasSuperclass;
 } ClassCompiler;
 
-Parser         parser;
-Compiler      *current = NULL;
-ClassCompiler *currentClass = NULL;
+inline std::shared_ptr<Scanner> scanner;
+Parser                          parser;
+Compiler                       *current = NULL;
+ClassCompiler                  *currentClass = NULL;
 
 static Chunk *currentChunk() {
     return &current->function->chunk;
@@ -109,7 +111,7 @@ static void advance() {
     parser.previous = parser.current;
 
     for (;;) {
-        parser.current = scanToken();
+        parser.current = scanner->scanToken();
         if (parser.current.type != TOKEN_ERROR)
             break;
 
@@ -951,7 +953,7 @@ static void statement() {
 }
 
 ObjFunction *compile(const char *source) {
-    initScanner(source);
+    scanner = std::make_shared<Scanner>(source);
     Compiler compiler;
     initCompiler(&compiler, TYPE_SCRIPT);
 

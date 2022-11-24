@@ -2,8 +2,6 @@
 // ALOX-CC
 //
 
-#include <stdlib.h>
-
 #include "chunk.hh"
 #include "memory.hh"
 #include "vm.hh"
@@ -11,8 +9,8 @@
 void initChunk(Chunk *chunk) {
     chunk->count = 0;
     chunk->capacity = 0;
-    chunk->code = NULL;
-    chunk->lines = NULL;
+    chunk->code = nullptr;
+    chunk->lines = nullptr;
     initValueArray(&chunk->constants);
 }
 

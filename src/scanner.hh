@@ -4,7 +4,7 @@
 
 #pragma once
 
-typedef enum {
+enum TokenType {
     // Single-character tokens.
     TOKEN_LEFT_PAREN,
     TOKEN_RIGHT_PAREN,
@@ -50,14 +50,36 @@ typedef enum {
 
     TOKEN_ERROR,
     TOKEN_EOF
-} TokenType;
+};
 
-typedef struct {
+struct Token {
     TokenType   type;
     const char *start;
     int         length;
     int         line;
-} Token;
+};
 
-void  initScanner(const char *source);
-Token scanToken();
+class Scanner {
+  public:
+    explicit Scanner(const char *source);
+    Token scanToken();
+
+  private:
+    bool      isAtEnd();
+    char      advance();
+    char      peek();
+    char      peekNext();
+    bool      match(char expected);
+    Token     makeToken(TokenType type);
+    Token     errorToken(const char *message);
+    void      skipWhitespace();
+    TokenType checkKeyword(int start, int length, const char *rest, TokenType type);
+    TokenType identifierType();
+    Token     identifier();
+    Token     number();
+    Token     string();
+
+    const char *start;
+    const char *current;
+    int         line{1};
+};
