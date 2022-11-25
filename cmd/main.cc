@@ -2,9 +2,7 @@
 // ALOX-CC
 //
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <iostream>
 
 #include "alox.hh"
 
@@ -15,10 +13,10 @@ int main(int argc, const char *argv[]) {
     if (argc == 1) {
         alox.repl();
     } else if (argc == 2) {
-        alox.runFile(argv[1]);
+        return alox.runFile(argv[1]);
     } else {
-        fprintf(stderr, "Usage: alox [path]\n");
-        exit(64);
+        std::cerr << "Usage: alox [path]\n";
+        return 64;
     }
     return 0;
 }

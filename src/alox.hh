@@ -7,15 +7,16 @@
 #pragma once
 
 #include <string_view>
+
 class Alox {
   public:
     Alox();
     ~Alox();
 
-    void runFile(const char *path);
+    int  runFile(const std::string_view &path);
     void runString(const std::string_view &s);
     void repl();
 
   private:
-    char *readFile(const char *path);
+    std::string readFile(const std::string_view &path);
 };

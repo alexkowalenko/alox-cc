@@ -15,4 +15,6 @@ add_library(lox STATIC
    alox.cc
    )
 
+target_link_libraries(lox fmt)
+
 target_include_directories(lox PUBLIC "${linenoise_SOURCE_DIR}/include")

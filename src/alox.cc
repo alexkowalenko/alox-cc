@@ -4,10 +4,13 @@
 // Copyright © Alex Kowalenko 2022.
 //
 
-#include <cstdio>
-#include <cstdlib>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 
-#include "linenoise.h"
+#include <fmt/core.h>
+#include <linenoise.h>
 
 #include "alox.hh"
 #include "vm.hh"
@@ -39,44 +42,34 @@ void Alox::repl() {
     linenoiseHistoryFree();
 }
 
-char *Alox::readFile(const char *path) {
-    FILE *file = fopen(path, "rb");
-    if (file == nullptr) {
-        fprintf(stderr, "Could not open file \"%s\".\n", path);
-        exit(74);
+std::string Alox::readFile(const std::string_view &path) {
+    std::filesystem::path file{path};
+    if (!std::filesystem::exists(file)) {
+        throw std::runtime_error(fmt::format("file {} doesn't exist.", path));
     }
-
-    fseek(file, 0L, SEEK_END);
-    auto fileSize = size_t(ftell(file));
-    rewind(file);
-
-    char *buffer = (char *)malloc(fileSize + 1);
-    if (buffer == nullptr) {
-        fprintf(stderr, "Not enough memory to read \"%s\".\n", path);
-        exit(74);
-    }
-
-    size_t bytesRead = fread(buffer, sizeof(char), fileSize, file);
-    if (bytesRead < fileSize) {
-        fprintf(stderr, "Could not read file \"%s\".\n", path);
-        exit(74);
-    }
-
-    buffer[bytesRead] = '\0';
-
-    fclose(file);
+    std::ifstream ifs(path);
+    std::string   buffer((std::istreambuf_iterator<char>(ifs)),
+                         std::istreambuf_iterator<char>());
     return buffer;
 }
 
-void Alox::runFile(const char *path) {
-    char           *source = readFile(path);
-    InterpretResult result = interpret(source);
-    free(source); // [owner]
+int Alox::runFile(const std::string_view &path) {
+    InterpretResult result{INTERPRET_OK};
+    try {
+        auto source = readFile(path);
+        result = interpret(source.c_str());
+    } catch (std::exception &e) {
+        std::cerr << e.what() << '\n';
+        return 74;
+    }
 
-    if (result == INTERPRET_COMPILE_ERROR)
-        exit(65);
-    if (result == INTERPRET_RUNTIME_ERROR)
-        exit(70);
+    if (result == INTERPRET_COMPILE_ERROR) {
+        return 65;
+    }
+    if (result == INTERPRET_RUNTIME_ERROR) {
+        return 70;
+    }
+    return 0;
 };
 
 void Alox::runString(const std::string_view &s) {
