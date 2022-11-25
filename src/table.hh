@@ -7,16 +7,15 @@
 #include "common.hh"
 #include "value.hh"
 
-typedef struct {
+struct Entry {
     ObjString *key;
     Value      value;
-} Entry;
-
-typedef struct {
+};
+struct Table {
     int    count;
     int    capacity;
     Entry *entries;
-} Table;
+};
 
 void       initTable(Table *table);
 void       freeTable(Table *table);

@@ -9,19 +9,18 @@
 
 #include "common.hh"
 
-typedef struct Obj       Obj;
-typedef struct ObjString ObjString;
+struct ObjString;
 
 #ifdef NAN_BOXING
 
 #define SIGN_BIT ((uint64_t)0x8000000000000000)
 #define QNAN     ((uint64_t)0x7ffc000000000000)
 
-#define TAG_NIL   1 // 01.
-#define TAG_FALSE 2 // 10.
-#define TAG_TRUE  3 // 11.
+constexpr auto TAG_NIL = 1;   // 01.
+constexpr auto TAG_FALSE = 2; // 10.
+constexpr auto TAG_TRUE = 3;  // 11.
 
-typedef uint64_t Value;
+using Value = uint64_t;
 
 #define IS_BOOL(value)   (((value) | 1) == TRUE_VAL)
 #define IS_NIL(value)    ((value) == NIL_VAL)
@@ -84,8 +83,6 @@ typedef struct {
 #define OBJ_VAL(object)   ((Value){VAL_OBJ, {.obj = (Obj *)object}})
 
 #endif
-
-
 
 bool valuesEqual(Value a, Value b);
 void printValue(Value value);

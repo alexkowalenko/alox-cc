@@ -1,21 +1,31 @@
 //
 // ALOX-CC
 //
+// Copyright © Alex Kowalenko 2022.
+//
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
 
 #include "linenoise.h"
 
-#include "chunk.hh"
-#include "common.hh"
-#include "debug.hh"
+#include "alox.hh"
 #include "vm.hh"
 
 constexpr auto history_file = "./alox-cc";
 
-static void repl() {
+Alox::Alox() {
+    initVM();
+}
+
+Alox::~Alox() {
+    freeVM();
+}
+
+void Alox::repl() {
+    linenoiseInstallWindowChangeHandler();
+    linenoiseInstallWindowChangeHandler();
+    linenoiseHistoryLoad(history_file);
     for (;;) {
         auto *result = linenoise("> ");
         if (result == nullptr) {
@@ -25,9 +35,11 @@ static void repl() {
         linenoiseHistoryAdd(result);
         free(result);
     }
+    linenoiseHistorySave(history_file);
+    linenoiseHistoryFree();
 }
 
-static char *readFile(const char *path) {
+char *Alox::readFile(const char *path) {
     FILE *file = fopen(path, "rb");
     if (file == nullptr) {
         fprintf(stderr, "Could not open file \"%s\".\n", path);
@@ -56,7 +68,7 @@ static char *readFile(const char *path) {
     return buffer;
 }
 
-static void runFile(const char *path) {
+void Alox::runFile(const char *path) {
     char           *source = readFile(path);
     InterpretResult result = interpret(source);
     free(source); // [owner]
@@ -65,26 +77,8 @@ static void runFile(const char *path) {
         exit(65);
     if (result == INTERPRET_RUNTIME_ERROR)
         exit(70);
-}
+};
 
-int main(int argc, const char *argv[]) {
-    linenoiseInstallWindowChangeHandler();
-
-    initVM();
-
-    if (argc == 1) {
-        linenoiseInstallWindowChangeHandler();
-        linenoiseHistoryLoad(history_file);
-        repl();
-        linenoiseHistorySave(history_file);
-        linenoiseHistoryFree();
-    } else if (argc == 2) {
-        runFile(argv[1]);
-    } else {
-        fprintf(stderr, "Usage: clox [path]\n");
-        exit(64);
-    }
-
-    freeVM();
-    return 0;
+void Alox::runString(const std::string_view &s) {
+    InterpretResult result = interpret(s.data());
 }

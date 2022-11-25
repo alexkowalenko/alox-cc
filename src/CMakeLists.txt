@@ -12,15 +12,7 @@ add_library(lox STATIC
    value.cc
    val_array.cc
    vm.cc
+   alox.cc
    )
-   
-add_executable(alox main.cc)
 
-target_link_libraries(alox
-                    PRIVATE project_options project_warnings
-                    lox linenoise)
-                    
-target_include_directories(alox PUBLIC "${linenoise_SOURCE_DIR}/include")
-                    
-
-install(TARGETS alox DESTINATION bin)
+target_include_directories(lox PUBLIC "${linenoise_SOURCE_DIR}/include")
