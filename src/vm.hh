@@ -4,12 +4,15 @@
 
 #pragma once
 
+#include "compiler.hh"
 #include "object.hh"
 #include "table.hh"
 #include "value.hh"
 
-#define FRAMES_MAX 64
-#define STACK_MAX  (FRAMES_MAX * UINT8_COUNT)
+class Lox_Compiler;
+
+constexpr auto FRAMES_MAX = 64;
+constexpr auto STACK_MAX = (FRAMES_MAX * UINT8_COUNT);
 
 struct CallFrame {
     ObjClosure *closure;
@@ -17,8 +20,39 @@ struct CallFrame {
     Value      *slots;
 };
 
+enum InterpretResult { INTERPRET_OK, INTERPRET_COMPILE_ERROR, INTERPRET_RUNTIME_ERROR };
+
 class VM {
   public:
+    void            init();
+    void            free();
+    InterpretResult interpret(const char *source);
+
+    void  resetStack();
+    void  push(Value value);
+    Value pop();
+    Value peek(int distance) { return stackTop[-1 - distance]; }
+
+    template <typename... T> void runtimeError(const char *format, const T &...msg);
+
+    void        defineNative(const char *name, NativeFn function);
+    bool        call(ObjClosure *closure, int argCount);
+    bool        callValue(Value callee, int argCount);
+    bool        invokeFromClass(ObjClass *klass, ObjString *name, int argCount);
+    bool        invoke(ObjString *name, int argCount);
+    bool        bindMethod(ObjClass *klass, ObjString *name);
+    ObjUpvalue *captureUpvalue(Value *local);
+    void        closeUpvalues(Value *last);
+    void        defineMethod(ObjString *name);
+
+    bool isFalsey(Value value) {
+        return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
+    };
+    void            concatenate();
+    InterpretResult run();
+
+    int addConstant(Value value);
+
     CallFrame frames[FRAMES_MAX];
     int       frameCount;
 
@@ -29,6 +63,8 @@ class VM {
     ObjString  *initString;
     ObjUpvalue *openUpvalues;
 
+    Lox_Compiler *compiler;
+
     size_t bytesAllocated;
     size_t nextGC;
     Obj   *objects;
@@ -37,12 +73,4 @@ class VM {
     Obj  **grayStack;
 };
 
-enum InterpretResult { INTERPRET_OK, INTERPRET_COMPILE_ERROR, INTERPRET_RUNTIME_ERROR };
-
 extern VM vm;
-
-void            initVM();
-void            freeVM();
-InterpretResult interpret(const char *source);
-void            push(Value value);
-Value           pop();

@@ -184,7 +184,7 @@ static void markRoots() {
     }
 
     vm.globals.mark();
-    markCompilerRoots();
+    vm.compiler->markCompilerRoots();
     markObject((Obj *)vm.initString);
 }
 

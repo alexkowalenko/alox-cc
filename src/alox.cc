@@ -18,11 +18,11 @@
 constexpr auto history_file = "./alox-cc";
 
 Alox::Alox() {
-    initVM();
+    vm.init();
 }
 
 Alox::~Alox() {
-    freeVM();
+    vm.free();
 }
 
 void Alox::repl() {
@@ -34,7 +34,7 @@ void Alox::repl() {
         if (result == nullptr) {
             break;
         }
-        interpret(result);
+        vm.interpret(result);
         linenoiseHistoryAdd(result);
         free(result);
     }
@@ -57,7 +57,7 @@ int Alox::runFile(const std::string_view &path) {
     InterpretResult result{INTERPRET_OK};
     try {
         auto source = readFile(path);
-        result = interpret(source.c_str());
+        result = vm.interpret(source.c_str());
     } catch (std::exception &e) {
         std::cerr << e.what() << '\n';
         return 74;
@@ -73,5 +73,5 @@ int Alox::runFile(const std::string_view &path) {
 };
 
 void Alox::runString(const std::string_view &s) {
-    InterpretResult result = interpret(s.data());
+    InterpretResult result = vm.interpret(s.data());
 }

@@ -23,18 +23,18 @@ static Value clockNative(int /*argCount*/, Value * /*args*/) {
     return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
 
-static void resetStack() {
-    vm.stackTop = vm.stack;
-    vm.frameCount = 0;
-    vm.openUpvalues = nullptr;
+void VM::resetStack() {
+    stackTop = stack;
+    frameCount = 0;
+    openUpvalues = nullptr;
 }
 
-template <typename... T> void runtimeError(const char *format, const T &...msg) {
+template <typename... T> void VM::runtimeError(const char *format, const T &...msg) {
     std::cerr << fmt::format(fmt::runtime(format), msg...); // NOLINT
     std::cerr << '\n';
 
-    for (int i = vm.frameCount - 1; i >= 0; i--) {
-        CallFrame   *frame = &vm.frames[i];
+    for (int i = frameCount - 1; i >= 0; i--) {
+        CallFrame   *frame = &frames[i];
         ObjFunction *function = frame->closure->function;
         size_t       instruction = frame->ip - function->chunk.get_code() - 1;
         std::cerr << fmt::format("[line {:d}] in ", // [minus]
@@ -49,86 +49,82 @@ template <typename... T> void runtimeError(const char *format, const T &...msg) 
     resetStack();
 }
 
-static void defineNative(const char *name, NativeFn function) {
+void VM::defineNative(const char *name, NativeFn function) {
     push(OBJ_VAL(copyString(name, (int)strlen(name))));
     push(OBJ_VAL(newNative(function)));
-    vm.globals.set(AS_STRING(vm.stack[0]), vm.stack[1]);
+    globals.set(AS_STRING(stack[0]), stack[1]);
     pop();
     pop();
 }
 
-void initVM() {
+void VM::init() {
     resetStack();
-    vm.objects = nullptr;
-    vm.bytesAllocated = 0;
-    vm.nextGC = 1024 * 1024;
+    objects = nullptr;
+    bytesAllocated = 0;
+    nextGC = 1024 * 1024;
 
-    vm.grayCount = 0;
-    vm.grayCapacity = 0;
-    vm.grayStack = nullptr;
+    grayCount = 0;
+    grayCapacity = 0;
+    grayStack = nullptr;
 
-    vm.globals.init();
-    vm.strings.init();
+    globals.init();
+    strings.init();
 
-    vm.initString = nullptr;
-    vm.initString = copyString("init", 4);
+    initString = nullptr;
+    initString = copyString("init", 4);
 
     defineNative("clock", clockNative);
 }
 
-void freeVM() {
-    vm.globals.free();
-    vm.strings.free();
-    vm.initString = nullptr;
+void VM::free() {
+    globals.free();
+    strings.free();
+    initString = nullptr;
     freeObjects();
 }
 
-void push(Value value) {
-    *vm.stackTop = value;
-    vm.stackTop++;
+void VM::push(Value value) {
+    *stackTop = value;
+    stackTop++;
 }
 
-Value pop() {
-    vm.stackTop--;
-    return *vm.stackTop;
+Value VM::pop() {
+    stackTop--;
+    return *stackTop;
 }
 
-static Value peek(int distance) {
-    return vm.stackTop[-1 - distance];
-}
-
-static bool call(ObjClosure *closure, int argCount) {
+bool VM::call(ObjClosure *closure, int argCount) {
     if (argCount != closure->function->arity) {
-        runtimeError("Expected {:d} arguments but got{:d}.", closure->function->arity,
+        runtimeError("Expected {:d} arguments but got {:d}.", closure->function->arity,
                      argCount);
         return false;
     }
 
-    if (vm.frameCount == FRAMES_MAX) {
+    if (frameCount == FRAMES_MAX) {
         runtimeError("Stack overflow.");
         return false;
     }
 
-    CallFrame *frame = &vm.frames[vm.frameCount++];
+    CallFrame *frame = &frames[frameCount++];
     frame->closure = closure;
     frame->ip = closure->function->chunk.get_code();
-    frame->slots = vm.stackTop - argCount - 1;
+    frame->slots = stackTop - argCount - 1;
     return true;
 }
 
-static bool callValue(Value callee, int argCount) {
+bool VM::callValue(Value callee, int argCount) {
     if (IS_OBJ(callee)) {
         switch (OBJ_TYPE(callee)) {
         case OBJ_BOUND_METHOD: {
             ObjBoundMethod *bound = AS_BOUND_METHOD(callee);
-            vm.stackTop[-argCount - 1] = bound->receiver;
+            stackTop[-argCount - 1] = bound->receiver;
             return call(bound->method, argCount);
         }
         case OBJ_CLASS: {
             ObjClass *klass = AS_CLASS(callee);
-            vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
+            stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
             Value initializer;
-            if (klass->methods.get(vm.initString, &initializer)) {
+            if (klass->methods.get(initString, &initializer)) {
                 return call(AS_CLOSURE(initializer), argCount);
             }
             if (argCount != 0) {
@@ -141,8 +137,8 @@ static bool callValue(Value callee, int argCount) {
             return call(AS_CLOSURE(callee), argCount);
         case OBJ_NATIVE: {
             NativeFn native = AS_NATIVE(callee);
-            Value    result = native(argCount, vm.stackTop - argCount);
-            vm.stackTop -= argCount + 1;
+            Value    result = native(argCount, stackTop - argCount);
+            stackTop -= argCount + 1;
             push(result);
             return true;
         }
@@ -154,7 +150,7 @@ static bool callValue(Value callee, int argCount) {
     return false;
 }
 
-static bool invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
+bool VM::invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
     Value method;
     if (!klass->methods.get(name, &method)) {
         runtimeError("Undefined property '{}'.", name->chars);
@@ -163,7 +159,7 @@ static bool invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
     return call(AS_CLOSURE(method), argCount);
 }
 
-static bool invoke(ObjString *name, int argCount) {
+bool VM::invoke(ObjString *name, int argCount) {
     Value receiver = peek(argCount);
 
     if (!IS_INSTANCE(receiver)) {
@@ -175,14 +171,14 @@ static bool invoke(ObjString *name, int argCount) {
 
     Value value;
     if (instance->fields.get(name, &value)) {
-        vm.stackTop[-argCount - 1] = value;
+        stackTop[-argCount - 1] = value;
         return callValue(value, argCount);
     }
 
     return invokeFromClass(instance->klass, name, argCount);
 }
 
-static bool bindMethod(ObjClass *klass, ObjString *name) {
+bool VM::bindMethod(ObjClass *klass, ObjString *name) {
     Value method;
     if (!klass->methods.get(name, &method)) {
         runtimeError("Undefined property '{}'.", name->chars);
@@ -195,9 +191,9 @@ static bool bindMethod(ObjClass *klass, ObjString *name) {
     return true;
 }
 
-static ObjUpvalue *captureUpvalue(Value *local) {
+ObjUpvalue *VM::captureUpvalue(Value *local) {
     ObjUpvalue *prevUpvalue = nullptr;
-    ObjUpvalue *upvalue = vm.openUpvalues;
+    ObjUpvalue *upvalue = openUpvalues;
     while (upvalue != nullptr && upvalue->location > local) {
         prevUpvalue = upvalue;
         upvalue = upvalue->next;
@@ -211,7 +207,7 @@ static ObjUpvalue *captureUpvalue(Value *local) {
     createdUpvalue->next = upvalue;
 
     if (prevUpvalue == nullptr) {
-        vm.openUpvalues = createdUpvalue;
+        openUpvalues = createdUpvalue;
     } else {
         prevUpvalue->next = createdUpvalue;
     }
@@ -219,27 +215,23 @@ static ObjUpvalue *captureUpvalue(Value *local) {
     return createdUpvalue;
 }
 
-static void closeUpvalues(Value *last) {
-    while (vm.openUpvalues != nullptr && vm.openUpvalues->location >= last) {
-        ObjUpvalue *upvalue = vm.openUpvalues;
+void VM::closeUpvalues(Value *last) {
+    while (openUpvalues != nullptr && openUpvalues->location >= last) {
+        ObjUpvalue *upvalue = openUpvalues;
         upvalue->closed = *upvalue->location;
         upvalue->location = &upvalue->closed;
-        vm.openUpvalues = upvalue->next;
+        openUpvalues = upvalue->next;
     }
 }
 
-static void defineMethod(ObjString *name) {
+void VM::defineMethod(ObjString *name) {
     Value     method = peek(0);
     ObjClass *klass = AS_CLASS(peek(1));
     klass->methods.set(name, method);
     pop();
 }
 
-static bool isFalsey(Value value) {
-    return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
-}
-
-static void concatenate() {
+void VM::concatenate() {
     ObjString *b = AS_STRING(peek(0));
     ObjString *a = AS_STRING(peek(1));
 
@@ -255,8 +247,8 @@ static void concatenate() {
     push(OBJ_VAL(result));
 }
 
-static InterpretResult run() {
-    CallFrame *frame = &vm.frames[vm.frameCount - 1];
+InterpretResult VM::run() {
+    CallFrame *frame = &frames[frameCount - 1];
 
 #define READ_BYTE() (*frame->ip++)
 
@@ -279,7 +271,7 @@ static InterpretResult run() {
     for (;;) {
         if constexpr (DEBUG_TRACE_EXECUTION) {
             std::cout << "          ";
-            for (Value *slot = vm.stack; slot < vm.stackTop; slot++) {
+            for (Value *slot = stack; slot < stackTop; slot++) {
                 std::cout << "[ ";
                 printValue(*slot);
                 std::cout << " ]";
@@ -322,7 +314,7 @@ static InterpretResult run() {
         case OP_GET_GLOBAL: {
             ObjString *name = READ_STRING();
             Value      value;
-            if (!vm.globals.get(name, &value)) {
+            if (!globals.get(name, &value)) {
                 runtimeError("Undefined variable '{}'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -331,14 +323,14 @@ static InterpretResult run() {
         }
         case OP_DEFINE_GLOBAL: {
             ObjString *name = READ_STRING();
-            vm.globals.set(name, peek(0));
+            globals.set(name, peek(0));
             pop();
             break;
         }
         case OP_SET_GLOBAL: {
             ObjString *name = READ_STRING();
-            if (vm.globals.set(name, peek(0))) {
-                vm.globals.del(name); // [delete]
+            if (globals.set(name, peek(0))) {
+                globals.del(name); // [delete]
                 runtimeError("Undefined variable '{}'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -467,7 +459,7 @@ static InterpretResult run() {
             if (!callValue(peek(argCount), argCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
-            frame = &vm.frames[vm.frameCount - 1];
+            frame = &frames[frameCount - 1];
             break;
         }
         case OP_INVOKE: {
@@ -476,7 +468,7 @@ static InterpretResult run() {
             if (!invoke(method, argCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
-            frame = &vm.frames[vm.frameCount - 1];
+            frame = &frames[frameCount - 1];
             break;
         }
         case OP_SUPER_INVOKE: {
@@ -486,7 +478,7 @@ static InterpretResult run() {
             if (!invokeFromClass(superclass, method, argCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
-            frame = &vm.frames[vm.frameCount - 1];
+            frame = &frames[frameCount - 1];
             break;
         }
         case OP_CLOSURE: {
@@ -505,21 +497,21 @@ static InterpretResult run() {
             break;
         }
         case OP_CLOSE_UPVALUE:
-            closeUpvalues(vm.stackTop - 1);
+            closeUpvalues(stackTop - 1);
             pop();
             break;
         case OP_RETURN: {
             Value result = pop();
             closeUpvalues(frame->slots);
-            vm.frameCount--;
-            if (vm.frameCount == 0) {
+            frameCount--;
+            if (frameCount == 0) {
                 pop();
                 return INTERPRET_OK;
             }
 
-            vm.stackTop = frame->slots;
+            stackTop = frame->slots;
             push(result);
-            frame = &vm.frames[vm.frameCount - 1];
+            frame = &frames[frameCount - 1];
             break;
         }
         case OP_CLASS:
@@ -550,17 +542,9 @@ static InterpretResult run() {
 #undef BINARY_OP
 }
 
-void hack(bool b) {
-    // Hack to avoid unused function error. run() is not used in the
-    // scanning chapter.
-    run();
-    if (b) {
-        hack(false);
-    }
-}
-
-InterpretResult interpret(const char *source) {
-    ObjFunction *function = compile(source);
+InterpretResult VM::interpret(const char *source) {
+    compiler = new Lox_Compiler();
+    ObjFunction *function = compiler->compile(source);
     if (function == nullptr) {
         return INTERPRET_COMPILE_ERROR;
     }
@@ -571,5 +555,7 @@ InterpretResult interpret(const char *source) {
     push(OBJ_VAL(closure));
     call(closure, 0);
 
-    return run();
+    auto ret = run();
+    delete compiler;
+    return ret;
 }

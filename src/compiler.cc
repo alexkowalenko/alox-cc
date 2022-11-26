@@ -2,6 +2,7 @@
 // ALOX-CC
 //
 
+#include <cstddef>
 #include <memory>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,79 +12,19 @@
 #include "compiler.hh"
 #include "debug.hh"
 #include "memory.hh"
-#include "parser.hh"
+
 #include "scanner.hh"
 
-enum Precedence {
-    PREC_NONE,
-    PREC_ASSIGNMENT, // =
-    PREC_OR,         // or
-    PREC_AND,        // and
-    PREC_EQUALITY,   // == !=
-    PREC_COMPARISON, // < > <= >=
-    PREC_TERM,       // + -
-    PREC_FACTOR,     // * /
-    PREC_UNARY,      // ! -
-    PREC_CALL,       // . ()
-    PREC_PRIMARY
-};
-
-using ParseFn = void (*)(bool);
-
-struct ParseRule {
-    ParseFn    prefix;
-    ParseFn    infix;
-    Precedence precedence;
-};
-
-struct Local {
-    Token name;
-    int   depth;
-    bool  isCaptured;
-};
-
-struct Upvalue {
-    uint8_t index;
-    bool    isLocal;
-};
-
-enum FunctionType { TYPE_FUNCTION, TYPE_INITIALIZER, TYPE_METHOD, TYPE_SCRIPT };
-
-struct Compiler {
-    struct Compiler *enclosing;
-    ObjFunction     *function;
-    FunctionType     type;
-
-    Local   locals[UINT8_COUNT];
-    int     localCount;
-    Upvalue upvalues[UINT8_COUNT];
-    int     scopeDepth;
-};
-
-struct ClassCompiler {
-    struct ClassCompiler *enclosing;
-    bool                  hasSuperclass;
-};
-
-inline std::unique_ptr<Parser> parser;
-
-inline Compiler      *current{nullptr};
-inline ClassCompiler *currentClass{nullptr};
-
-static Chunk *currentChunk() {
-    return &current->function->chunk;
-}
-
-static void emitByte(uint8_t byte) {
+void Lox_Compiler::emitByte(uint8_t byte) {
     currentChunk()->write(byte, parser->previous.line);
 }
 
-static void emitBytes(uint8_t byte1, uint8_t byte2) {
+void Lox_Compiler::emitBytes(uint8_t byte1, uint8_t byte2) {
     emitByte(byte1);
     emitByte(byte2);
 }
 
-static void emitLoop(int loopStart) {
+void Lox_Compiler::emitLoop(int loopStart) {
     emitByte(OP_LOOP);
 
     int offset = currentChunk()->get_count() - loopStart + 2;
@@ -95,14 +36,14 @@ static void emitLoop(int loopStart) {
     emitByte(offset & 0xff);
 }
 
-static int emitJump(uint8_t instruction) {
+int Lox_Compiler::emitJump(uint8_t instruction) {
     emitByte(instruction);
     emitByte(0xff);
     emitByte(0xff);
     return currentChunk()->get_count() - 2;
 }
 
-static void emitReturn() {
+void Lox_Compiler::emitReturn() {
     if (current->type == TYPE_INITIALIZER) {
         emitBytes(OP_GET_LOCAL, 0);
     } else {
@@ -112,7 +53,7 @@ static void emitReturn() {
     emitByte(OP_RETURN);
 }
 
-static uint8_t makeConstant(Value value) {
+uint8_t Lox_Compiler::makeConstant(Value value) {
     int constant = currentChunk()->addConstant(value);
     if (constant > UINT8_MAX) {
         parser->error("Too many constants in one chunk.");
@@ -122,11 +63,11 @@ static uint8_t makeConstant(Value value) {
     return (uint8_t)constant;
 }
 
-static void emitConstant(Value value) {
+void Lox_Compiler::emitConstant(Value value) {
     emitBytes(OP_CONSTANT, makeConstant(value));
 }
 
-static void patchJump(int offset) {
+void Lox_Compiler::patchJump(int offset) {
     // -2 to adjust for the bytecode for the jump offset itself.
     int jump = currentChunk()->get_count() - offset - 2;
 
@@ -138,7 +79,7 @@ static void patchJump(int offset) {
     currentChunk()->get_code(offset + 1) = jump & 0xff;
 }
 
-static void initCompiler(Compiler *compiler, FunctionType type) {
+void Lox_Compiler::initCompiler(Compiler *compiler, FunctionType type) {
     compiler->enclosing = current;
     compiler->function = nullptr;
     compiler->type = type;
@@ -163,7 +104,7 @@ static void initCompiler(Compiler *compiler, FunctionType type) {
     }
 }
 
-static ObjFunction *endCompiler() {
+ObjFunction *Lox_Compiler::endCompiler() {
     emitReturn();
     ObjFunction *function = current->function;
 
@@ -179,11 +120,11 @@ static ObjFunction *endCompiler() {
     return function;
 }
 
-static void beginScope() {
+void Lox_Compiler::beginScope() {
     current->scopeDepth++;
 }
 
-static void endScope() {
+void Lox_Compiler::endScope() {
     current->scopeDepth--;
 
     while (current->localCount > 0 &&
@@ -197,23 +138,17 @@ static void endScope() {
     }
 }
 
-static void             expression();
-static void             statement();
-static void             declaration();
-static ParseRule const *getRule(TokenType type);
-static void             parsePrecedence(Precedence precedence);
-
-static uint8_t identifierConstant(Token *name) {
+uint8_t Lox_Compiler::identifierConstant(Token *name) {
     return makeConstant(OBJ_VAL(copyString(name->start, name->length)));
 }
 
-static bool identifiersEqual(Token *a, Token *b) {
+bool Lox_Compiler::identifiersEqual(Token *a, Token *b) {
     if (a->length != b->length)
         return false;
     return memcmp(a->start, b->start, a->length) == 0;
 }
 
-static int resolveLocal(Compiler *compiler, Token *name) {
+int Lox_Compiler::resolveLocal(Compiler *compiler, Token *name) {
     for (int i = compiler->localCount - 1; i >= 0; i--) {
         Local *local = &compiler->locals[i];
         if (identifiersEqual(name, &local->name)) {
@@ -227,7 +162,7 @@ static int resolveLocal(Compiler *compiler, Token *name) {
     return -1;
 }
 
-static int addUpvalue(Compiler *compiler, uint8_t index, bool isLocal) {
+int Lox_Compiler::addUpvalue(Compiler *compiler, uint8_t index, bool isLocal) {
     int upvalueCount = compiler->function->upvalueCount;
 
     for (int i = 0; i < upvalueCount; i++) {
@@ -247,7 +182,7 @@ static int addUpvalue(Compiler *compiler, uint8_t index, bool isLocal) {
     return compiler->function->upvalueCount++;
 }
 
-static int resolveUpvalue(Compiler *compiler, Token *name) {
+int Lox_Compiler::resolveUpvalue(Compiler *compiler, Token *name) {
     if (compiler->enclosing == nullptr)
         return -1;
 
@@ -265,7 +200,7 @@ static int resolveUpvalue(Compiler *compiler, Token *name) {
     return -1;
 }
 
-static void addLocal(Token name) {
+void Lox_Compiler::addLocal(Token name) {
     if (current->localCount == UINT8_COUNT) {
         parser->error("Too many local variables in function.");
         return;
@@ -277,7 +212,7 @@ static void addLocal(Token name) {
     local->isCaptured = false;
 }
 
-static void declareVariable() {
+void Lox_Compiler::declareVariable() {
     if (current->scopeDepth == 0) {
         return;
     }
@@ -297,7 +232,7 @@ static void declareVariable() {
     addLocal(*name);
 }
 
-static uint8_t parseVariable(const char *errorMessage) {
+uint8_t Lox_Compiler::parseVariable(const char *errorMessage) {
     parser->consume(TOKEN_IDENTIFIER, errorMessage);
 
     declareVariable();
@@ -308,14 +243,14 @@ static uint8_t parseVariable(const char *errorMessage) {
     return identifierConstant(&parser->previous);
 }
 
-static void markInitialized() {
+void Lox_Compiler::markInitialized() {
     if (current->scopeDepth == 0) {
         return;
     }
     current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
-static void defineVariable(uint8_t global) {
+void Lox_Compiler::defineVariable(uint8_t global) {
     if (current->scopeDepth > 0) {
         markInitialized();
         return;
@@ -324,7 +259,7 @@ static void defineVariable(uint8_t global) {
     emitBytes(OP_DEFINE_GLOBAL, global);
 }
 
-static uint8_t argumentList() {
+uint8_t Lox_Compiler::argumentList() {
     uint8_t argCount = 0;
     if (!parser->check(TOKEN_RIGHT_PAREN)) {
         do {
@@ -339,7 +274,7 @@ static uint8_t argumentList() {
     return argCount;
 }
 
-static void and_(bool /*canAssign*/) {
+void Lox_Compiler::and_(bool /*canAssign*/) {
     int endJump = emitJump(OP_JUMP_IF_FALSE);
 
     emitByte(OP_POP);
@@ -348,7 +283,7 @@ static void and_(bool /*canAssign*/) {
     patchJump(endJump);
 }
 
-static void binary(bool /*canAssign*/) {
+void Lox_Compiler::binary(bool /*canAssign*/) {
     TokenType operatorType = parser->previous.type;
     auto      rule = getRule(operatorType);
     parsePrecedence((Precedence)(rule->precedence + 1));
@@ -389,12 +324,12 @@ static void binary(bool /*canAssign*/) {
     }
 }
 
-static void call(bool /*canAssign*/) {
+void Lox_Compiler::call(bool /*canAssign*/) {
     uint8_t argCount = argumentList();
     emitBytes(OP_CALL, argCount);
 }
 
-static void dot(bool canAssign) {
+void Lox_Compiler::dot(bool canAssign) {
     parser->consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
     uint8_t name = identifierConstant(&parser->previous);
 
@@ -410,7 +345,7 @@ static void dot(bool canAssign) {
     }
 }
 
-static void literal(bool /*canAssign*/) {
+void Lox_Compiler::literal(bool /*canAssign*/) {
     switch (parser->previous.type) {
     case TOKEN_FALSE:
         emitByte(OP_FALSE);
@@ -426,17 +361,17 @@ static void literal(bool /*canAssign*/) {
     }
 }
 
-static void grouping(bool /*canAssign*/) {
+void Lox_Compiler::grouping(bool /*canAssign*/) {
     expression();
     parser->consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
-static void number(bool /*canAssign*/) {
+void Lox_Compiler::number(bool /*canAssign*/) {
     double value = strtod(parser->previous.start, nullptr);
     emitConstant(NUMBER_VAL(value));
 }
 
-static void or_(bool /*canAssign*/) {
+void Lox_Compiler::or_(bool /*canAssign*/) {
     int elseJump = emitJump(OP_JUMP_IF_FALSE);
     int endJump = emitJump(OP_JUMP);
 
@@ -446,12 +381,13 @@ static void or_(bool /*canAssign*/) {
     parsePrecedence(PREC_OR);
     patchJump(endJump);
 }
-static void string(bool /*canAssign*/) {
+
+void Lox_Compiler::string(bool /*canAssign*/) {
     emitConstant(
         OBJ_VAL(copyString(parser->previous.start + 1, parser->previous.length - 2)));
 }
 
-static void namedVariable(Token name, bool canAssign) {
+void Lox_Compiler::namedVariable(Token name, bool canAssign) {
     uint8_t getOp, setOp;
     int     arg = resolveLocal(current, &name);
     if (arg != -1) {
@@ -474,18 +410,18 @@ static void namedVariable(Token name, bool canAssign) {
     }
 }
 
-static void variable(bool canAssign) {
+void Lox_Compiler::variable(bool canAssign) {
     namedVariable(parser->previous, canAssign);
 }
 
-static Token syntheticToken(const char *text) {
+Token Lox_Compiler::syntheticToken(const char *text) {
     Token token{};
     token.start = text;
     token.length = (int)strlen(text);
     return token;
 }
 
-static void super_(bool /*canAssign*/) {
+void Lox_Compiler::super_(bool /*canAssign*/) {
     if (currentClass == nullptr) {
         parser->error("Can't use 'super' outside of a class.");
     } else if (!currentClass->hasSuperclass) {
@@ -508,7 +444,7 @@ static void super_(bool /*canAssign*/) {
     }
 }
 
-static void this_(bool /*canAssign*/) {
+void Lox_Compiler::this_(bool /*canAssign*/) {
     if (currentClass == nullptr) {
         parser->error("Can't use 'this' outside of a class.");
         return;
@@ -517,7 +453,7 @@ static void this_(bool /*canAssign*/) {
     variable(false);
 } // [this]
 
-static void unary(bool /*canAssign*/) {
+void Lox_Compiler::unary(bool /*canAssign*/) {
     TokenType operatorType = parser->previous.type;
 
     // Compile the operand.
@@ -537,63 +473,66 @@ static void unary(bool /*canAssign*/) {
 }
 
 const ParseRule rules[] = {
-    [TOKEN_LEFT_PAREN] = {grouping, call, PREC_CALL},
+    [TOKEN_LEFT_PAREN] = {std::mem_fn(&Lox_Compiler::grouping),
+                          std::mem_fn(&Lox_Compiler::call), PREC_CALL},
     [TOKEN_RIGHT_PAREN] = {nullptr, nullptr, PREC_NONE},
     [TOKEN_LEFT_BRACE] = {nullptr, nullptr, PREC_NONE}, // [big]
     [TOKEN_RIGHT_BRACE] = {nullptr, nullptr, PREC_NONE},
     [TOKEN_COMMA] = {nullptr, nullptr, PREC_NONE},
-    [TOKEN_DOT] = {nullptr, dot, PREC_CALL},
-    [TOKEN_MINUS] = {unary, binary, PREC_TERM},
-    [TOKEN_PLUS] = {nullptr, binary, PREC_TERM},
+    [TOKEN_DOT] = {nullptr, std::mem_fn(&Lox_Compiler::dot), PREC_CALL},
+    [TOKEN_MINUS] = {std::mem_fn(&Lox_Compiler::unary),
+                     std::mem_fn(&Lox_Compiler::binary), PREC_TERM},
+    [TOKEN_PLUS] = {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_TERM},
     [TOKEN_SEMICOLON] = {nullptr, nullptr, PREC_NONE},
-    [TOKEN_SLASH] = {nullptr, binary, PREC_FACTOR},
-    [TOKEN_STAR] = {nullptr, binary, PREC_FACTOR},
-    [TOKEN_BANG] = {unary, nullptr, PREC_NONE},
-    [TOKEN_BANG_EQUAL] = {nullptr, binary, PREC_EQUALITY},
+    [TOKEN_SLASH] = {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_FACTOR},
+    [TOKEN_STAR] = {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_FACTOR},
+    [TOKEN_BANG] = {std::mem_fn(&Lox_Compiler::unary), nullptr, PREC_NONE},
+    [TOKEN_BANG_EQUAL] = {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_EQUALITY},
     [TOKEN_EQUAL] = {nullptr, nullptr, PREC_NONE},
-    [TOKEN_EQUAL_EQUAL] = {nullptr, binary, PREC_EQUALITY},
-    [TOKEN_GREATER] = {nullptr, binary, PREC_COMPARISON},
-    [TOKEN_GREATER_EQUAL] = {nullptr, binary, PREC_COMPARISON},
-    [TOKEN_LESS] = {nullptr, binary, PREC_COMPARISON},
-    [TOKEN_LESS_EQUAL] = {nullptr, binary, PREC_COMPARISON},
-    [TOKEN_IDENTIFIER] = {variable, nullptr, PREC_NONE},
-    [TOKEN_STRING] = {string, nullptr, PREC_NONE},
-    [TOKEN_NUMBER] = {number, nullptr, PREC_NONE},
-    [TOKEN_AND] = {nullptr, and_, PREC_AND},
+    [TOKEN_EQUAL_EQUAL] = {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_EQUALITY},
+    [TOKEN_GREATER] = {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_COMPARISON},
+    [TOKEN_GREATER_EQUAL] = {nullptr, std::mem_fn(&Lox_Compiler::binary),
+                             PREC_COMPARISON},
+    [TOKEN_LESS] = {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_COMPARISON},
+    [TOKEN_LESS_EQUAL] = {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_COMPARISON},
+    [TOKEN_IDENTIFIER] = {std::mem_fn(&Lox_Compiler::variable), nullptr, PREC_NONE},
+    [TOKEN_STRING] = {std::mem_fn(&Lox_Compiler::string), nullptr, PREC_NONE},
+    [TOKEN_NUMBER] = {std::mem_fn(&Lox_Compiler::number), nullptr, PREC_NONE},
+    [TOKEN_AND] = {nullptr, std::mem_fn(&Lox_Compiler::and_), PREC_AND},
     [TOKEN_CLASS] = {nullptr, nullptr, PREC_NONE},
     [TOKEN_ELSE] = {nullptr, nullptr, PREC_NONE},
-    [TOKEN_FALSE] = {literal, nullptr, PREC_NONE},
+    [TOKEN_FALSE] = {std::mem_fn(&Lox_Compiler::literal), nullptr, PREC_NONE},
     [TOKEN_FOR] = {nullptr, nullptr, PREC_NONE},
     [TOKEN_FUN] = {nullptr, nullptr, PREC_NONE},
     [TOKEN_IF] = {nullptr, nullptr, PREC_NONE},
-    [TOKEN_NIL] = {literal, nullptr, PREC_NONE},
-    [TOKEN_OR] = {nullptr, or_, PREC_OR},
+    [TOKEN_NIL] = {std::mem_fn(&Lox_Compiler::literal), nullptr, PREC_NONE},
+    [TOKEN_OR] = {nullptr, std::mem_fn(&Lox_Compiler::or_), PREC_OR},
     [TOKEN_PRINT] = {nullptr, nullptr, PREC_NONE},
     [TOKEN_RETURN] = {nullptr, nullptr, PREC_NONE},
-    [TOKEN_SUPER] = {super_, nullptr, PREC_NONE},
-    [TOKEN_THIS] = {this_, nullptr, PREC_NONE},
-    [TOKEN_TRUE] = {literal, nullptr, PREC_NONE},
+    [TOKEN_SUPER] = {std::mem_fn(&Lox_Compiler::super_), nullptr, PREC_NONE},
+    [TOKEN_THIS] = {std::mem_fn(&Lox_Compiler::this_), nullptr, PREC_NONE},
+    [TOKEN_TRUE] = {std::mem_fn(&Lox_Compiler::literal), nullptr, PREC_NONE},
     [TOKEN_VAR] = {nullptr, nullptr, PREC_NONE},
     [TOKEN_WHILE] = {nullptr, nullptr, PREC_NONE},
     [TOKEN_ERROR] = {nullptr, nullptr, PREC_NONE},
     [TOKEN_EOF] = {nullptr, nullptr, PREC_NONE},
 };
 
-static void parsePrecedence(Precedence precedence) {
+void Lox_Compiler::parsePrecedence(Precedence precedence) {
     parser->advance();
-    ParseFn prefixRule = getRule(parser->previous.type)->prefix;
-    if (prefixRule == nullptr) {
+    auto prefixRule = getRule(parser->previous.type)->prefix;
+    if (&prefixRule == nullptr) {
         parser->error("Expect expression.");
         return;
     }
 
     bool canAssign = precedence <= PREC_ASSIGNMENT;
-    prefixRule(canAssign);
+    prefixRule(*this, canAssign);
 
     while (precedence <= getRule(parser->current.type)->precedence) {
         parser->advance();
         ParseFn infixRule = getRule(parser->previous.type)->infix;
-        infixRule(canAssign);
+        infixRule(*this, canAssign);
     }
 
     if (canAssign && parser->match(TOKEN_EQUAL)) {
@@ -601,15 +540,15 @@ static void parsePrecedence(Precedence precedence) {
     }
 }
 
-static ParseRule const *getRule(TokenType type) {
+ParseRule const *Lox_Compiler::getRule(TokenType type) {
     return &rules[type];
 }
 
-static void expression() {
+void Lox_Compiler::expression() {
     parsePrecedence(PREC_ASSIGNMENT);
 }
 
-static void block() {
+void Lox_Compiler::block() {
     while (!parser->check(TOKEN_RIGHT_BRACE) && !parser->check(TOKEN_EOF)) {
         declaration();
     }
@@ -617,7 +556,7 @@ static void block() {
     parser->consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
 }
 
-static void function(FunctionType type) {
+void Lox_Compiler::function(FunctionType type) {
     Compiler compiler;
     initCompiler(&compiler, type);
     beginScope(); // [no-end-scope]
@@ -646,7 +585,7 @@ static void function(FunctionType type) {
     }
 }
 
-static void method() {
+void Lox_Compiler::method() {
     parser->consume(TOKEN_IDENTIFIER, "Expect method name.");
     uint8_t constant = identifierConstant(&parser->previous);
 
@@ -659,7 +598,7 @@ static void method() {
     emitBytes(OP_METHOD, constant);
 }
 
-static void classDeclaration() {
+void Lox_Compiler::classDeclaration() {
     parser->consume(TOKEN_IDENTIFIER, "Expect class name.");
     Token   className = parser->previous;
     uint8_t nameConstant = identifierConstant(&parser->previous);
@@ -705,14 +644,14 @@ static void classDeclaration() {
     currentClass = currentClass->enclosing;
 }
 
-static void funDeclaration() {
+void Lox_Compiler::funDeclaration() {
     uint8_t global = parseVariable("Expect function name.");
     markInitialized();
     function(TYPE_FUNCTION);
     defineVariable(global);
 }
 
-static void varDeclaration() {
+void Lox_Compiler::varDeclaration() {
     uint8_t global = parseVariable("Expect variable name.");
 
     if (parser->match(TOKEN_EQUAL)) {
@@ -725,13 +664,13 @@ static void varDeclaration() {
     defineVariable(global);
 }
 
-static void expressionStatement() {
+void Lox_Compiler::expressionStatement() {
     expression();
     parser->consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
     emitByte(OP_POP);
 }
 
-static void forStatement() {
+void Lox_Compiler::forStatement() {
     beginScope();
     parser->consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
     if (parser->match(TOKEN_SEMICOLON)) {
@@ -776,7 +715,7 @@ static void forStatement() {
     endScope();
 }
 
-static void ifStatement() {
+void Lox_Compiler::ifStatement() {
     parser->consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     expression();
     parser->consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition."); // [paren]
@@ -796,13 +735,13 @@ static void ifStatement() {
     patchJump(elseJump);
 }
 
-static void printStatement() {
+void Lox_Compiler::printStatement() {
     expression();
     parser->consume(TOKEN_SEMICOLON, "Expect ';' after value.");
     emitByte(OP_PRINT);
 }
 
-static void returnStatement() {
+void Lox_Compiler::returnStatement() {
     if (current->type == TYPE_SCRIPT) {
         parser->error("Can't return from top-level code.");
     }
@@ -820,7 +759,7 @@ static void returnStatement() {
     }
 }
 
-static void whileStatement() {
+void Lox_Compiler::whileStatement() {
     int loopStart = currentChunk()->get_count();
     parser->consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
     expression();
@@ -835,7 +774,7 @@ static void whileStatement() {
     emitByte(OP_POP);
 }
 
-static void synchronize() {
+void Lox_Compiler::synchronize() {
     parser->panicMode = false;
 
     while (parser->current.type != TOKEN_EOF) {
@@ -860,7 +799,7 @@ static void synchronize() {
     }
 }
 
-static void declaration() {
+void Lox_Compiler::declaration() {
     if (parser->match(TOKEN_CLASS)) {
         classDeclaration();
     } else if (parser->match(TOKEN_FUN)) {
@@ -876,7 +815,7 @@ static void declaration() {
     }
 }
 
-static void statement() {
+void Lox_Compiler::statement() {
     if (parser->match(TOKEN_PRINT)) {
         printStatement();
     } else if (parser->match(TOKEN_FOR)) {
@@ -896,7 +835,7 @@ static void statement() {
     }
 }
 
-ObjFunction *compile(const char *source) {
+ObjFunction *Lox_Compiler::compile(const char *source) {
     auto scanner = std::make_unique<Scanner>(source);
     parser = std::make_unique<Parser>(scanner);
     Compiler compiler{};
@@ -912,7 +851,7 @@ ObjFunction *compile(const char *source) {
     return parser->hadError ? nullptr : function;
 }
 
-void markCompilerRoots() {
+void Lox_Compiler::markCompilerRoots() {
     Compiler *compiler = current;
     while (compiler != nullptr) {
         markObject((Obj *)compiler->function);
