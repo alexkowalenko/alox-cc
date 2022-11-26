@@ -6,37 +6,37 @@
 #include "memory.hh"
 #include "vm.hh"
 
-void initChunk(Chunk *chunk) {
-    chunk->count = 0;
-    chunk->capacity = 0;
-    chunk->code = nullptr;
-    chunk->lines = nullptr;
-    chunk->constants.init();
+void Chunk::initChunk() {
+    this->count = 0;
+    this->capacity = 0;
+    this->code = nullptr;
+    this->lines = nullptr;
+    this->constants.init();
 }
 
-void freeChunk(Chunk *chunk) {
-    FREE_ARRAY(uint8_t, chunk->code, chunk->capacity);
-    FREE_ARRAY(int, chunk->lines, chunk->capacity);
-    chunk->constants.freeValueArray();
-    initChunk(chunk);
+void Chunk::freeChunk() {
+    FREE_ARRAY(uint8_t, this->code, this->capacity);
+    FREE_ARRAY(int, this->lines, this->capacity);
+    this->constants.freeValueArray();
+    initChunk();
 }
 
-void writeChunk(Chunk *chunk, uint8_t byte, int line) {
-    if (chunk->capacity < chunk->count + 1) {
-        int oldCapacity = chunk->capacity;
-        chunk->capacity = GROW_CAPACITY(oldCapacity);
-        chunk->code = GROW_ARRAY(uint8_t, chunk->code, oldCapacity, chunk->capacity);
-        chunk->lines = GROW_ARRAY(int, chunk->lines, oldCapacity, chunk->capacity);
+void Chunk::writeChunk(uint8_t byte, int line) {
+    if (this->capacity < this->count + 1) {
+        int oldCapacity = this->capacity;
+        this->capacity = GROW_CAPACITY(oldCapacity);
+        this->code = GROW_ARRAY(uint8_t, this->code, oldCapacity, this->capacity);
+        this->lines = GROW_ARRAY(int, this->lines, oldCapacity, this->capacity);
     }
 
-    chunk->code[chunk->count] = byte;
-    chunk->lines[chunk->count] = line;
-    chunk->count++;
+    this->code[this->count] = byte;
+    this->lines[this->count] = line;
+    this->count++;
 }
 
-int addConstant(Chunk *chunk, Value value) {
+int Chunk::addConstant(Value value) {
     push(value);
-    chunk->constants.writeValueArray(value);
+    this->constants.writeValueArray(value);
     pop();
-    return chunk->constants.get_count() - 1;
+    return this->constants.get_count() - 1;
 }

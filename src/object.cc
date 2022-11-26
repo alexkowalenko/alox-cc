@@ -60,7 +60,7 @@ ObjFunction *newFunction() {
     function->arity = 0;
     function->upvalueCount = 0;
     function->name = NULL;
-    initChunk(&function->chunk);
+    function->chunk.initChunk();
     return function;
 }
 

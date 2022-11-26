@@ -36,9 +36,9 @@ static void runtimeError(const char *format, ...) {
     for (int i = vm.frameCount - 1; i >= 0; i--) {
         CallFrame   *frame = &vm.frames[i];
         ObjFunction *function = frame->closure->function;
-        size_t       instruction = frame->ip - function->chunk.code - 1;
+        size_t       instruction = frame->ip - function->chunk.get_code() - 1;
         fprintf(stderr, "[line %d] in ", // [minus]
-                function->chunk.lines[instruction]);
+                function->chunk.get_line(instruction));
         if (function->name == NULL) {
             fprintf(stderr, "script\n");
         } else {
@@ -111,7 +111,7 @@ static bool call(ObjClosure *closure, int argCount) {
 
     CallFrame *frame = &vm.frames[vm.frameCount++];
     frame->closure = closure;
-    frame->ip = closure->function->chunk.code;
+    frame->ip = closure->function->chunk.get_code();
     frame->slots = vm.stackTop - argCount - 1;
     return true;
 }
@@ -261,7 +261,7 @@ static InterpretResult run() {
 
 #define READ_SHORT() (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
 
-#define READ_CONSTANT() (frame->closure->function->chunk.constants.get_value(READ_BYTE()))
+#define READ_CONSTANT() (frame->closure->function->chunk.get_value(READ_BYTE()))
 
 #define READ_STRING() AS_STRING(READ_CONSTANT())
 #define BINARY_OP(valueType, op)                                                         \

@@ -31,7 +31,7 @@ var start = clock();
 print "stretch tree of depth:"; // expect: stretch tree of depth:
 print stretchDepth;             // expect: 15
 print "check:";                 // expect: check:
-print Tree(0, stretchDepth).check(); // expect -1
+print Tree(0, stretchDepth).check(); // expect: -1
 
 var longLivedTree = Tree(0, maxDepth);
 
@@ -63,9 +63,40 @@ while (depth < stretchDepth) {
   depth = depth + 2;
 }
 
-print "long lived tree of depth:";// expect: num trees:
-print maxDepth;// expect: num trees:
-print "check:";// expect: num trees:
-print longLivedTree.check();// expect: num trees:
-print "elapsed:";// expect: num trees:
+// expect: num trees:
+// expect: 8192
+// expect: depth:
+// expect: 6
+// expect: check:
+// expect: -8192
+// expect: num trees:
+// expect: 2048
+// expect: depth:
+// expect: 8
+// expect: check:
+// expect: -2048
+// expect: num trees:
+// expect: 512
+// expect: depth:
+// expect: 10
+// expect: check:
+// expect: -512
+// expect: num trees:
+// expect: 128
+// expect: depth:
+// expect: 12
+// expect: check:
+// expect: -128
+// expect: num trees:
+// expect: 32
+// expect: depth:
+// expect: 14
+// expect: check:
+// expect: -32
+
+print "long lived tree of depth:";  // expect: long lived tree of depth:
+print maxDepth;                     // expect: 14
+print "check:";                     // expect: check:
+print longLivedTree.check();        // expect: -1
+print "elapsed:";
 print clock() - start;

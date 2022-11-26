@@ -12,11 +12,11 @@ class ValueArray {
     ~ValueArray() { freeValueArray(); };
 
     void                        init();
-    void                        writeValueArray(Value value);
+    void                        writeValueArray(const Value &value);
     void                        freeValueArray();
     [[nodiscard]] constexpr int get_count() const { return count; };
     void                        markArray();
-    constexpr Value            &get_value(size_t n) { return values[n]; }
+    constexpr Value            &get_value(size_t n) const { return values[n]; }
 
   private:
     int    capacity{0};

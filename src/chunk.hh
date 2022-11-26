@@ -48,15 +48,27 @@ enum OpCode {
     OP_METHOD
 };
 
-struct Chunk {
-    int        count;
-    int        capacity;
-    uint8_t   *code;
-    int       *lines;
+class Chunk {
+  public:
+    void initChunk();
+    void freeChunk();
+    void writeChunk(uint8_t byte, int line);
+    int  addConstant(Value value);
+
+    [[nodiscard]] constexpr int         get_count() const { return count; }
+    [[nodiscard]] constexpr int         get_line(size_t n) const { return lines[n]; }
+    
+    [[nodiscard]] constexpr ValueArray &get_constants() { return constants; }
+    [[nodiscard]] constexpr Value   &get_value(size_t n) const { return constants.get_value(n); }
+    
+    constexpr uint8_t &get_code(size_t n) { return code[n]; };
+    [[nodiscard]] constexpr uint8_t *get_code() const { return code; };
+
+  private:
+    int      count;
+    int      capacity;
+    int     *lines;
+    uint8_t *code;
+
     ValueArray constants;
 };
-
-void initChunk(Chunk *chunk);
-void freeChunk(Chunk *chunk);
-void writeChunk(Chunk *chunk, uint8_t byte, int line);
-int  addConstant(Chunk *chunk, Value value);

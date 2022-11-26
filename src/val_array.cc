@@ -6,7 +6,7 @@
 #include "val_array.hh"
 #include "memory.hh"
 
-void ValueArray::writeValueArray(Value value) {
+void ValueArray::writeValueArray(const Value &value) {
     if (this->capacity < this->count + 1) {
         int oldCapacity = this->capacity;
         this->capacity = GROW_CAPACITY(oldCapacity);

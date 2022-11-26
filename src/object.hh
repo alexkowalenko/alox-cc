@@ -45,13 +45,14 @@ struct Obj {
     struct Obj *next;
 };
 
-typedef struct {
+struct ObjFunction {
+  public:
     Obj        obj;
     int        arity;
     int        upvalueCount;
     Chunk      chunk;
     ObjString *name;
-} ObjFunction;
+};
 
 typedef Value (*NativeFn)(int argCount, Value *args);
 

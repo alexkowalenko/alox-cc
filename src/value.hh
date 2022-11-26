@@ -59,6 +59,7 @@ typedef enum {
     VAL_OBJ
 } ValueType;
 
+struct Obj;
 typedef struct {
     ValueType type;
     union {
