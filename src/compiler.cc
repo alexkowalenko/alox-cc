@@ -9,13 +9,10 @@
 
 #include "common.hh"
 #include "compiler.hh"
+#include "debug.hh"
 #include "memory.hh"
 #include "parser.hh"
 #include "scanner.hh"
-
-#ifdef DEBUG_PRINT_CODE
-#include "debug.hh"
-#endif
 
 enum Precedence {
     PREC_NONE,
@@ -170,12 +167,13 @@ static ObjFunction *endCompiler() {
     emitReturn();
     ObjFunction *function = current->function;
 
-#ifdef DEBUG_PRINT_CODE
-    if (!parser->hadError) {
-        disassembleChunk(currentChunk(),
-                         function->name != nullptr ? function->name->chars : "<script>");
+    if constexpr (DEBUG_PRINT_CODE) {
+        if (!parser->hadError) {
+            disassembleChunk(currentChunk(), function->name != nullptr
+                                                 ? function->name->chars
+                                                 : "<script>");
+        }
     }
-#endif
 
     current = current->enclosing;
     return function;

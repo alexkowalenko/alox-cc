@@ -14,6 +14,10 @@ struct Entry {
 
 class Table {
   public:
+    Table() = default;
+
+    Table(const Table &) = delete;
+
     void init();
     void free();
 

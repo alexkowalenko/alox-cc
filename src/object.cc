@@ -11,44 +11,50 @@
 #include "value.hh"
 #include "vm.hh"
 
-#define ALLOCATE_OBJ(type, objectType) (type *)allocateObject(sizeof(type), objectType)
+static Obj *allocateObject(size_t size, ObjType type);
+
+// #define allocate_obj(type, objectType) (type *)allocateObject(sizeof(type), objectType)
+
+template <typename T> constexpr T *allocate_obj(ObjType objectType) {
+    return (T *)allocateObject(sizeof(T), objectType);
+}
 
 static Obj *allocateObject(size_t size, ObjType type) {
-    Obj *object = (Obj *)reallocate(NULL, 0, size);
+    Obj *object = (Obj *)reallocate(nullptr, 0, size);
     object->type = type;
     object->isMarked = false;
 
     object->next = vm.objects;
     vm.objects = object;
 
-#ifdef DEBUG_LOG_GC
-    printf("%p allocate %zu for %d\n", (void *)object, size, type);
-#endif
+    if constexpr (DEBUG_LOG_GC) {
+        printf("%p allocate %zu for %d\n", (void *)object, size, type);
+    }
 
     return object;
 }
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
-    ObjBoundMethod *bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
+    auto *bound = allocate_obj<ObjBoundMethod>(OBJ_BOUND_METHOD);
     bound->receiver = receiver;
     bound->method = method;
     return bound;
 }
 
 ObjClass *newClass(ObjString *name) {
-    ObjClass *klass = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
+    auto *klass = allocate_obj<ObjClass>(OBJ_CLASS);
     klass->name = name; // [klass]
     klass->methods.init();
     return klass;
 }
 
 ObjClosure *newClosure(ObjFunction *function) {
-    ObjUpvalue **upvalues = ALLOCATE(ObjUpvalue *, function->upvalueCount);
+    auto **upvalues = ALLOCATE(ObjUpvalue *, function->upvalueCount);
     for (int i = 0; i < function->upvalueCount; i++) {
-        upvalues[i] = NULL;
+        upvalues[i] = nullptr;
     }
 
-    ObjClosure *closure = ALLOCATE_OBJ(ObjClosure, OBJ_CLOSURE);
+    auto *closure = allocate_obj<ObjClosure>(OBJ_CLOSURE);
     closure->function = function;
     closure->upvalues = upvalues;
     closure->upvalueCount = function->upvalueCount;
@@ -56,29 +62,29 @@ ObjClosure *newClosure(ObjFunction *function) {
 }
 
 ObjFunction *newFunction() {
-    ObjFunction *function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
+    auto *function = allocate_obj<ObjFunction>(OBJ_FUNCTION);
     function->arity = 0;
     function->upvalueCount = 0;
-    function->name = NULL;
+    function->name = nullptr;
     function->chunk.init();
     return function;
 }
 
 ObjInstance *newInstance(ObjClass *klass) {
-    ObjInstance *instance = ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
+    auto *instance = allocate_obj<ObjInstance>(OBJ_INSTANCE);
     instance->klass = klass;
     instance->fields.init();
     return instance;
 }
 
 ObjNative *newNative(NativeFn function) {
-    ObjNative *native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE);
+    auto *native = allocate_obj<ObjNative>(OBJ_NATIVE);
     native->function = function;
     return native;
 }
 
 static ObjString *allocateString(char *chars, int length, uint32_t hash) {
-    ObjString *string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
+    auto *string = allocate_obj<ObjString>(OBJ_STRING);
     string->length = length;
     string->chars = chars;
     string->hash = hash;
@@ -102,7 +108,7 @@ static uint32_t hashString(const char *key, int length) {
 ObjString *takeString(char *chars, int length) {
     uint32_t   hash = hashString(chars, length);
     ObjString *interned = vm.strings.findString(chars, length, hash);
-    if (interned != NULL) {
+    if (interned != nullptr) {
         FREE_ARRAY(char, chars, length + 1);
         return interned;
     }
@@ -113,8 +119,9 @@ ObjString *takeString(char *chars, int length) {
 ObjString *copyString(const char *chars, int length) {
     uint32_t   hash = hashString(chars, length);
     ObjString *interned = vm.strings.findString(chars, length, hash);
-    if (interned != NULL)
+    if (interned != nullptr) {
         return interned;
+    }
 
     char *heapChars = ALLOCATE(char, length + 1);
     memcpy(heapChars, chars, length);
@@ -123,15 +130,15 @@ ObjString *copyString(const char *chars, int length) {
 }
 
 ObjUpvalue *newUpvalue(Value *slot) {
-    ObjUpvalue *upvalue = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
+    auto *upvalue = allocate_obj<ObjUpvalue>(OBJ_UPVALUE);
     upvalue->closed = NIL_VAL;
     upvalue->location = slot;
-    upvalue->next = NULL;
+    upvalue->next = nullptr;
     return upvalue;
 }
 
 static void printFunction(ObjFunction *function) {
-    if (function->name == NULL) {
+    if (function->name == nullptr) {
         printf("<script>");
         return;
     }

@@ -11,7 +11,7 @@
 class ValueArray {
   public:
     ValueArray() = default;
-    ~ValueArray() { free(); };
+    ~ValueArray() = default;
 
     ValueArray(const ValueArray &) = delete;
 
