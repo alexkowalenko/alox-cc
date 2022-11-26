@@ -6,7 +6,7 @@
 #include "memory.hh"
 #include "vm.hh"
 
-void Chunk::initChunk() {
+void Chunk::init() {
     this->count = 0;
     this->capacity = 0;
     this->code = nullptr;
@@ -14,14 +14,14 @@ void Chunk::initChunk() {
     this->constants.init();
 }
 
-void Chunk::freeChunk() {
+void Chunk::free() {
     FREE_ARRAY(uint8_t, this->code, this->capacity);
     FREE_ARRAY(int, this->lines, this->capacity);
-    this->constants.freeValueArray();
-    initChunk();
+    this->constants.free();
+    init();
 }
 
-void Chunk::writeChunk(uint8_t byte, int line) {
+void Chunk::write(uint8_t byte, int line) {
     if (this->capacity < this->count + 1) {
         int oldCapacity = this->capacity;
         this->capacity = GROW_CAPACITY(oldCapacity);
@@ -36,7 +36,7 @@ void Chunk::writeChunk(uint8_t byte, int line) {
 
 int Chunk::addConstant(Value value) {
     push(value);
-    this->constants.writeValueArray(value);
+    this->constants.write(value);
     pop();
     return this->constants.get_count() - 1;
 }

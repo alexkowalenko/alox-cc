@@ -89,7 +89,7 @@ static void blackenObject(Obj *object) {
     case OBJ_CLASS: {
         ObjClass *klass = (ObjClass *)object;
         markObject((Obj *)klass->name);
-        klass->methods.markTable();
+        klass->methods.mark();
         break;
     }
     case OBJ_CLOSURE: {
@@ -103,13 +103,13 @@ static void blackenObject(Obj *object) {
     case OBJ_FUNCTION: {
         ObjFunction *function = (ObjFunction *)object;
         markObject((Obj *)function->name);
-        function->chunk.get_constants().markArray();
+        function->chunk.get_constants().mark();
         break;
     }
     case OBJ_INSTANCE: {
         ObjInstance *instance = (ObjInstance *)object;
         markObject((Obj *)instance->klass);
-        instance->fields.markTable();
+        instance->fields.mark();
         break;
     }
     case OBJ_UPVALUE:
@@ -132,7 +132,7 @@ static void freeObject(Obj *object) {
         break;
     case OBJ_CLASS: {
         ObjClass *klass = (ObjClass *)object;
-        klass->methods.freeTable();
+        klass->methods.free();
         FREE(ObjClass, object);
         break;
     } // [braces]
@@ -144,13 +144,13 @@ static void freeObject(Obj *object) {
     }
     case OBJ_FUNCTION: {
         ObjFunction *function = (ObjFunction *)object;
-        function->chunk.freeChunk();
+        function->chunk.free();
         FREE(ObjFunction, object);
         break;
     }
     case OBJ_INSTANCE: {
         ObjInstance *instance = (ObjInstance *)object;
-        instance->fields.freeTable();
+        instance->fields.free();
         FREE(ObjInstance, object);
         break;
     }
@@ -183,7 +183,7 @@ static void markRoots() {
         markObject((Obj *)upvalue);
     }
 
-    vm.globals.markTable();
+    vm.globals.mark();
     markCompilerRoots();
     markObject((Obj *)vm.initString);
 }
@@ -225,7 +225,7 @@ void collectGarbage() {
 
     markRoots();
     traceReferences();
-    vm.strings.tableRemoveWhite();
+    vm.strings.removeWhite();
     sweep();
 
     vm.nextGC = vm.bytesAllocated * GC_HEAP_GROW_FACTOR;

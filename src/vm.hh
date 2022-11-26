@@ -11,13 +11,14 @@
 #define FRAMES_MAX 64
 #define STACK_MAX  (FRAMES_MAX * UINT8_COUNT)
 
-typedef struct {
+struct CallFrame {
     ObjClosure *closure;
     uint8_t    *ip;
     Value      *slots;
-} CallFrame;
+};
 
-typedef struct {
+class VM {
+  public:
     CallFrame frames[FRAMES_MAX];
     int       frameCount;
 
@@ -34,13 +35,9 @@ typedef struct {
     int    grayCount;
     int    grayCapacity;
     Obj  **grayStack;
-} VM;
+};
 
-typedef enum {
-    INTERPRET_OK,
-    INTERPRET_COMPILE_ERROR,
-    INTERPRET_RUNTIME_ERROR
-} InterpretResult;
+enum InterpretResult { INTERPRET_OK, INTERPRET_COMPILE_ERROR, INTERPRET_RUNTIME_ERROR };
 
 extern VM vm;
 

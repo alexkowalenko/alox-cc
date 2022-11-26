@@ -5,31 +5,23 @@
 
 #include "val_array.hh"
 #include "memory.hh"
+#include <vector>
 
-void ValueArray::writeValueArray(const Value &value) {
-    if (this->capacity < this->count + 1) {
-        int oldCapacity = this->capacity;
-        this->capacity = GROW_CAPACITY(oldCapacity);
-        this->values = GROW_ARRAY(Value, this->values, oldCapacity, this->capacity);
-    }
-
-    this->values[this->count] = value;
-    this->count++;
+void ValueArray::write(const Value &value) {
+    values->push_back(value);
 }
 
 void ValueArray::init() {
-    capacity = 0;
-    count = 0;
-    values = nullptr;
+    values = new std::vector<Value>;
 }
 
-void ValueArray::freeValueArray() {
-    FREE_ARRAY(Value, this->values, this->capacity);
+void ValueArray::free() {
+    delete values;
     init();
 }
 
-void ValueArray::markArray() {
-    for (int i = 0; i < count; i++) {
-        markValue(values[i]);
+void ValueArray::mark() {
+    for (auto &v : *values) {
+        markValue(v);
     }
 }

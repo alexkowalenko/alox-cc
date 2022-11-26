@@ -6,20 +6,24 @@
 
 #include "value.hh"
 
+#include <vector>
+
 class ValueArray {
   public:
     ValueArray() = default;
-    ~ValueArray() { freeValueArray(); };
+    ~ValueArray() { free(); };
 
-    void                        init();
-    void                        writeValueArray(const Value &value);
-    void                        freeValueArray();
-    [[nodiscard]] constexpr int get_count() const { return count; };
-    void                        markArray();
-    constexpr Value            &get_value(size_t n) const { return values[n]; }
+    ValueArray(const ValueArray &) = delete;
+
+    void init();
+    void free();
+
+    void write(const Value &value);
+    void mark();
+
+    [[nodiscard]] constexpr size_t get_count() const { return values->size(); };
+    [[nodiscard]] constexpr Value &get_value(size_t n) { return (*values)[n]; }
 
   private:
-    int    capacity{0};
-    int    count{0};
-    Value *values{nullptr};
+    std::vector<Value> *values{nullptr};
 };

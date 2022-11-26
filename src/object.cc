@@ -60,7 +60,7 @@ ObjFunction *newFunction() {
     function->arity = 0;
     function->upvalueCount = 0;
     function->name = NULL;
-    function->chunk.initChunk();
+    function->chunk.init();
     return function;
 }
 
@@ -84,7 +84,7 @@ static ObjString *allocateString(char *chars, int length, uint32_t hash) {
     string->hash = hash;
 
     push(OBJ_VAL(string));
-    vm.strings.tableSet(string, NIL_VAL);
+    vm.strings.set(string, NIL_VAL);
     pop();
 
     return string;
@@ -101,7 +101,7 @@ static uint32_t hashString(const char *key, int length) {
 
 ObjString *takeString(char *chars, int length) {
     uint32_t   hash = hashString(chars, length);
-    ObjString *interned = vm.strings.tableFindString(chars, length, hash);
+    ObjString *interned = vm.strings.findString(chars, length, hash);
     if (interned != NULL) {
         FREE_ARRAY(char, chars, length + 1);
         return interned;
@@ -112,7 +112,7 @@ ObjString *takeString(char *chars, int length) {
 
 ObjString *copyString(const char *chars, int length) {
     uint32_t   hash = hashString(chars, length);
-    ObjString *interned = vm.strings.tableFindString(chars, length, hash);
+    ObjString *interned = vm.strings.findString(chars, length, hash);
     if (interned != NULL)
         return interned;
 

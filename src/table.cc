@@ -18,7 +18,7 @@ void Table::init() {
     this->entries = nullptr;
 }
 
-void Table::freeTable() {
+void Table::free() {
     FREE_ARRAY(Entry, this->entries, this->capacity);
     init();
 }
@@ -50,7 +50,7 @@ Entry *findEntry(Entry *entries, int capacity, ObjString *key) {
     }
 }
 
-bool Table::tableGet(ObjString *key, Value *value) {
+bool Table::get(ObjString *key, Value *value) {
     if (this->count == 0) {
         return false;
     }
@@ -89,7 +89,7 @@ void Table::adjustCapacity(int capacity) {
     this->capacity = capacity;
 }
 
-bool Table::tableSet(ObjString *key, Value value) {
+bool Table::set(ObjString *key, Value value) {
     if (this->count + 1 > this->capacity * TABLE_MAX_LOAD) {
         int capacity = GROW_CAPACITY(this->capacity);
         adjustCapacity(capacity);
@@ -106,7 +106,7 @@ bool Table::tableSet(ObjString *key, Value value) {
     return isNewKey;
 }
 
-bool Table::tableDelete(ObjString *key) {
+bool Table::del(ObjString *key) {
     if (this->count == 0) {
         return false;
     }
@@ -123,16 +123,16 @@ bool Table::tableDelete(ObjString *key) {
     return true;
 }
 
-void Table::tableAddAll(Table *from, Table *to) {
+void Table::addAll(Table *from, Table *to) {
     for (int i = 0; i < from->capacity; i++) {
         Entry *entry = &from->entries[i];
         if (entry->key != nullptr) {
-            to->tableSet(entry->key, entry->value);
+            to->set(entry->key, entry->value);
         }
     }
 }
 
-ObjString *Table::tableFindString(const char *chars, int length, uint32_t hash) {
+ObjString *Table::findString(const char *chars, int length, uint32_t hash) {
     if (this->count == 0) {
         return nullptr;
     }
@@ -155,16 +155,16 @@ ObjString *Table::tableFindString(const char *chars, int length, uint32_t hash) 
     }
 }
 
-void Table::tableRemoveWhite() {
+void Table::removeWhite() {
     for (int i = 0; i < this->capacity; i++) {
         Entry *entry = &this->entries[i];
         if (entry->key != nullptr && !entry->key->obj.isMarked) {
-            tableDelete(entry->key);
+            del(entry->key);
         }
     }
 }
 
-void Table::markTable() {
+void Table::mark() {
     for (int i = 0; i < this->capacity; i++) {
         Entry *entry = &this->entries[i];
         markObject((Obj *)entry->key);

@@ -78,7 +78,7 @@ static Chunk *currentChunk() {
 }
 
 static void emitByte(uint8_t byte) {
-    currentChunk()->writeChunk(byte, parser->previous.line);
+    currentChunk()->write(byte, parser->previous.line);
 }
 
 static void emitBytes(uint8_t byte1, uint8_t byte2) {

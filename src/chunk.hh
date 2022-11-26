@@ -50,9 +50,9 @@ enum OpCode {
 
 class Chunk {
   public:
-    void initChunk();
-    void freeChunk();
-    void writeChunk(uint8_t byte, int line);
+    void init();
+    void free();
+    void write(uint8_t byte, int line);
     int  addConstant(Value value);
 
     [[nodiscard]] constexpr int get_count() const { return count; }
