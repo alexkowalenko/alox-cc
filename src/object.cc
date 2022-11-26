@@ -13,8 +13,6 @@
 
 static Obj *allocateObject(size_t size, ObjType type);
 
-// #define allocate_obj(type, objectType) (type *)allocateObject(sizeof(type), objectType)
-
 template <typename T> constexpr T *allocate_obj(ObjType objectType) {
     return (T *)allocateObject(sizeof(T), objectType);
 }
@@ -49,7 +47,7 @@ ObjClass *newClass(ObjString *name) {
 }
 
 ObjClosure *newClosure(ObjFunction *function) {
-    auto **upvalues = ALLOCATE(ObjUpvalue *, function->upvalueCount);
+    auto **upvalues = allocate<ObjUpvalue *>(function->upvalueCount);
     for (int i = 0; i < function->upvalueCount; i++) {
         upvalues[i] = nullptr;
     }
@@ -109,7 +107,7 @@ ObjString *takeString(char *chars, int length) {
     uint32_t   hash = hashString(chars, length);
     ObjString *interned = vm.strings.findString(chars, length, hash);
     if (interned != nullptr) {
-        FREE_ARRAY(char, chars, length + 1);
+        free_array<char>(chars, length + 1);
         return interned;
     }
 
@@ -123,7 +121,7 @@ ObjString *copyString(const char *chars, int length) {
         return interned;
     }
 
-    char *heapChars = ALLOCATE(char, length + 1);
+    char *heapChars = allocate<char>(length + 1);
     memcpy(heapChars, chars, length);
     heapChars[length] = '\0';
     return allocateString(heapChars, length, hash);

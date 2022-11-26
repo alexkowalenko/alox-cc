@@ -15,18 +15,18 @@ void Chunk::init() {
 }
 
 void Chunk::free() {
-    FREE_ARRAY(uint8_t, this->code, this->capacity);
-    FREE_ARRAY(int, this->lines, this->capacity);
+    free_array<uint8_t>(this->code, this->capacity);
+    free_array<int>(this->lines, this->capacity);
     this->constants.free();
     init();
 }
 
 void Chunk::write(uint8_t byte, int line) {
     if (this->capacity < this->count + 1) {
-        int oldCapacity = this->capacity;
-        this->capacity = GROW_CAPACITY(oldCapacity);
-        this->code = GROW_ARRAY(uint8_t, this->code, oldCapacity, this->capacity);
-        this->lines = GROW_ARRAY(int, this->lines, oldCapacity, this->capacity);
+        size_t oldCapacity = this->capacity;
+        this->capacity = grow_capacity(oldCapacity);
+        this->code = grow_array<uint8_t>(this->code, oldCapacity, this->capacity);
+        this->lines = grow_array<int>(this->lines, oldCapacity, this->capacity);
     }
 
     this->code[this->count] = byte;

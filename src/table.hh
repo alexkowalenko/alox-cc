@@ -31,9 +31,9 @@ class Table {
     void mark();
 
   private:
-    void adjustCapacity(int capacity);
+    void adjustCapacity(size_t capacity);
 
-    int    count{0};
-    int    capacity{0};
+    size_t count{0};
+    size_t capacity{0};
     Entry *entries{nullptr};
 };

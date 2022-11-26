@@ -19,13 +19,13 @@ void Table::init() {
 }
 
 void Table::free() {
-    FREE_ARRAY(Entry, this->entries, this->capacity);
+    free_array<Entry>(this->entries, this->capacity);
     init();
 }
 
 // NOTE: The "Optimization" chapter has a manual copy of this function.
 // If you change it here, make sure to update that copy.
-Entry *findEntry(Entry *entries, int capacity, ObjString *key) {
+Entry *findEntry(Entry *entries, size_t capacity, ObjString *key) {
     uint32_t index = key->hash & (capacity - 1);
     Entry   *tombstone = nullptr;
 
@@ -35,12 +35,12 @@ Entry *findEntry(Entry *entries, int capacity, ObjString *key) {
             if (IS_NIL(entry->value)) {
                 // Empty entry.
                 return tombstone != nullptr ? tombstone : entry;
-            } else {
-                // We found a tombstone.
-                if (tombstone == nullptr) {
-                    tombstone = entry;
-                }
             }
+            // We found a tombstone.
+            if (tombstone == nullptr) {
+                tombstone = entry;
+            }
+
         } else if (entry->key == key) {
             // We found the key.
             return entry;
@@ -64,8 +64,8 @@ bool Table::get(ObjString *key, Value *value) {
     return true;
 }
 
-void Table::adjustCapacity(int capacity) {
-    Entry *entries = ALLOCATE(Entry, capacity);
+void Table::adjustCapacity(size_t capacity) {
+    auto *entries = allocate<Entry>(capacity);
     for (int i = 0; i < capacity; i++) {
         entries[i].key = nullptr;
         entries[i].value = NIL_VAL;
@@ -84,14 +84,14 @@ void Table::adjustCapacity(int capacity) {
         this->count++;
     }
 
-    FREE_ARRAY(Entry, this->entries, this->capacity);
+    free_array<Entry>(this->entries, this->capacity);
     this->entries = entries;
     this->capacity = capacity;
 }
 
 bool Table::set(ObjString *key, Value value) {
     if (this->count + 1 > this->capacity * TABLE_MAX_LOAD) {
-        int capacity = GROW_CAPACITY(this->capacity);
+        auto capacity = grow_capacity(this->capacity);
         adjustCapacity(capacity);
     }
 

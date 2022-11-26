@@ -55,7 +55,7 @@ void markObject(Obj *object) {
     object->isMarked = true;
 
     if (vm.grayCapacity < vm.grayCount + 1) {
-        vm.grayCapacity = GROW_CAPACITY(vm.grayCapacity);
+        vm.grayCapacity = grow_capacity(vm.grayCapacity);
         vm.grayStack = (Obj **)realloc(vm.grayStack, sizeof(Obj *) * vm.grayCapacity);
 
         if (vm.grayStack == nullptr) {
@@ -128,43 +128,43 @@ static void freeObject(Obj *object) {
 
     switch (object->type) {
     case OBJ_BOUND_METHOD:
-        FREE(ObjBoundMethod, object);
+        FREE<ObjBoundMethod>(object);
         break;
     case OBJ_CLASS: {
         ObjClass *klass = (ObjClass *)object;
         klass->methods.free();
-        FREE(ObjClass, object);
+        FREE<ObjClass>(object);
         break;
     } // [braces]
     case OBJ_CLOSURE: {
         ObjClosure *closure = (ObjClosure *)object;
-        FREE_ARRAY(ObjUpvalue *, closure->upvalues, closure->upvalueCount);
-        FREE(ObjClosure, object);
+        free_array<ObjUpvalue *>(closure->upvalues, closure->upvalueCount);
+        FREE<ObjClosure>(object);
         break;
     }
     case OBJ_FUNCTION: {
         ObjFunction *function = (ObjFunction *)object;
         function->chunk.free();
-        FREE(ObjFunction, object);
+        FREE<ObjFunction>(object);
         break;
     }
     case OBJ_INSTANCE: {
         ObjInstance *instance = (ObjInstance *)object;
         instance->fields.free();
-        FREE(ObjInstance, object);
+        FREE<ObjInstance>(object);
         break;
     }
     case OBJ_NATIVE:
-        FREE(ObjNative, object);
+        FREE<ObjNative>(object);
         break;
     case OBJ_STRING: {
         ObjString *string = (ObjString *)object;
-        FREE_ARRAY(char, string->chars, string->length + 1);
-        FREE(ObjString, object);
+        free_array<char>(string->chars, string->length + 1);
+        FREE<ObjString>(object);
         break;
     }
     case OBJ_UPVALUE:
-        FREE(ObjUpvalue, object);
+        FREE<ObjUpvalue>(object);
         break;
     }
 }

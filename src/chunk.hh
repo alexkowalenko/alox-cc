@@ -65,8 +65,8 @@ class Chunk {
     [[nodiscard]] constexpr uint8_t *get_code() const { return code; };
 
   private:
-    int      count;
-    int      capacity;
+    size_t   count;
+    size_t   capacity;
     int     *lines;
     uint8_t *code;
 
