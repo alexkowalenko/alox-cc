@@ -7,6 +7,7 @@ add_library(lox STATIC
    debug.cc
    memory.cc
    object.cc
+   parser.cc
    scanner.cc
    table.cc
    value.cc
