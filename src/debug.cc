@@ -2,14 +2,16 @@
 // ALOX-CC
 //
 
-#include <stdio.h>
+#include <iostream>
+
+#include <fmt/core.h>
 
 #include "debug.hh"
 #include "object.hh"
 #include "value.hh"
 
 void disassembleChunk(Chunk *chunk, const char *name) {
-    printf("== %s ==\n", name);
+    fmt::print("== {} ==\n", name);
 
     for (int offset = 0; offset < chunk->get_count();) {
         offset = disassembleInstruction(chunk, offset);
@@ -18,45 +20,45 @@ void disassembleChunk(Chunk *chunk, const char *name) {
 
 static int constantInstruction(const char *name, Chunk *chunk, int offset) {
     uint8_t constant = chunk->get_code(offset + 1);
-    printf("%-16s %4d '", name, constant);
+    fmt::print("{:<16}    {:d} '", name, constant);
     printValue(chunk->get_value(constant));
-    printf("'\n");
+    std::cout << "'\n";
     return offset + 2;
 }
 
 static int invokeInstruction(const char *name, Chunk *chunk, int offset) {
     uint8_t constant = chunk->get_code(offset + 1);
     uint8_t argCount = chunk->get_code(offset + 2);
-    printf("%-16s (%d args) %4d '", name, argCount, constant);
+    fmt::print("{:<16}    ({:d} args) {:4d} '", name, argCount, constant);
     printValue(chunk->get_value(constant));
-    printf("'\n");
+    std::cout << "'\n";
     return offset + 3;
 }
 
 static int simpleInstruction(const char *name, int offset) {
-    printf("%s\n", name);
+    fmt::print("{}\n", name);
     return offset + 1;
 }
 
 static int byteInstruction(const char *name, Chunk *chunk, int offset) {
     uint8_t slot = chunk->get_code(offset + 1);
-    printf("%-16s %4d\n", name, slot);
+    fmt::print("{:<16} {:4d}\n", name, slot);
     return offset + 2; // [debug]
 }
 
 static int jumpInstruction(const char *name, int sign, Chunk *chunk, int offset) {
-    uint16_t jump = (uint16_t)(chunk->get_code(offset + 1) << 8);
+    auto jump = (uint16_t)(chunk->get_code(offset + 1) << 8);
     jump |= chunk->get_code(offset + 2);
-    printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign * jump);
+    fmt::print("{:<16}   {:4d} -> {:d}\n", name, offset, offset + 3 + sign * jump);
     return offset + 3;
 }
 
 int disassembleInstruction(Chunk *chunk, int offset) {
-    printf("%04d ", offset);
+    fmt::print("{:04d} ", offset);
     if (offset > 0 && chunk->get_line(offset) == chunk->get_line(offset - 1)) {
-        printf("   | ");
+        fmt::print("   | ");
     } else {
-        printf("%4d ", chunk->get_line(offset));
+        fmt::print("{:04d} ", chunk->get_line(offset));
     }
 
     uint8_t instruction = chunk->get_code(offset);
@@ -126,16 +128,16 @@ int disassembleInstruction(Chunk *chunk, int offset) {
     case OP_CLOSURE: {
         offset++;
         uint8_t constant = chunk->get_code(offset++);
-        printf("%-16s %4d ", "OP_CLOSURE", constant);
+        fmt::print("{:<16} {:4d} ", "OP_CLOSURE", constant);
         printValue(chunk->get_value(constant));
-        printf("\n");
+        fmt::print("\n");
 
         ObjFunction *function = AS_FUNCTION(chunk->get_value(constant));
         for (int j = 0; j < function->upvalueCount; j++) {
             int isLocal = chunk->get_code(offset++);
             int index = chunk->get_code(offset++);
-            printf("%04d      |                     %s %d\n", offset - 2,
-                   isLocal ? "local" : "upvalue", index);
+            fmt::print("{:04d}      |                     {} {:d}\n", offset - 2,
+                       isLocal ? "local" : "upvalue", index);
         }
 
         return offset;
@@ -151,7 +153,7 @@ int disassembleInstruction(Chunk *chunk, int offset) {
     case OP_METHOD:
         return constantInstruction("OP_METHOD", chunk, offset);
     default:
-        printf("Unknown opcode %d\n", instruction);
+        fmt::print("Unknown opcode {:d}\n", instruction);
         return offset + 1;
     }
 }

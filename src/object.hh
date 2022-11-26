@@ -116,14 +116,33 @@ constexpr bool IS_STRING(Value value) {
     return isObjType(value, OBJ_STRING);
 }
 
-#define AS_BOUND_METHOD(value) (reinterpret_cast<ObjBoundMethod *>(AS_OBJ(value)))
-#define AS_CLASS(value)        (reinterpret_cast<ObjClass *>(AS_OBJ(value)))
-#define AS_CLOSURE(value)      (reinterpret_cast<ObjClosure *>(AS_OBJ(value)))
-#define AS_FUNCTION(value)     (reinterpret_cast<ObjFunction *>(AS_OBJ(value)))
-#define AS_INSTANCE(value)     (reinterpret_cast<ObjInstance *>(AS_OBJ(value)))
-#define AS_NATIVE(value)       (reinterpret_cast<ObjNative *>(AS_OBJ(value))->function)
-#define AS_STRING(value)       (reinterpret_cast<ObjString *>(AS_OBJ(value)))
-#define AS_CSTRING(value)      (reinterpret_cast<ObjString *>(AS_OBJ(value))->chars)
+inline ObjBoundMethod *AS_BOUND_METHOD(Value value) {
+    return (reinterpret_cast<ObjBoundMethod *>(AS_OBJ(value)));
+}
+
+inline ObjClass *AS_CLASS(Value value) {
+    return (reinterpret_cast<ObjClass *>(AS_OBJ(value)));
+}
+
+inline ObjClosure *AS_CLOSURE(Value value) {
+    return (reinterpret_cast<ObjClosure *>(AS_OBJ(value)));
+}
+
+inline ObjFunction *AS_FUNCTION(Value value) {
+    return (reinterpret_cast<ObjFunction *>(AS_OBJ(value)));
+}
+
+inline ObjInstance *AS_INSTANCE(Value value) {
+    return (reinterpret_cast<ObjInstance *>(AS_OBJ(value)));
+}
+
+#define AS_NATIVE(value) (((ObjNative *)AS_OBJ(value))->function)
+
+inline ObjString *AS_STRING(Value value) {
+    return (reinterpret_cast<ObjString *>(AS_OBJ(value)));
+}
+
+#define AS_CSTRING(value) (((ObjString *)AS_OBJ(value))->chars)
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
 ObjClass       *newClass(ObjString *name);

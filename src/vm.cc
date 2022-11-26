@@ -2,10 +2,13 @@
 // ALOX-CC
 //
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
+#include <cstdarg>
+#include <cstdio>
+#include <ctime>
+#include <functional>
+#include <iostream>
+
+#include <fmt/core.h>
 
 #include "common.hh"
 #include "compiler.hh"
@@ -16,7 +19,7 @@
 
 VM vm; // [one]
 
-static Value clockNative(int argCount, Value *args) {
+static Value clockNative(int /*argCount*/, Value * /*args*/) {
     return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
 
@@ -26,23 +29,20 @@ static void resetStack() {
     vm.openUpvalues = nullptr;
 }
 
-static void runtimeError(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputs("\n", stderr);
+template <typename... T> void runtimeError(const char *format, const T &...msg) {
+    std::cerr << fmt::format(fmt::runtime(format), msg...); // NOLINT
+    std::cerr << '\n';
 
     for (int i = vm.frameCount - 1; i >= 0; i--) {
         CallFrame   *frame = &vm.frames[i];
         ObjFunction *function = frame->closure->function;
         size_t       instruction = frame->ip - function->chunk.get_code() - 1;
-        fprintf(stderr, "[line %d] in ", // [minus]
-                function->chunk.get_line(instruction));
+        std::cerr << fmt::format("[line {:d}] in ", // [minus]
+                                 function->chunk.get_line(instruction));
         if (function->name == nullptr) {
-            fprintf(stderr, "script\n");
+            std::cerr << "script\n";
         } else {
-            fprintf(stderr, "%s()\n", function->name->chars);
+            std::cerr << fmt::format("{}()\n", function->name->chars);
         }
     }
 
@@ -99,7 +99,7 @@ static Value peek(int distance) {
 
 static bool call(ObjClosure *closure, int argCount) {
     if (argCount != closure->function->arity) {
-        runtimeError("Expected %d arguments but got %d.", closure->function->arity,
+        runtimeError("Expected {:d} arguments but got{:d}.", closure->function->arity,
                      argCount);
         return false;
     }
@@ -130,8 +130,9 @@ static bool callValue(Value callee, int argCount) {
             Value initializer;
             if (klass->methods.get(vm.initString, &initializer)) {
                 return call(AS_CLOSURE(initializer), argCount);
-            } else if (argCount != 0) {
-                runtimeError("Expected 0 arguments but got %d.", argCount);
+            }
+            if (argCount != 0) {
+                runtimeError("Expected 0 arguments but got {:d}.", argCount);
                 return false;
             }
             return true;
@@ -156,7 +157,7 @@ static bool callValue(Value callee, int argCount) {
 static bool invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
     Value method;
     if (!klass->methods.get(name, &method)) {
-        runtimeError("Undefined property '%s'.", name->chars);
+        runtimeError("Undefined property '{}'.", name->chars);
         return false;
     }
     return call(AS_CLOSURE(method), argCount);
@@ -184,7 +185,7 @@ static bool invoke(ObjString *name, int argCount) {
 static bool bindMethod(ObjClass *klass, ObjString *name) {
     Value method;
     if (!klass->methods.get(name, &method)) {
-        runtimeError("Undefined property '%s'.", name->chars);
+        runtimeError("Undefined property '{}'.", name->chars);
         return false;
     }
 
@@ -277,13 +278,13 @@ static InterpretResult run() {
 
     for (;;) {
         if constexpr (DEBUG_TRACE_EXECUTION) {
-            printf("          ");
+            std::cout << "          ";
             for (Value *slot = vm.stack; slot < vm.stackTop; slot++) {
-                printf("[ ");
+                std::cout << "[ ";
                 printValue(*slot);
-                printf(" ]");
+                std::cout << " ]";
             }
-            printf("\n");
+            std::cout << "\n";
             disassembleInstruction(
                 &frame->closure->function->chunk,
                 (int)(frame->ip - frame->closure->function->chunk.get_code()));
@@ -322,7 +323,7 @@ static InterpretResult run() {
             ObjString *name = READ_STRING();
             Value      value;
             if (!vm.globals.get(name, &value)) {
-                runtimeError("Undefined variable '%s'.", name->chars);
+                runtimeError("Undefined variable '{}'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
             push(value);
@@ -338,7 +339,7 @@ static InterpretResult run() {
             ObjString *name = READ_STRING();
             if (vm.globals.set(name, peek(0))) {
                 vm.globals.del(name); // [delete]
-                runtimeError("Undefined variable '%s'.", name->chars);
+                runtimeError("Undefined variable '{}'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
@@ -442,7 +443,7 @@ static InterpretResult run() {
             break;
         case OP_PRINT: {
             printValue(pop());
-            printf("\n");
+            std::cout << "\n";
             break;
         }
         case OP_JUMP: {
@@ -553,14 +554,16 @@ void hack(bool b) {
     // Hack to avoid unused function error. run() is not used in the
     // scanning chapter.
     run();
-    if (b)
+    if (b) {
         hack(false);
+    }
 }
 
 InterpretResult interpret(const char *source) {
     ObjFunction *function = compile(source);
-    if (function == nullptr)
+    if (function == nullptr) {
         return INTERPRET_COMPILE_ERROR;
+    }
 
     push(OBJ_VAL(function));
     ObjClosure *closure = newClosure(function);

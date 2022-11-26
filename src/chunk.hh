@@ -50,13 +50,18 @@ enum OpCode {
 
 class Chunk {
   public:
+    Chunk() = default;
+    ~Chunk() = default;
+
+    Chunk(const Chunk &) = delete;
+
     void init();
     void free();
     void write(uint8_t byte, int line);
     int  addConstant(Value value);
 
     [[nodiscard]] constexpr int get_count() const { return count; }
-    [[nodiscard]] constexpr int get_line(size_t n) const { return lines[n]; }
+    [[nodiscard]] constexpr int get_line(size_t n) const { return (*lines)[n]; }
 
     [[nodiscard]] constexpr ValueArray &get_constants() { return constants; }
     [[nodiscard]] constexpr Value &get_value(size_t n) { return constants.get_value(n); }
@@ -67,8 +72,8 @@ class Chunk {
   private:
     size_t   count;
     size_t   capacity;
-    int     *lines;
     uint8_t *code;
 
-    ValueArray constants;
+    std::vector<int> *lines;
+    ValueArray        constants;
 };

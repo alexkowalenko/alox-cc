@@ -10,14 +10,16 @@ void Chunk::init() {
     this->count = 0;
     this->capacity = 0;
     this->code = nullptr;
-    this->lines = nullptr;
     this->constants.init();
+
+    lines = new std::vector<int>;
 }
 
 void Chunk::free() {
     free_array<uint8_t>(this->code, this->capacity);
-    free_array<int>(this->lines, this->capacity);
     this->constants.free();
+    delete lines;
+
     init();
 }
 
@@ -26,11 +28,10 @@ void Chunk::write(uint8_t byte, int line) {
         size_t oldCapacity = this->capacity;
         this->capacity = grow_capacity(oldCapacity);
         this->code = grow_array<uint8_t>(this->code, oldCapacity, this->capacity);
-        this->lines = grow_array<int>(this->lines, oldCapacity, this->capacity);
     }
 
     this->code[this->count] = byte;
-    this->lines[this->count] = line;
+    this->lines->push_back(line);
     this->count++;
 }
 
