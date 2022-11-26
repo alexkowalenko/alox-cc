@@ -31,7 +31,7 @@ enum Precedence {
     PREC_PRIMARY
 };
 
-typedef void (*ParseFn)(bool canAssign);
+using ParseFn = void (*)(bool);
 
 struct ParseRule {
     ParseFn    prefix;
@@ -68,11 +68,10 @@ struct ClassCompiler {
     bool                  hasSuperclass;
 };
 
-inline std::unique_ptr<Scanner> scanner;
-inline std::unique_ptr<Parser>  parser;
+inline std::unique_ptr<Parser> parser;
 
-Compiler      *current = nullptr;
-ClassCompiler *currentClass = nullptr;
+inline Compiler      *current{nullptr};
+inline ClassCompiler *currentClass{nullptr};
 
 static Chunk *currentChunk() {
     return &current->function->chunk;
@@ -91,8 +90,9 @@ static void emitLoop(int loopStart) {
     emitByte(OP_LOOP);
 
     int offset = currentChunk()->get_count() - loopStart + 2;
-    if (offset > UINT16_MAX)
+    if (offset > UINT16_MAX) {
         parser->error("Loop body too large.");
+    }
 
     emitByte((offset >> 8) & 0xff);
     emitByte(offset & 0xff);
@@ -199,11 +199,11 @@ static void endScope() {
     }
 }
 
-static void       expression();
-static void       statement();
-static void       declaration();
-static ParseRule *getRule(TokenType type);
-static void       parsePrecedence(Precedence precedence);
+static void             expression();
+static void             statement();
+static void             declaration();
+static ParseRule const *getRule(TokenType type);
+static void             parsePrecedence(Precedence precedence);
 
 static uint8_t identifierConstant(Token *name) {
     return makeConstant(OBJ_VAL(copyString(name->start, name->length)));
@@ -280,8 +280,9 @@ static void addLocal(Token name) {
 }
 
 static void declareVariable() {
-    if (current->scopeDepth == 0)
+    if (current->scopeDepth == 0) {
         return;
+    }
 
     Token *name = &parser->previous;
     for (int i = current->localCount - 1; i >= 0; i--) {
@@ -302,15 +303,17 @@ static uint8_t parseVariable(const char *errorMessage) {
     parser->consume(TOKEN_IDENTIFIER, errorMessage);
 
     declareVariable();
-    if (current->scopeDepth > 0)
+    if (current->scopeDepth > 0) {
         return 0;
+    }
 
     return identifierConstant(&parser->previous);
 }
 
 static void markInitialized() {
-    if (current->scopeDepth == 0)
+    if (current->scopeDepth == 0) {
         return;
+    }
     current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
@@ -338,7 +341,7 @@ static uint8_t argumentList() {
     return argCount;
 }
 
-static void and_(bool canAssign) {
+static void and_(bool /*canAssign*/) {
     int endJump = emitJump(OP_JUMP_IF_FALSE);
 
     emitByte(OP_POP);
@@ -347,9 +350,9 @@ static void and_(bool canAssign) {
     patchJump(endJump);
 }
 
-static void binary(bool canAssign) {
-    TokenType  operatorType = parser->previous.type;
-    ParseRule *rule = getRule(operatorType);
+static void binary(bool /*canAssign*/) {
+    TokenType operatorType = parser->previous.type;
+    auto      rule = getRule(operatorType);
     parsePrecedence((Precedence)(rule->precedence + 1));
 
     switch (operatorType) {
@@ -388,7 +391,7 @@ static void binary(bool canAssign) {
     }
 }
 
-static void call(bool canAssign) {
+static void call(bool /*canAssign*/) {
     uint8_t argCount = argumentList();
     emitBytes(OP_CALL, argCount);
 }
@@ -409,7 +412,7 @@ static void dot(bool canAssign) {
     }
 }
 
-static void literal(bool canAssign) {
+static void literal(bool /*canAssign*/) {
     switch (parser->previous.type) {
     case TOKEN_FALSE:
         emitByte(OP_FALSE);
@@ -425,17 +428,17 @@ static void literal(bool canAssign) {
     }
 }
 
-static void grouping(bool canAssign) {
+static void grouping(bool /*canAssign*/) {
     expression();
     parser->consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
-static void number(bool canAssign) {
+static void number(bool /*canAssign*/) {
     double value = strtod(parser->previous.start, nullptr);
     emitConstant(NUMBER_VAL(value));
 }
 
-static void or_(bool canAssign) {
+static void or_(bool /*canAssign*/) {
     int elseJump = emitJump(OP_JUMP_IF_FALSE);
     int endJump = emitJump(OP_JUMP);
 
@@ -445,7 +448,7 @@ static void or_(bool canAssign) {
     parsePrecedence(PREC_OR);
     patchJump(endJump);
 }
-static void string(bool canAssign) {
+static void string(bool /*canAssign*/) {
     emitConstant(
         OBJ_VAL(copyString(parser->previous.start + 1, parser->previous.length - 2)));
 }
@@ -478,13 +481,13 @@ static void variable(bool canAssign) {
 }
 
 static Token syntheticToken(const char *text) {
-    Token token;
+    Token token{};
     token.start = text;
     token.length = (int)strlen(text);
     return token;
 }
 
-static void super_(bool canAssign) {
+static void super_(bool /*canAssign*/) {
     if (currentClass == nullptr) {
         parser->error("Can't use 'super' outside of a class.");
     } else if (!currentClass->hasSuperclass) {
@@ -507,7 +510,7 @@ static void super_(bool canAssign) {
     }
 }
 
-static void this_(bool canAssign) {
+static void this_(bool /*canAssign*/) {
     if (currentClass == nullptr) {
         parser->error("Can't use 'this' outside of a class.");
         return;
@@ -516,7 +519,7 @@ static void this_(bool canAssign) {
     variable(false);
 } // [this]
 
-static void unary(bool canAssign) {
+static void unary(bool /*canAssign*/) {
     TokenType operatorType = parser->previous.type;
 
     // Compile the operand.
@@ -535,7 +538,7 @@ static void unary(bool canAssign) {
     }
 }
 
-ParseRule rules[] = {
+const ParseRule rules[] = {
     [TOKEN_LEFT_PAREN] = {grouping, call, PREC_CALL},
     [TOKEN_RIGHT_PAREN] = {nullptr, nullptr, PREC_NONE},
     [TOKEN_LEFT_BRACE] = {nullptr, nullptr, PREC_NONE}, // [big]
@@ -600,7 +603,7 @@ static void parsePrecedence(Precedence precedence) {
     }
 }
 
-static ParseRule *getRule(TokenType type) {
+static ParseRule const *getRule(TokenType type) {
     return &rules[type];
 }
 

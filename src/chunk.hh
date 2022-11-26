@@ -55,13 +55,13 @@ class Chunk {
     void writeChunk(uint8_t byte, int line);
     int  addConstant(Value value);
 
-    [[nodiscard]] constexpr int         get_count() const { return count; }
-    [[nodiscard]] constexpr int         get_line(size_t n) const { return lines[n]; }
-    
+    [[nodiscard]] constexpr int get_count() const { return count; }
+    [[nodiscard]] constexpr int get_line(size_t n) const { return lines[n]; }
+
     [[nodiscard]] constexpr ValueArray &get_constants() { return constants; }
-    [[nodiscard]] constexpr Value   &get_value(size_t n) const { return constants.get_value(n); }
-    
-    constexpr uint8_t &get_code(size_t n) { return code[n]; };
+    [[nodiscard]] constexpr Value &get_value(size_t n) { return constants.get_value(n); }
+
+    constexpr uint8_t               &get_code(size_t n) { return code[n]; };
     [[nodiscard]] constexpr uint8_t *get_code() const { return code; };
 
   private:

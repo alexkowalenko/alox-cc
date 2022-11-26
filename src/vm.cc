@@ -23,7 +23,7 @@ static Value clockNative(int argCount, Value *args) {
 static void resetStack() {
     vm.stackTop = vm.stack;
     vm.frameCount = 0;
-    vm.openUpvalues = NULL;
+    vm.openUpvalues = nullptr;
 }
 
 static void runtimeError(const char *format, ...) {
@@ -39,7 +39,7 @@ static void runtimeError(const char *format, ...) {
         size_t       instruction = frame->ip - function->chunk.get_code() - 1;
         fprintf(stderr, "[line %d] in ", // [minus]
                 function->chunk.get_line(instruction));
-        if (function->name == NULL) {
+        if (function->name == nullptr) {
             fprintf(stderr, "script\n");
         } else {
             fprintf(stderr, "%s()\n", function->name->chars);
@@ -52,34 +52,34 @@ static void runtimeError(const char *format, ...) {
 static void defineNative(const char *name, NativeFn function) {
     push(OBJ_VAL(copyString(name, (int)strlen(name))));
     push(OBJ_VAL(newNative(function)));
-    tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
+    vm.globals.tableSet(AS_STRING(vm.stack[0]), vm.stack[1]);
     pop();
     pop();
 }
 
 void initVM() {
     resetStack();
-    vm.objects = NULL;
+    vm.objects = nullptr;
     vm.bytesAllocated = 0;
     vm.nextGC = 1024 * 1024;
 
     vm.grayCount = 0;
     vm.grayCapacity = 0;
-    vm.grayStack = NULL;
+    vm.grayStack = nullptr;
 
-    initTable(&vm.globals);
-    initTable(&vm.strings);
+    vm.globals.init();
+    vm.strings.init();
 
-    vm.initString = NULL;
+    vm.initString = nullptr;
     vm.initString = copyString("init", 4);
 
     defineNative("clock", clockNative);
 }
 
 void freeVM() {
-    freeTable(&vm.globals);
-    freeTable(&vm.strings);
-    vm.initString = NULL;
+    vm.globals.freeTable();
+    vm.strings.freeTable();
+    vm.initString = nullptr;
     freeObjects();
 }
 
@@ -128,7 +128,7 @@ static bool callValue(Value callee, int argCount) {
             ObjClass *klass = AS_CLASS(callee);
             vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
             Value initializer;
-            if (tableGet(&klass->methods, vm.initString, &initializer)) {
+            if (klass->methods.tableGet(vm.initString, &initializer)) {
                 return call(AS_CLOSURE(initializer), argCount);
             } else if (argCount != 0) {
                 runtimeError("Expected 0 arguments but got %d.", argCount);
@@ -155,7 +155,7 @@ static bool callValue(Value callee, int argCount) {
 
 static bool invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
     Value method;
-    if (!tableGet(&klass->methods, name, &method)) {
+    if (!klass->methods.tableGet(name, &method)) {
         runtimeError("Undefined property '%s'.", name->chars);
         return false;
     }
@@ -173,7 +173,7 @@ static bool invoke(ObjString *name, int argCount) {
     ObjInstance *instance = AS_INSTANCE(receiver);
 
     Value value;
-    if (tableGet(&instance->fields, name, &value)) {
+    if (instance->fields.tableGet(name, &value)) {
         vm.stackTop[-argCount - 1] = value;
         return callValue(value, argCount);
     }
@@ -183,7 +183,7 @@ static bool invoke(ObjString *name, int argCount) {
 
 static bool bindMethod(ObjClass *klass, ObjString *name) {
     Value method;
-    if (!tableGet(&klass->methods, name, &method)) {
+    if (!klass->methods.tableGet(name, &method)) {
         runtimeError("Undefined property '%s'.", name->chars);
         return false;
     }
@@ -195,21 +195,21 @@ static bool bindMethod(ObjClass *klass, ObjString *name) {
 }
 
 static ObjUpvalue *captureUpvalue(Value *local) {
-    ObjUpvalue *prevUpvalue = NULL;
+    ObjUpvalue *prevUpvalue = nullptr;
     ObjUpvalue *upvalue = vm.openUpvalues;
-    while (upvalue != NULL && upvalue->location > local) {
+    while (upvalue != nullptr && upvalue->location > local) {
         prevUpvalue = upvalue;
         upvalue = upvalue->next;
     }
 
-    if (upvalue != NULL && upvalue->location == local) {
+    if (upvalue != nullptr && upvalue->location == local) {
         return upvalue;
     }
 
     ObjUpvalue *createdUpvalue = newUpvalue(local);
     createdUpvalue->next = upvalue;
 
-    if (prevUpvalue == NULL) {
+    if (prevUpvalue == nullptr) {
         vm.openUpvalues = createdUpvalue;
     } else {
         prevUpvalue->next = createdUpvalue;
@@ -219,7 +219,7 @@ static ObjUpvalue *captureUpvalue(Value *local) {
 }
 
 static void closeUpvalues(Value *last) {
-    while (vm.openUpvalues != NULL && vm.openUpvalues->location >= last) {
+    while (vm.openUpvalues != nullptr && vm.openUpvalues->location >= last) {
         ObjUpvalue *upvalue = vm.openUpvalues;
         upvalue->closed = *upvalue->location;
         upvalue->location = &upvalue->closed;
@@ -230,7 +230,7 @@ static void closeUpvalues(Value *last) {
 static void defineMethod(ObjString *name) {
     Value     method = peek(0);
     ObjClass *klass = AS_CLASS(peek(1));
-    tableSet(&klass->methods, name, method);
+    klass->methods.tableSet(name, method);
     pop();
 }
 
@@ -320,7 +320,7 @@ static InterpretResult run() {
         case OP_GET_GLOBAL: {
             ObjString *name = READ_STRING();
             Value      value;
-            if (!tableGet(&vm.globals, name, &value)) {
+            if (!vm.globals.tableGet(name, &value)) {
                 runtimeError("Undefined variable '%s'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -329,14 +329,14 @@ static InterpretResult run() {
         }
         case OP_DEFINE_GLOBAL: {
             ObjString *name = READ_STRING();
-            tableSet(&vm.globals, name, peek(0));
+            vm.globals.tableSet(name, peek(0));
             pop();
             break;
         }
         case OP_SET_GLOBAL: {
             ObjString *name = READ_STRING();
-            if (tableSet(&vm.globals, name, peek(0))) {
-                tableDelete(&vm.globals, name); // [delete]
+            if (vm.globals.tableSet(name, peek(0))) {
+                vm.globals.tableDelete(name); // [delete]
                 runtimeError("Undefined variable '%s'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -362,7 +362,7 @@ static InterpretResult run() {
             ObjString   *name = READ_STRING();
 
             Value value;
-            if (tableGet(&instance->fields, name, &value)) {
+            if (instance->fields.tableGet(name, &value)) {
                 pop(); // Instance.
                 push(value);
                 break;
@@ -380,7 +380,7 @@ static InterpretResult run() {
             }
 
             ObjInstance *instance = AS_INSTANCE(peek(1));
-            tableSet(&instance->fields, READ_STRING(), peek(0));
+            instance->fields.tableSet(READ_STRING(), peek(0));
             Value value = pop();
             pop();
             push(value);
@@ -531,7 +531,7 @@ static InterpretResult run() {
             }
 
             ObjClass *subclass = AS_CLASS(peek(0));
-            tableAddAll(&AS_CLASS(superclass)->methods, &subclass->methods);
+            Table::tableAddAll(&AS_CLASS(superclass)->methods, &subclass->methods);
             pop(); // Subclass.
             break;
         }
@@ -558,7 +558,7 @@ void hack(bool b) {
 
 InterpretResult interpret(const char *source) {
     ObjFunction *function = compile(source);
-    if (function == NULL)
+    if (function == nullptr)
         return INTERPRET_COMPILE_ERROR;
 
     push(OBJ_VAL(function));

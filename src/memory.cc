@@ -72,10 +72,6 @@ void markValue(Value value) {
     }
 }
 
-static void markArray(ValueArray *array) {
-    array->markArray();
-}
-
 static void blackenObject(Obj *object) {
 #ifdef DEBUG_LOG_GC
     printf("%p blacken ", (void *)object);
@@ -93,7 +89,7 @@ static void blackenObject(Obj *object) {
     case OBJ_CLASS: {
         ObjClass *klass = (ObjClass *)object;
         markObject((Obj *)klass->name);
-        markTable(&klass->methods);
+        klass->methods.markTable();
         break;
     }
     case OBJ_CLOSURE: {
@@ -107,13 +103,13 @@ static void blackenObject(Obj *object) {
     case OBJ_FUNCTION: {
         ObjFunction *function = (ObjFunction *)object;
         markObject((Obj *)function->name);
-        markArray(&function->chunk.get_constants());
+        function->chunk.get_constants().markArray();
         break;
     }
     case OBJ_INSTANCE: {
         ObjInstance *instance = (ObjInstance *)object;
         markObject((Obj *)instance->klass);
-        markTable(&instance->fields);
+        instance->fields.markTable();
         break;
     }
     case OBJ_UPVALUE:
@@ -136,7 +132,7 @@ static void freeObject(Obj *object) {
         break;
     case OBJ_CLASS: {
         ObjClass *klass = (ObjClass *)object;
-        freeTable(&klass->methods);
+        klass->methods.freeTable();
         FREE(ObjClass, object);
         break;
     } // [braces]
@@ -154,7 +150,7 @@ static void freeObject(Obj *object) {
     }
     case OBJ_INSTANCE: {
         ObjInstance *instance = (ObjInstance *)object;
-        freeTable(&instance->fields);
+        instance->fields.freeTable();
         FREE(ObjInstance, object);
         break;
     }
@@ -187,7 +183,7 @@ static void markRoots() {
         markObject((Obj *)upvalue);
     }
 
-    markTable(&vm.globals);
+    vm.globals.markTable();
     markCompilerRoots();
     markObject((Obj *)vm.initString);
 }
@@ -229,7 +225,7 @@ void collectGarbage() {
 
     markRoots();
     traceReferences();
-    tableRemoveWhite(&vm.strings);
+    vm.strings.tableRemoveWhite();
     sweep();
 
     vm.nextGC = vm.bytesAllocated * GC_HEAP_GROW_FACTOR;

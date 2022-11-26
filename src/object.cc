@@ -38,7 +38,7 @@ ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
 ObjClass *newClass(ObjString *name) {
     ObjClass *klass = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
     klass->name = name; // [klass]
-    initTable(&klass->methods);
+    klass->methods.init();
     return klass;
 }
 
@@ -67,7 +67,7 @@ ObjFunction *newFunction() {
 ObjInstance *newInstance(ObjClass *klass) {
     ObjInstance *instance = ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
     instance->klass = klass;
-    initTable(&instance->fields);
+    instance->fields.init();
     return instance;
 }
 
@@ -84,7 +84,7 @@ static ObjString *allocateString(char *chars, int length, uint32_t hash) {
     string->hash = hash;
 
     push(OBJ_VAL(string));
-    tableSet(&vm.strings, string, NIL_VAL);
+    vm.strings.tableSet(string, NIL_VAL);
     pop();
 
     return string;
@@ -101,7 +101,7 @@ static uint32_t hashString(const char *key, int length) {
 
 ObjString *takeString(char *chars, int length) {
     uint32_t   hash = hashString(chars, length);
-    ObjString *interned = tableFindString(&vm.strings, chars, length, hash);
+    ObjString *interned = vm.strings.tableFindString(chars, length, hash);
     if (interned != NULL) {
         FREE_ARRAY(char, chars, length + 1);
         return interned;
@@ -112,7 +112,7 @@ ObjString *takeString(char *chars, int length) {
 
 ObjString *copyString(const char *chars, int length) {
     uint32_t   hash = hashString(chars, length);
-    ObjString *interned = tableFindString(&vm.strings, chars, length, hash);
+    ObjString *interned = vm.strings.tableFindString(chars, length, hash);
     if (interned != NULL)
         return interned;
 
