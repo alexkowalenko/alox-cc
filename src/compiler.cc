@@ -313,7 +313,7 @@ void Lox_Compiler::binary(bool /*canAssign*/) {
     case TokenType::MINUS:
         emitByte(OP_SUBTRACT);
         break;
-    case TokenType::STAR:
+    case TokenType::ASTÉRIX:
         emitByte(OP_MULTIPLY);
         break;
     case TokenType::SLASH:
@@ -484,7 +484,7 @@ inline const std::map<TokenType, ParseRule> rules{
     {TokenType::PLUS, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_TERM}},
     {TokenType::SEMICOLON, {nullptr, nullptr, PREC_NONE}},
     {TokenType::SLASH, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_FACTOR}},
-    {TokenType::STAR, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_FACTOR}},
+    {TokenType::ASTÉRIX, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_FACTOR}},
     {TokenType::BANG, {std::mem_fn(&Lox_Compiler::unary), nullptr, PREC_NONE}},
     {TokenType::BANG_EQUAL, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_EQUALITY}},
     {TokenType::EQUAL, {nullptr, nullptr, PREC_NONE}},

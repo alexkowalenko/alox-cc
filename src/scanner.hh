@@ -18,7 +18,7 @@ enum class TokenType {
     PLUS,
     SEMICOLON,
     SLASH,
-    STAR,
+    ASTÉRIX,
     // One or two character tokens.
     BANG,
     BANG_EQUAL,
@@ -34,7 +34,9 @@ enum class TokenType {
     NUMBER,
     // Keywords.
     AND,
+    BREAK,
     CLASS,
+    CONTINUE,
     ELSE,
     FALSE,
     FOR,
