@@ -17,13 +17,14 @@ void Parser::errorAt(Token *token, std::string_view message) {
     panicMode = true;
     std::cerr << fmt::format("[line {}] Error", token->line);
 
-    if (token->type == TOKEN_EOF) {
+    if (token->type == TokenType::EOFS) {
         std::cerr << " at end";
-    } else if (token->type == TOKEN_ERROR) {
+    } else if (token->type == TokenType::ERROR) {
         // Nothing.
     } else {
         std::array<char, buf_len> buf{};
-        (void)snprintf(buf.data(), buf_len, " at '%.*s'", token->length, token->start);
+        (void)snprintf(buf.data(), buf_len, " at '%.*s'", token->text.data(),
+                       token->text.size());
         std::cerr << buf.data();
     }
     std::cerr << fmt::format(": {}\n", message);
@@ -35,10 +36,10 @@ void Parser::advance() {
 
     for (;;) {
         current = scanner->scanToken();
-        if (current.type != TOKEN_ERROR) {
+        if (current.type != TokenType::ERROR) {
             break;
         }
-        errorAtCurrent(current.start);
+        errorAtCurrent(current.text);
     }
 }
 
