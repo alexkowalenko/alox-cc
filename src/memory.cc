@@ -17,19 +17,19 @@
 
 GC gc;
 
-void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
-    gc.bytesAllocated += newSize - oldSize;
+void *GC::reallocate(void *pointer, size_t oldSize, size_t newSize) {
+    this->bytesAllocated += newSize - oldSize;
     if (newSize > oldSize) {
         if constexpr (DEBUG_STRESS_GC) {
-            gc.collectGarbage();
+            this->collectGarbage();
         }
-        if (gc.bytesAllocated > gc.nextGC) {
-            gc.collectGarbage();
+        if (this->bytesAllocated > this->nextGC) {
+            this->collectGarbage();
         }
     }
 
     if (newSize == 0) {
-        free(pointer);
+        ::free(pointer);
         return nullptr;
     }
 
@@ -38,6 +38,37 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
         exit(1);
     }
     return result;
+}
+
+Obj *GC::allocateObject(size_t size, ObjType type) {
+    Obj *object = (Obj *)this->reallocate(nullptr, 0, size);
+    object->type = type;
+    object->isMarked = false;
+
+    object->next = this->objects;
+    this->objects = object;
+
+    if constexpr (DEBUG_LOG_GC) {
+        printf("%p allocate %zu for %d\n", (void *)object, size, type);
+    }
+
+    return object;
+}
+
+void GC::init(VM *vm) {
+    objects = nullptr;
+    bytesAllocated = 0;
+    nextGC = 1024 * 1024;
+
+    grayCount = 0;
+    grayCapacity = 0;
+    grayStack = nullptr;
+    this->vm = vm;
+    strings.init();
+}
+
+void GC::free() {
+    strings.free();
 }
 
 void GC::markObject(Obj *object) {
@@ -172,23 +203,9 @@ void GC::freeObject(Obj *object) {
     }
 }
 
+// dependent on vm
 void GC::markRoots() {
-    for (Value *slot = vm.stack; slot < vm.stackTop; slot++) {
-        markValue(*slot);
-    }
-
-    for (int i = 0; i < vm.frameCount; i++) {
-        markObject((Obj *)vm.frames[i].closure);
-    }
-
-    for (ObjUpvalue *upvalue = vm.openUpvalues; upvalue != nullptr;
-         upvalue = upvalue->next) {
-        markObject((Obj *)upvalue);
-    }
-
-    vm.globals.mark();
-    vm.compiler->markCompilerRoots();
-    markObject((Obj *)vm.initString);
+    vm->markRoots();
 }
 
 void GC::traceReferences() {
@@ -229,7 +246,7 @@ void GC::collectGarbage() {
 
     markRoots();
     traceReferences();
-    vm.strings.removeWhite();
+    this->strings.removeWhite();
     sweep();
 
     this->nextGC = this->bytesAllocated * GC_HEAP_GROW_FACTOR;
@@ -249,15 +266,5 @@ void GC::freeObjects() {
         object = next;
     }
 
-    free(this->grayStack);
-}
-
-void GC::init() {
-    objects = nullptr;
-    bytesAllocated = 0;
-    nextGC = 1024 * 1024;
-
-    grayCount = 0;
-    grayCapacity = 0;
-    grayStack = nullptr;
+    ::free(this->grayStack);
 }

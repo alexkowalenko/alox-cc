@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include <fmt/core.h>
+#include <memory>
 
 #include "common.hh"
 #include "compiler.hh"
@@ -61,7 +62,6 @@ void VM::init() {
     resetStack();
 
     globals.init();
-    strings.init();
 
     initString = nullptr;
     initString = copyString("init", 4);
@@ -71,9 +71,28 @@ void VM::init() {
 
 void VM::free() {
     globals.free();
-    strings.free();
     initString = nullptr;
+    gc.free();
     gc.freeObjects();
+}
+
+void VM::markRoots() {
+    for (Value *slot = this->stack; slot < this->stackTop; slot++) {
+        gc.markValue(*slot);
+    }
+
+    for (int i = 0; i < this->frameCount; i++) {
+        gc.markObject((Obj *)this->frames[i].closure);
+    }
+
+    for (ObjUpvalue *upvalue = this->openUpvalues; upvalue != nullptr;
+         upvalue = upvalue->next) {
+        gc.markObject((Obj *)upvalue);
+    }
+
+    this->globals.mark();
+    this->compiler->markCompilerRoots();
+    gc.markObject((Obj *)this->initString);
 }
 
 void VM::push(Value value) {
@@ -536,7 +555,7 @@ InterpretResult VM::run() {
 }
 
 InterpretResult VM::interpret(const char *source) {
-    compiler = new Lox_Compiler();
+    compiler = std::make_unique<Lox_Compiler>();
     ObjFunction *function = compiler->compile(source);
     if (function == nullptr) {
         return INTERPRET_COMPILE_ERROR;
@@ -549,6 +568,5 @@ InterpretResult VM::interpret(const char *source) {
     call(closure, 0);
 
     auto ret = run();
-    delete compiler;
     return ret;
 }

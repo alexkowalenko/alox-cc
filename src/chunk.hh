@@ -60,8 +60,8 @@ class Chunk {
     void write(uint8_t byte, int line);
     int  addConstant(Value value);
 
-    [[nodiscard]] constexpr int get_count() const { return count; }
-    [[nodiscard]] constexpr int get_line(size_t n) const { return (*lines)[n]; }
+    [[nodiscard]] constexpr size_t get_count() const { return count; }
+    [[nodiscard]] constexpr size_t get_line(size_t n) const { return (*lines)[n]; }
 
     [[nodiscard]] constexpr ValueArray &get_constants() { return constants; }
     [[nodiscard]] constexpr Value &get_value(size_t n) { return constants.get_value(n); }
@@ -74,6 +74,6 @@ class Chunk {
     size_t   capacity;
     uint8_t *code;
 
-    std::vector<int> *lines;
-    ValueArray        constants;
+    std::vector<size_t> *lines;
+    ValueArray           constants;
 };

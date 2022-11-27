@@ -19,7 +19,7 @@
 constexpr auto history_file = "./alox-cc";
 
 Alox::Alox() {
-    gc.init();
+    gc.init(&vm);
     vm.init();
 }
 

@@ -7,7 +7,6 @@
 #include "object.hh"
 #include "parser.hh"
 #include "scanner.hh"
-#include "vm.hh"
 
 enum Precedence {
     PREC_NONE,

@@ -9,27 +9,9 @@
 #include "object.hh"
 #include "table.hh"
 #include "value.hh"
-#include "vm.hh"
-
-static Obj *allocateObject(size_t size, ObjType type);
 
 template <typename T> constexpr T *allocate_obj(ObjType objectType) {
-    return (T *)allocateObject(sizeof(T), objectType);
-}
-
-static Obj *allocateObject(size_t size, ObjType type) {
-    Obj *object = (Obj *)reallocate(nullptr, 0, size);
-    object->type = type;
-    object->isMarked = false;
-
-    object->next = gc.objects;
-    gc.objects = object;
-
-    if constexpr (DEBUG_LOG_GC) {
-        printf("%p allocate %zu for %d\n", (void *)object, size, type);
-    }
-
-    return object;
+    return (T *)gc.allocateObject(sizeof(T), objectType);
 }
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
@@ -81,15 +63,13 @@ ObjNative *newNative(NativeFn function) {
     return native;
 }
 
-static ObjString *allocateString(char *chars, int length, uint32_t hash) {
+ObjString *allocateString(char *chars, int length, uint32_t hash) {
     auto *string = allocate_obj<ObjString>(OBJ_STRING);
     string->length = length;
     string->chars = chars;
     string->hash = hash;
 
-    vm.push(OBJ_VAL(string));
-    vm.strings.set(string, NIL_VAL);
-    vm.pop();
+    gc.strings.set(string, NIL_VAL);
     return string;
 }
 
@@ -104,7 +84,7 @@ static uint32_t hashString(const char *key, int length) {
 
 ObjString *takeString(char *chars, int length) {
     uint32_t   hash = hashString(chars, length);
-    ObjString *interned = vm.strings.findString(chars, length, hash);
+    ObjString *interned = gc.strings.findString(chars, length, hash);
     if (interned != nullptr) {
         free_array<char>(chars, length + 1);
         return interned;
@@ -115,7 +95,7 @@ ObjString *takeString(char *chars, int length) {
 
 ObjString *copyString(const char *chars, int length) {
     uint32_t   hash = hashString(chars, length);
-    ObjString *interned = vm.strings.findString(chars, length, hash);
+    ObjString *interned = gc.strings.findString(chars, length, hash);
     if (interned != nullptr) {
         return interned;
     }

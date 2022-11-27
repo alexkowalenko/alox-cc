@@ -8,6 +8,7 @@
 #include "object.hh"
 #include "table.hh"
 #include "value.hh"
+#include <memory>
 
 class Lox_Compiler;
 
@@ -24,10 +25,14 @@ enum InterpretResult { INTERPRET_OK, INTERPRET_COMPILE_ERROR, INTERPRET_RUNTIME_
 
 class VM {
   public:
-    void            init();
-    void            free();
+    void init();
+    void free();
+
     InterpretResult interpret(const char *source);
 
+    void markRoots();
+
+  private:
     void  resetStack();
     void  push(Value value);
     Value pop();
@@ -56,14 +61,12 @@ class VM {
     CallFrame frames[FRAMES_MAX];
     int       frameCount;
 
-    Value       stack[STACK_MAX];
-    Value      *stackTop;
-    Table       globals;
-    Table       strings;
-    ObjString  *initString;
+    Value  stack[STACK_MAX];
+    Value *stackTop;
+    Table  globals;
+
+    ObjString  *initString; // name of LOX class constructor method.
     ObjUpvalue *openUpvalues;
 
-    Lox_Compiler *compiler;
+    std::unique_ptr<Lox_Compiler> compiler;
 };
-
-extern VM vm;

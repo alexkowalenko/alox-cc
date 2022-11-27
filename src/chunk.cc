@@ -11,7 +11,7 @@ void Chunk::init() {
     this->code = nullptr;
     this->constants.init();
 
-    lines = new std::vector<int>;
+    lines = new std::vector<size_t>;
 }
 
 void Chunk::free() {

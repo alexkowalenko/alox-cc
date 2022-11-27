@@ -8,6 +8,8 @@
 
 #include <string_view>
 
+#include "vm.hh"
+
 class Alox {
   public:
     Alox();
@@ -19,4 +21,5 @@ class Alox {
 
   private:
     std::string readFile(const std::string_view &path);
+    VM          vm;
 };
