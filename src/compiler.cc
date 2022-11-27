@@ -11,6 +11,7 @@
 
 #include <fmt/core.h>
 
+#include "chunk.hh"
 #include "common.hh"
 #include "compiler.hh"
 #include "debug.hh"
@@ -35,9 +36,9 @@ void Lox_Compiler::emitBytes(uint8_t byte1, uint8_t byte2) {
 }
 
 void Lox_Compiler::emitLoop(int loopStart) {
-    emitByte(OP_LOOP);
+    emitByte(OpCode::LOOP);
 
-    int offset = currentChunk()->get_count() - loopStart + 2;
+    auto offset = currentChunk()->get_count() - loopStart + 2;
     if (offset > UINT16_MAX) {
         parser->error("Loop body too large.");
     }
@@ -46,7 +47,7 @@ void Lox_Compiler::emitLoop(int loopStart) {
     emitByte(offset & 0xff);
 }
 
-int Lox_Compiler::emitJump(uint8_t instruction) {
+int Lox_Compiler::emitJump(OpCode instruction) {
     emitByte(instruction);
     emitByte(0xff);
     emitByte(0xff);
@@ -55,12 +56,12 @@ int Lox_Compiler::emitJump(uint8_t instruction) {
 
 void Lox_Compiler::emitReturn() {
     if (current->type == TYPE_INITIALIZER) {
-        emitBytes(OP_GET_LOCAL, 0);
+        emitBytes(OpCode::GET_LOCAL, 0);
     } else {
-        emitByte(OP_NIL);
+        emitByte(OpCode::NIL);
     }
 
-    emitByte(OP_RETURN);
+    emitByte(OpCode::RETURN);
 }
 
 uint8_t Lox_Compiler::makeConstant(Value value) {
@@ -74,12 +75,12 @@ uint8_t Lox_Compiler::makeConstant(Value value) {
 }
 
 void Lox_Compiler::emitConstant(Value value) {
-    emitBytes(OP_CONSTANT, makeConstant(value));
+    emitBytes(OpCode::CONSTANT, makeConstant(value));
 }
 
 void Lox_Compiler::patchJump(int offset) {
     // -2 to adjust for the bytecode for the jump offset itself.
-    int jump = currentChunk()->get_count() - offset - 2;
+    auto jump = currentChunk()->get_count() - offset - 2;
 
     if (jump > UINT16_MAX) {
         parser->error("Too much code to jump over.");
@@ -145,9 +146,9 @@ void Lox_Compiler::endScope() {
     while (current->localCount > 0 &&
            current->locals[current->localCount - 1].depth > current->scopeDepth) {
         if (current->locals[current->localCount - 1].isCaptured) {
-            emitByte(OP_CLOSE_UPVALUE);
+            emitByte(OpCode::CLOSE_UPVALUE);
         } else {
-            emitByte(OP_POP);
+            emitByte(OpCode::POP);
         }
         current->localCount--;
     }
@@ -199,8 +200,9 @@ int Lox_Compiler::addUpvalue(Compiler *compiler, uint8_t index, bool isLocal) {
 }
 
 int Lox_Compiler::resolveUpvalue(Compiler *compiler, Token *name) {
-    if (compiler->enclosing == nullptr)
+    if (compiler->enclosing == nullptr) {
         return -1;
+    }
 
     int local = resolveLocal(compiler->enclosing, name);
     if (local != -1) {
@@ -272,7 +274,7 @@ void Lox_Compiler::defineVariable(uint8_t global) {
         return;
     }
 
-    emitBytes(OP_DEFINE_GLOBAL, global);
+    emitBytes(OpCode::DEFINE_GLOBAL, global);
 }
 
 uint8_t Lox_Compiler::argumentList() {
@@ -280,7 +282,7 @@ uint8_t Lox_Compiler::argumentList() {
     if (!parser->check(TokenType::RIGHT_PAREN)) {
         do {
             expression();
-            if (argCount == 255) {
+            if (argCount == MAX_ARGS) {
                 parser->error("Can't have more than 255 arguments.");
             }
             argCount++;
@@ -291,49 +293,49 @@ uint8_t Lox_Compiler::argumentList() {
 }
 
 void Lox_Compiler::and_(bool /*canAssign*/) {
-    int endJump = emitJump(OP_JUMP_IF_FALSE);
+    int endJump = emitJump(OpCode::JUMP_IF_FALSE);
 
-    emitByte(OP_POP);
-    parsePrecedence(PREC_AND);
+    emitByte(OpCode::POP);
+    parsePrecedence(Precedence::AND);
 
     patchJump(endJump);
 }
 
 void Lox_Compiler::binary(bool /*canAssign*/) {
-    TokenType operatorType = parser->previous.type;
-    auto      rule = getRule(operatorType);
-    parsePrecedence((Precedence)(rule->precedence + 1));
+    TokenType   operatorType = parser->previous.type;
+    const auto *rule = getRule(operatorType);
+    parsePrecedence((Precedence)(int(rule->precedence) + 1));
 
     switch (operatorType) {
     case TokenType::BANG_EQUAL:
-        emitBytes(OP_EQUAL, OP_NOT);
+        emitBytes(OpCode::EQUAL, OpCode::NOT);
         break;
     case TokenType::EQUAL_EQUAL:
-        emitByte(OP_EQUAL);
+        emitByte(OpCode::EQUAL);
         break;
     case TokenType::GREATER:
-        emitByte(OP_GREATER);
+        emitByte(OpCode::GREATER);
         break;
     case TokenType::GREATER_EQUAL:
-        emitBytes(OP_LESS, OP_NOT);
+        emitBytes(OpCode::LESS, OpCode::NOT);
         break;
     case TokenType::LESS:
-        emitByte(OP_LESS);
+        emitByte(OpCode::LESS);
         break;
     case TokenType::LESS_EQUAL:
-        emitBytes(OP_GREATER, OP_NOT);
+        emitBytes(OpCode::GREATER, OpCode::NOT);
         break;
     case TokenType::PLUS:
-        emitByte(OP_ADD);
+        emitByte(OpCode::ADD);
         break;
     case TokenType::MINUS:
-        emitByte(OP_SUBTRACT);
+        emitByte(OpCode::SUBTRACT);
         break;
     case TokenType::ASTÉRIX:
-        emitByte(OP_MULTIPLY);
+        emitByte(OpCode::MULTIPLY);
         break;
     case TokenType::SLASH:
-        emitByte(OP_DIVIDE);
+        emitByte(OpCode::DIVIDE);
         break;
     default:
         return; // Unreachable.
@@ -342,7 +344,7 @@ void Lox_Compiler::binary(bool /*canAssign*/) {
 
 void Lox_Compiler::call(bool /*canAssign*/) {
     uint8_t argCount = argumentList();
-    emitBytes(OP_CALL, argCount);
+    emitBytes(OpCode::CALL, argCount);
 }
 
 void Lox_Compiler::dot(bool canAssign) {
@@ -351,26 +353,26 @@ void Lox_Compiler::dot(bool canAssign) {
 
     if (canAssign && parser->match(TokenType::EQUAL)) {
         expression();
-        emitBytes(OP_SET_PROPERTY, name);
+        emitBytes(OpCode::SET_PROPERTY, name);
     } else if (parser->match(TokenType::LEFT_PAREN)) {
         uint8_t argCount = argumentList();
-        emitBytes(OP_INVOKE, name);
+        emitBytes(OpCode::INVOKE, name);
         emitByte(argCount);
     } else {
-        emitBytes(OP_GET_PROPERTY, name);
+        emitBytes(OpCode::GET_PROPERTY, name);
     }
 }
 
 void Lox_Compiler::literal(bool /*canAssign*/) {
     switch (parser->previous.type) {
     case TokenType::FALSE:
-        emitByte(OP_FALSE);
+        emitByte(OpCode::FALSE);
         break;
     case TokenType::NIL:
-        emitByte(OP_NIL);
+        emitByte(OpCode::NIL);
         break;
     case TokenType::TRUE:
-        emitByte(OP_TRUE);
+        emitByte(OpCode::TRUE);
         break;
     default:
         return; // Unreachable.
@@ -384,17 +386,25 @@ void Lox_Compiler::grouping(bool /*canAssign*/) {
 
 void Lox_Compiler::number(bool /*canAssign*/) {
     double value = strtod(parser->previous.text.data(), nullptr);
+    if (value == 0) {
+        emitByte(OpCode::ZERO);
+        return;
+    }
+    if (value == 1) {
+        emitByte(OpCode::ONE);
+        return;
+    }
     emitConstant(NUMBER_VAL(value));
 }
 
 void Lox_Compiler::or_(bool /*canAssign*/) {
-    int elseJump = emitJump(OP_JUMP_IF_FALSE);
-    int endJump = emitJump(OP_JUMP);
+    int elseJump = emitJump(OpCode::JUMP_IF_FALSE);
+    int endJump = emitJump(OpCode::JUMP);
 
     patchJump(elseJump);
-    emitByte(OP_POP);
+    emitByte(OpCode::POP);
 
-    parsePrecedence(PREC_OR);
+    parsePrecedence(Precedence::OR);
     patchJump(endJump);
 }
 
@@ -404,18 +414,18 @@ void Lox_Compiler::string(bool /*canAssign*/) {
 }
 
 void Lox_Compiler::namedVariable(Token name, bool canAssign) {
-    uint8_t getOp, setOp;
-    int     arg = resolveLocal(current, &name);
+    OpCode getOp, setOp;
+    int    arg = resolveLocal(current, &name);
     if (arg != -1) {
-        getOp = OP_GET_LOCAL;
-        setOp = OP_SET_LOCAL;
+        getOp = OpCode::GET_LOCAL;
+        setOp = OpCode::SET_LOCAL;
     } else if ((arg = resolveUpvalue(current, &name)) != -1) {
-        getOp = OP_GET_UPVALUE;
-        setOp = OP_SET_UPVALUE;
+        getOp = OpCode::GET_UPVALUE;
+        setOp = OpCode::SET_UPVALUE;
     } else {
         arg = identifierConstant(&name);
-        getOp = OP_GET_GLOBAL;
-        setOp = OP_SET_GLOBAL;
+        getOp = OpCode::GET_GLOBAL;
+        setOp = OpCode::SET_GLOBAL;
     }
 
     if (canAssign && parser->match(TokenType::EQUAL)) {
@@ -451,11 +461,11 @@ void Lox_Compiler::super_(bool /*canAssign*/) {
     if (parser->match(TokenType::LEFT_PAREN)) {
         uint8_t argCount = argumentList();
         namedVariable(syntheticToken("super"), false);
-        emitBytes(OP_SUPER_INVOKE, name);
+        emitBytes(OpCode::SUPER_INVOKE, name);
         emitByte(argCount);
     } else {
         namedVariable(syntheticToken("super"), false);
-        emitBytes(OP_GET_SUPER, name);
+        emitBytes(OpCode::GET_SUPER, name);
     }
 }
 
@@ -472,15 +482,15 @@ void Lox_Compiler::unary(bool /*canAssign*/) {
     TokenType operatorType = parser->previous.type;
 
     // Compile the operand.
-    parsePrecedence(PREC_UNARY);
+    parsePrecedence(Precedence::UNARY);
 
     // Emit the operator instruction.
     switch (operatorType) {
     case TokenType::BANG:
-        emitByte(OP_NOT);
+        emitByte(OpCode::NOT);
         break;
     case TokenType::MINUS:
-        emitByte(OP_NEGATE);
+        emitByte(OpCode::NEGATE);
         break;
     default:
         return; // Unreachable.
@@ -489,50 +499,57 @@ void Lox_Compiler::unary(bool /*canAssign*/) {
 
 inline const std::map<TokenType, ParseRule> rules{
     {TokenType::LEFT_PAREN,
-     {std::mem_fn(&Lox_Compiler::grouping), std::mem_fn(&Lox_Compiler::call), PREC_CALL}},
-    {TokenType::RIGHT_PAREN, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::LEFT_BRACE, {nullptr, nullptr, PREC_NONE}}, // [big]
-    {TokenType::RIGHT_BRACE, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::COMMA, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::DOT, {nullptr, std::mem_fn(&Lox_Compiler::dot), PREC_CALL}},
+     {std::mem_fn(&Lox_Compiler::grouping), std::mem_fn(&Lox_Compiler::call),
+      Precedence::CALL}},
+    {TokenType::RIGHT_PAREN, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::LEFT_BRACE, {nullptr, nullptr, Precedence::NONE}}, // [big]
+    {TokenType::RIGHT_BRACE, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::COMMA, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::DOT, {nullptr, std::mem_fn(&Lox_Compiler::dot), Precedence::CALL}},
     {TokenType::MINUS,
-     {std::mem_fn(&Lox_Compiler::unary), std::mem_fn(&Lox_Compiler::binary), PREC_TERM}},
-    {TokenType::PLUS, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_TERM}},
-    {TokenType::SEMICOLON, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::SLASH, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_FACTOR}},
-    {TokenType::ASTÉRIX, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_FACTOR}},
-    {TokenType::BANG, {std::mem_fn(&Lox_Compiler::unary), nullptr, PREC_NONE}},
-    {TokenType::BANG_EQUAL, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_EQUALITY}},
-    {TokenType::EQUAL, {nullptr, nullptr, PREC_NONE}},
+     {std::mem_fn(&Lox_Compiler::unary), std::mem_fn(&Lox_Compiler::binary),
+      Precedence::TERM}},
+    {TokenType::PLUS, {nullptr, std::mem_fn(&Lox_Compiler::binary), Precedence::TERM}},
+    {TokenType::SEMICOLON, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::SLASH, {nullptr, std::mem_fn(&Lox_Compiler::binary), Precedence::FACTOR}},
+    {TokenType::ASTÉRIX,
+     {nullptr, std::mem_fn(&Lox_Compiler::binary), Precedence::FACTOR}},
+    {TokenType::BANG, {std::mem_fn(&Lox_Compiler::unary), nullptr, Precedence::NONE}},
+    {TokenType::BANG_EQUAL,
+     {nullptr, std::mem_fn(&Lox_Compiler::binary), Precedence::EQUALITY}},
+    {TokenType::EQUAL, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::EQUAL_EQUAL,
-     {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_EQUALITY}},
-    {TokenType::GREATER, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_COMPARISON}},
+     {nullptr, std::mem_fn(&Lox_Compiler::binary), Precedence::EQUALITY}},
+    {TokenType::GREATER,
+     {nullptr, std::mem_fn(&Lox_Compiler::binary), Precedence::COMPARISON}},
     {TokenType::GREATER_EQUAL,
-     {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_COMPARISON}},
-    {TokenType::LESS, {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_COMPARISON}},
+     {nullptr, std::mem_fn(&Lox_Compiler::binary), Precedence::COMPARISON}},
+    {TokenType::LESS,
+     {nullptr, std::mem_fn(&Lox_Compiler::binary), Precedence::COMPARISON}},
     {TokenType::LESS_EQUAL,
-     {nullptr, std::mem_fn(&Lox_Compiler::binary), PREC_COMPARISON}},
-    {TokenType::IDENTIFIER, {std::mem_fn(&Lox_Compiler::variable), nullptr, PREC_NONE}},
-    {TokenType::STRING, {std::mem_fn(&Lox_Compiler::string), nullptr, PREC_NONE}},
-    {TokenType::NUMBER, {std::mem_fn(&Lox_Compiler::number), nullptr, PREC_NONE}},
-    {TokenType::AND, {nullptr, std::mem_fn(&Lox_Compiler::and_), PREC_AND}},
-    {TokenType::CLASS, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::ELSE, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::FALSE, {std::mem_fn(&Lox_Compiler::literal), nullptr, PREC_NONE}},
-    {TokenType::FOR, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::FUN, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::IF, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::NIL, {std::mem_fn(&Lox_Compiler::literal), nullptr, PREC_NONE}},
-    {TokenType::OR, {nullptr, std::mem_fn(&Lox_Compiler::or_), PREC_OR}},
-    {TokenType::PRINT, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::RETURN, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::SUPER, {std::mem_fn(&Lox_Compiler::super_), nullptr, PREC_NONE}},
-    {TokenType::THIS, {std::mem_fn(&Lox_Compiler::this_), nullptr, PREC_NONE}},
-    {TokenType::TRUE, {std::mem_fn(&Lox_Compiler::literal), nullptr, PREC_NONE}},
-    {TokenType::VAR, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::WHILE, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::ERROR, {nullptr, nullptr, PREC_NONE}},
-    {TokenType::EOFS, {nullptr, nullptr, PREC_NONE}},
+     {nullptr, std::mem_fn(&Lox_Compiler::binary), Precedence::COMPARISON}},
+    {TokenType::IDENTIFIER,
+     {std::mem_fn(&Lox_Compiler::variable), nullptr, Precedence::NONE}},
+    {TokenType::STRING, {std::mem_fn(&Lox_Compiler::string), nullptr, Precedence::NONE}},
+    {TokenType::NUMBER, {std::mem_fn(&Lox_Compiler::number), nullptr, Precedence::NONE}},
+    {TokenType::AND, {nullptr, std::mem_fn(&Lox_Compiler::and_), Precedence::AND}},
+    {TokenType::CLASS, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::ELSE, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::FALSE, {std::mem_fn(&Lox_Compiler::literal), nullptr, Precedence::NONE}},
+    {TokenType::FOR, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::FUN, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::IF, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::NIL, {std::mem_fn(&Lox_Compiler::literal), nullptr, Precedence::NONE}},
+    {TokenType::OR, {nullptr, std::mem_fn(&Lox_Compiler::or_), Precedence::OR}},
+    {TokenType::PRINT, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::RETURN, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::SUPER, {std::mem_fn(&Lox_Compiler::super_), nullptr, Precedence::NONE}},
+    {TokenType::THIS, {std::mem_fn(&Lox_Compiler::this_), nullptr, Precedence::NONE}},
+    {TokenType::TRUE, {std::mem_fn(&Lox_Compiler::literal), nullptr, Precedence::NONE}},
+    {TokenType::VAR, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::WHILE, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::ERROR, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::EOFS, {nullptr, nullptr, Precedence::NONE}},
 };
 
 void Lox_Compiler::parsePrecedence(Precedence precedence) {
@@ -543,7 +560,7 @@ void Lox_Compiler::parsePrecedence(Precedence precedence) {
         return;
     }
 
-    bool canAssign = precedence <= PREC_ASSIGNMENT;
+    bool canAssign = precedence <= Precedence::ASSIGNMENT;
     prefixRule(*this, canAssign);
 
     while (precedence <= getRule(parser->current.type)->precedence) {
@@ -562,7 +579,7 @@ ParseRule const *Lox_Compiler::getRule(TokenType type) {
 }
 
 void Lox_Compiler::expression() {
-    parsePrecedence(PREC_ASSIGNMENT);
+    parsePrecedence(Precedence::ASSIGNMENT);
 }
 
 void Lox_Compiler::block() {
@@ -594,7 +611,7 @@ void Lox_Compiler::function(FunctionType type) {
     block();
 
     ObjFunction *function = endCompiler();
-    emitBytes(OP_CLOSURE, makeConstant(OBJ_VAL(function)));
+    emitBytes(OpCode::CLOSURE, makeConstant(OBJ_VAL(function)));
 
     for (int i = 0; i < function->upvalueCount; i++) {
         emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
@@ -613,7 +630,7 @@ void Lox_Compiler::method() {
     }
 
     function(type);
-    emitBytes(OP_METHOD, constant);
+    emitBytes(OpCode::METHOD, constant);
 }
 
 void Lox_Compiler::classDeclaration() {
@@ -622,7 +639,7 @@ void Lox_Compiler::classDeclaration() {
     uint8_t nameConstant = identifierConstant(&parser->previous);
     declareVariable();
 
-    emitBytes(OP_CLASS, nameConstant);
+    emitBytes(OpCode::CLASS, nameConstant);
     defineVariable(nameConstant);
 
     ClassCompiler classCompiler;
@@ -643,7 +660,7 @@ void Lox_Compiler::classDeclaration() {
         defineVariable(0);
 
         namedVariable(className, false);
-        emitByte(OP_INHERIT);
+        emitByte(OpCode::INHERIT);
         classCompiler.hasSuperclass = true;
     }
 
@@ -653,7 +670,7 @@ void Lox_Compiler::classDeclaration() {
         method();
     }
     parser->consume(TokenType::RIGHT_BRACE, "Expect '}' after class body.");
-    emitByte(OP_POP);
+    emitByte(OpCode::POP);
 
     if (classCompiler.hasSuperclass) {
         endScope();
@@ -675,7 +692,7 @@ void Lox_Compiler::varDeclaration() {
     if (parser->match(TokenType::EQUAL)) {
         expression();
     } else {
-        emitByte(OP_NIL);
+        emitByte(OpCode::NIL);
     }
     parser->consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
 
@@ -686,7 +703,7 @@ void Lox_Compiler::expressionStatement() {
     debug("expressionStatement");
     expression();
     parser->consume(TokenType::SEMICOLON, "Expect ';' after expression.");
-    emitByte(OP_POP);
+    emitByte(OpCode::POP);
 }
 
 /**
@@ -717,18 +734,18 @@ void Lox_Compiler::forStatement() {
         parser->consume(TokenType::SEMICOLON, "Expect ';' after loop condition.");
 
         // Jump out of the loop if the condition is false.
-        exitJump = emitJump(OP_JUMP_IF_FALSE);
-        emitByte(OP_POP); // Condition.
+        exitJump = emitJump(OpCode::JUMP_IF_FALSE);
+        emitByte(OpCode::POP); // Condition.
     }
 
     // increment
     debug("forStatement increment: {}", currentChunk()->get_count());
     if (!parser->match(TokenType::RIGHT_PAREN)) {
-        int bodyJump = emitJump(OP_JUMP);
+        int bodyJump = emitJump(OpCode::JUMP);
         int incrementStart = currentChunk()->get_count();
         current->last_continue = currentChunk()->get_count();
         expression();
-        emitByte(OP_POP);
+        emitByte(OpCode::POP);
         parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.");
 
         emitLoop(loopStart);
@@ -748,7 +765,7 @@ void Lox_Compiler::forStatement() {
             patchJump(current->last_break);
             current->last_break = 0;
         }
-        emitByte(OP_POP); // Condition.
+        emitByte(OpCode::POP); // Condition.
     }
 
     endScope();
@@ -760,14 +777,14 @@ void Lox_Compiler::ifStatement() {
     parser->consume(TokenType::RIGHT_PAREN,
                     "Expect ')' after condition."); // [paren]
 
-    int thenJump = emitJump(OP_JUMP_IF_FALSE);
-    emitByte(OP_POP);
+    int thenJump = emitJump(OpCode::JUMP_IF_FALSE);
+    emitByte(OpCode::POP);
     statement();
 
-    int elseJump = emitJump(OP_JUMP);
+    int elseJump = emitJump(OpCode::JUMP);
 
     patchJump(thenJump);
-    emitByte(OP_POP);
+    emitByte(OpCode::POP);
 
     if (parser->match(TokenType::ELSE)) {
         statement();
@@ -778,7 +795,7 @@ void Lox_Compiler::ifStatement() {
 void Lox_Compiler::printStatement() {
     expression();
     parser->consume(TokenType::SEMICOLON, "Expect ';' after value.");
-    emitByte(OP_PRINT);
+    emitByte(OpCode::PRINT);
 }
 
 void Lox_Compiler::returnStatement() {
@@ -795,7 +812,7 @@ void Lox_Compiler::returnStatement() {
 
         expression();
         parser->consume(TokenType::SEMICOLON, "Expect ';' after return value.");
-        emitByte(OP_RETURN);
+        emitByte(OpCode::RETURN);
     }
 }
 
@@ -807,8 +824,8 @@ void Lox_Compiler::whileStatement() {
     expression();
     parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
 
-    int exitJump = emitJump(OP_JUMP_IF_FALSE);
-    emitByte(OP_POP);
+    int exitJump = emitJump(OpCode::JUMP_IF_FALSE);
+    emitByte(OpCode::POP);
     current->enclosing_loop++;
     statement();
     current->enclosing_loop--;
@@ -820,7 +837,7 @@ void Lox_Compiler::whileStatement() {
         patchJump(current->last_break);
         current->last_break = 0;
     }
-    emitByte(OP_POP);
+    emitByte(OpCode::POP);
 }
 
 void Lox_Compiler::breakStatement(TokenType t) {
@@ -832,7 +849,7 @@ void Lox_Compiler::breakStatement(TokenType t) {
     parser->consume(TokenType::SEMICOLON, fmt::format("Expect ';' after {}.", name));
 
     if (t == TokenType::BREAK) {
-        current->last_break = emitJump(OP_JUMP);
+        current->last_break = emitJump(OpCode::JUMP);
         return;
     }
     // continue

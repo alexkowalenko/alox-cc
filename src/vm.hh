@@ -29,7 +29,7 @@ class VM {
   public:
     VM(const Options &opt) : options(opt){};
     ~VM() = default;
-    
+
     void init();
     void free();
 
@@ -52,7 +52,7 @@ class VM {
     bool        invoke(ObjString *name, int argCount);
     bool        bindMethod(ObjClass *klass, ObjString *name);
     ObjUpvalue *captureUpvalue(Value *local);
-    void        closeUpvalues(Value *last);
+    void        closeUpvalues(Value const *last);
     void        defineMethod(ObjString *name);
 
     bool isFalsey(Value value) {

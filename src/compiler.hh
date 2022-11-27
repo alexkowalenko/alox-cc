@@ -4,23 +4,24 @@
 
 #pragma once
 
+#include "chunk.hh"
 #include "object.hh"
 #include "options.hh"
 #include "parser.hh"
 #include "scanner.hh"
 
-enum Precedence {
-    PREC_NONE,
-    PREC_ASSIGNMENT, // =
-    PREC_OR,         // or
-    PREC_AND,        // and
-    PREC_EQUALITY,   // == !=
-    PREC_COMPARISON, // < > <= >=
-    PREC_TERM,       // + -
-    PREC_FACTOR,     // * /
-    PREC_UNARY,      // ! -
-    PREC_CALL,       // . ()
-    PREC_PRIMARY
+enum class Precedence {
+    NONE,
+    ASSIGNMENT, // =
+    OR,         // or
+    AND,        // and
+    EQUALITY,   // == !=
+    COMPARISON, // < > <= >=
+    TERM,       // + -
+    FACTOR,     // * /
+    UNARY,      // ! -
+    CALL,       // . ()
+    PRIMARY
 };
 
 class Lox_Compiler;
@@ -96,10 +97,17 @@ class Lox_Compiler {
   private:
     Chunk *currentChunk() { return &current->function->chunk; }
 
-    void    emitByte(uint8_t byte);
-    void    emitBytes(uint8_t byte1, uint8_t byte2);
+    void           emitByte(uint8_t byte);
+    constexpr void emitByte(OpCode byte) { return emitByte(uint8_t(byte)); };
+    void           emitBytes(uint8_t byte1, uint8_t byte2);
+    constexpr void emitBytes(OpCode byte1, OpCode byte2) {
+        return emitBytes(uint8_t(byte1), uint8_t(byte2));
+    }
+    constexpr void emitBytes(OpCode byte1, uint8_t byte2) {
+        return emitBytes(uint8_t(byte1), byte2);
+    }
     void    emitLoop(int loopStart);
-    int     emitJump(uint8_t instruction);
+    int     emitJump(OpCode instruction);
     void    emitReturn();
     uint8_t makeConstant(Value value);
     void    emitConstant(Value value);
@@ -111,28 +119,28 @@ class Lox_Compiler {
     void beginScope();
     void endScope();
 
-    void             expression();
-    void             statement();
-    void             declaration();
-    ParseRule const *getRule(TokenType type);
-    void             parsePrecedence(Precedence precedence);
+    void                    expression();
+    void                    statement();
+    void                    declaration();
+    static ParseRule const *getRule(TokenType type);
+    void                    parsePrecedence(Precedence precedence);
 
-    uint8_t identifierConstant(Token *name);
-    bool    identifiersEqual(Token *a, Token *b);
-    int     resolveLocal(Compiler *compiler, Token *name);
-    int     addUpvalue(Compiler *compiler, uint8_t index, bool isLocal);
-    int     resolveUpvalue(Compiler *compiler, Token *name);
-    void    addLocal(Token name);
-    void    declareVariable();
-    uint8_t parseVariable(const char *errorMessage);
-    void    markInitialized();
-    void    defineVariable(uint8_t global);
+    uint8_t     identifierConstant(Token *name);
+    static bool identifiersEqual(Token *a, Token *b);
+    int         resolveLocal(Compiler *compiler, Token *name);
+    int         addUpvalue(Compiler *compiler, uint8_t index, bool isLocal);
+    int         resolveUpvalue(Compiler *compiler, Token *name);
+    void        addLocal(Token name);
+    void        declareVariable();
+    uint8_t     parseVariable(const char *errorMessage);
+    void        markInitialized();
+    void        defineVariable(uint8_t global);
 
     uint8_t argumentList();
 
     void namedVariable(Token name, bool canAssign);
 
-    Token syntheticToken(const char *text);
+    static Token syntheticToken(const char *text);
 
     void block();
     void function(FunctionType type);

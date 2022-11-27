@@ -14,7 +14,7 @@ int main(int argc, const char *argv[]) {
 
     Alox alox(options);
 
-    if (options.file_name == "") {
+    if (options.file_name.empty()) {
         alox.repl();
     } else {
         return alox.runFile(options.file_name);

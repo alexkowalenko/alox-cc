@@ -16,6 +16,7 @@
 #include "debug.hh"
 #include "memory.hh"
 #include "object.hh"
+#include "value.hh"
 #include "vm.hh"
 
 static Value clockNative(int /*argCount*/, Value * /*args*/) {
@@ -225,7 +226,7 @@ ObjUpvalue *VM::captureUpvalue(Value *local) {
     return createdUpvalue;
 }
 
-void VM::closeUpvalues(Value *last) {
+void VM::closeUpvalues(Value const *last) {
     while (openUpvalues != nullptr && openUpvalues->location >= last) {
         ObjUpvalue *upvalue = openUpvalues;
         upvalue->closed = *upvalue->location;
@@ -256,6 +257,9 @@ void VM::concatenate() {
     pop();
     push(OBJ_VAL(result));
 }
+
+const inline auto number_zero = NUMBER_VAL(0);
+const inline auto number_one = NUMBER_VAL(1);
 
 InterpretResult VM::run() {
     CallFrame *frame = &frames[frameCount - 1];
@@ -292,36 +296,42 @@ InterpretResult VM::run() {
                 (int)(frame->ip - frame->closure->function->chunk.get_code()));
         }
 
-        uint8_t instruction;
-        switch (instruction = READ_BYTE()) {
-        case OP_CONSTANT: {
+        auto instruction = OpCode(READ_BYTE());
+        switch (instruction) {
+        case OpCode::CONSTANT: {
             Value constant = READ_CONSTANT();
             push(constant);
             break;
         }
-        case OP_NIL:
+        case OpCode::NIL:
             push(NIL_VAL);
             break;
-        case OP_TRUE:
+        case OpCode::TRUE:
             push(BOOL_VAL(true));
             break;
-        case OP_FALSE:
+        case OpCode::FALSE:
             push(BOOL_VAL(false));
             break;
-        case OP_POP:
+        case OpCode::ZERO:
+            push(number_zero);
+            break;
+        case OpCode::ONE:
+            push(number_one);
+            break;
+        case OpCode::POP:
             pop();
             break;
-        case OP_GET_LOCAL: {
+        case OpCode::GET_LOCAL: {
             uint8_t slot = READ_BYTE();
             push(frame->slots[slot]);
             break;
         }
-        case OP_SET_LOCAL: {
+        case OpCode::SET_LOCAL: {
             uint8_t slot = READ_BYTE();
             frame->slots[slot] = peek(0);
             break;
         }
-        case OP_GET_GLOBAL: {
+        case OpCode::GET_GLOBAL: {
             ObjString *name = READ_STRING();
             Value      value;
             if (!globals.get(name, &value)) {
@@ -331,13 +341,13 @@ InterpretResult VM::run() {
             push(value);
             break;
         }
-        case OP_DEFINE_GLOBAL: {
+        case OpCode::DEFINE_GLOBAL: {
             ObjString *name = READ_STRING();
             globals.set(name, peek(0));
             pop();
             break;
         }
-        case OP_SET_GLOBAL: {
+        case OpCode::SET_GLOBAL: {
             ObjString *name = READ_STRING();
             if (globals.set(name, peek(0))) {
                 globals.del(name); // [delete]
@@ -346,17 +356,17 @@ InterpretResult VM::run() {
             }
             break;
         }
-        case OP_GET_UPVALUE: {
+        case OpCode::GET_UPVALUE: {
             uint8_t slot = READ_BYTE();
             push(*frame->closure->upvalues[slot]->location);
             break;
         }
-        case OP_SET_UPVALUE: {
+        case OpCode::SET_UPVALUE: {
             uint8_t slot = READ_BYTE();
             *frame->closure->upvalues[slot]->location = peek(0);
             break;
         }
-        case OP_GET_PROPERTY: {
+        case OpCode::GET_PROPERTY: {
             if (!IS_INSTANCE(peek(0))) {
                 runtimeError("Only instances have properties.");
                 return INTERPRET_RUNTIME_ERROR;
@@ -377,7 +387,7 @@ InterpretResult VM::run() {
             }
             break;
         }
-        case OP_SET_PROPERTY: {
+        case OpCode::SET_PROPERTY: {
             if (!IS_INSTANCE(peek(1))) {
                 runtimeError("Only instances have fields.");
                 return INTERPRET_RUNTIME_ERROR;
@@ -390,7 +400,7 @@ InterpretResult VM::run() {
             push(value);
             break;
         }
-        case OP_GET_SUPER: {
+        case OpCode::GET_SUPER: {
             ObjString *name = READ_STRING();
             ObjClass  *superclass = AS_CLASS(pop());
 
@@ -399,19 +409,19 @@ InterpretResult VM::run() {
             }
             break;
         }
-        case OP_EQUAL: {
+        case OpCode::EQUAL: {
             Value b = pop();
             Value a = pop();
             push(BOOL_VAL(valuesEqual(a, b)));
             break;
         }
-        case OP_GREATER:
+        case OpCode::GREATER:
             BINARY_OP(BOOL_VAL, >);
             break;
-        case OP_LESS:
+        case OpCode::LESS:
             BINARY_OP(BOOL_VAL, <);
             break;
-        case OP_ADD: {
+        case OpCode::ADD: {
             if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
                 concatenate();
             } else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
@@ -424,47 +434,47 @@ InterpretResult VM::run() {
             }
             break;
         }
-        case OP_SUBTRACT:
+        case OpCode::SUBTRACT:
             BINARY_OP(NUMBER_VAL, -);
             break;
-        case OP_MULTIPLY:
+        case OpCode::MULTIPLY:
             BINARY_OP(NUMBER_VAL, *);
             break;
-        case OP_DIVIDE:
+        case OpCode::DIVIDE:
             BINARY_OP(NUMBER_VAL, /);
             break;
-        case OP_NOT:
+        case OpCode::NOT:
             push(BOOL_VAL(isFalsey(pop())));
             break;
-        case OP_NEGATE:
+        case OpCode::NEGATE:
             if (!IS_NUMBER(peek(0))) {
                 runtimeError("Operand must be a number.");
                 return INTERPRET_RUNTIME_ERROR;
             }
             push(NUMBER_VAL(-AS_NUMBER(pop())));
             break;
-        case OP_PRINT: {
+        case OpCode::PRINT: {
             printValue(pop());
             std::cout << "\n";
             break;
         }
-        case OP_JUMP: {
+        case OpCode::JUMP: {
             uint16_t offset = READ_SHORT();
             frame->ip += offset;
             break;
         }
-        case OP_JUMP_IF_FALSE: {
+        case OpCode::JUMP_IF_FALSE: {
             uint16_t offset = READ_SHORT();
             if (isFalsey(peek(0)))
                 frame->ip += offset;
             break;
         }
-        case OP_LOOP: {
+        case OpCode::LOOP: {
             uint16_t offset = READ_SHORT();
             frame->ip -= offset;
             break;
         }
-        case OP_CALL: {
+        case OpCode::CALL: {
             int argCount = READ_BYTE();
             if (!callValue(peek(argCount), argCount)) {
                 return INTERPRET_RUNTIME_ERROR;
@@ -472,7 +482,7 @@ InterpretResult VM::run() {
             frame = &frames[frameCount - 1];
             break;
         }
-        case OP_INVOKE: {
+        case OpCode::INVOKE: {
             ObjString *method = READ_STRING();
             int        argCount = READ_BYTE();
             if (!invoke(method, argCount)) {
@@ -481,7 +491,7 @@ InterpretResult VM::run() {
             frame = &frames[frameCount - 1];
             break;
         }
-        case OP_SUPER_INVOKE: {
+        case OpCode::SUPER_INVOKE: {
             ObjString *method = READ_STRING();
             int        argCount = READ_BYTE();
             ObjClass  *superclass = AS_CLASS(pop());
@@ -491,7 +501,7 @@ InterpretResult VM::run() {
             frame = &frames[frameCount - 1];
             break;
         }
-        case OP_CLOSURE: {
+        case OpCode::CLOSURE: {
             ObjFunction *function = AS_FUNCTION(READ_CONSTANT());
             ObjClosure  *closure = newClosure(function);
             push(OBJ_VAL(closure));
@@ -506,11 +516,11 @@ InterpretResult VM::run() {
             }
             break;
         }
-        case OP_CLOSE_UPVALUE:
+        case OpCode::CLOSE_UPVALUE:
             closeUpvalues(stackTop - 1);
             pop();
             break;
-        case OP_RETURN: {
+        case OpCode::RETURN: {
             Value result = pop();
             closeUpvalues(frame->slots);
             frameCount--;
@@ -524,10 +534,10 @@ InterpretResult VM::run() {
             frame = &frames[frameCount - 1];
             break;
         }
-        case OP_CLASS:
+        case OpCode::CLASS:
             push(OBJ_VAL(newClass(READ_STRING())));
             break;
-        case OP_INHERIT: {
+        case OpCode::INHERIT: {
             Value superclass = peek(1);
             if (!IS_CLASS(superclass)) {
                 runtimeError("Superclass must be a class.");
@@ -539,7 +549,7 @@ InterpretResult VM::run() {
             pop(); // Subclass.
             break;
         }
-        case OP_METHOD:
+        case OpCode::METHOD:
             defineMethod(READ_STRING());
             break;
         }
