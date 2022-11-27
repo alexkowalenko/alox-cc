@@ -15,14 +15,16 @@
 
 #define GC_HEAP_GROW_FACTOR 2
 
+GC gc;
+
 void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
-    vm.bytesAllocated += newSize - oldSize;
+    gc.bytesAllocated += newSize - oldSize;
     if (newSize > oldSize) {
         if constexpr (DEBUG_STRESS_GC) {
-            collectGarbage();
+            gc.collectGarbage();
         }
-        if (vm.bytesAllocated > vm.nextGC) {
-            collectGarbage();
+        if (gc.bytesAllocated > gc.nextGC) {
+            gc.collectGarbage();
         }
     }
 
@@ -38,7 +40,7 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
     return result;
 }
 
-void markObject(Obj *object) {
+void GC::markObject(Obj *object) {
     if (object == nullptr) {
         return;
     }
@@ -54,25 +56,26 @@ void markObject(Obj *object) {
 
     object->isMarked = true;
 
-    if (vm.grayCapacity < vm.grayCount + 1) {
-        vm.grayCapacity = grow_capacity(vm.grayCapacity);
-        vm.grayStack = (Obj **)realloc(vm.grayStack, sizeof(Obj *) * vm.grayCapacity);
+    if (this->grayCapacity < this->grayCount + 1) {
+        this->grayCapacity = grow_capacity(this->grayCapacity);
+        this->grayStack =
+            (Obj **)realloc(this->grayStack, sizeof(Obj *) * this->grayCapacity);
 
-        if (vm.grayStack == nullptr) {
+        if (this->grayStack == nullptr) {
             exit(1);
         }
     }
 
-    vm.grayStack[vm.grayCount++] = object;
+    this->grayStack[this->grayCount++] = object;
 }
 
-void markValue(Value value) {
+void GC::markValue(Value value) {
     if (IS_OBJ(value)) {
         markObject(AS_OBJ(value));
     }
 }
 
-static void blackenObject(Obj *object) {
+void GC::blackenObject(Obj *object) {
     if constexpr (DEBUG_LOG_GC) {
         printf("%p blacken ", (void *)object);
         printValue(OBJ_VAL(object));
@@ -121,7 +124,7 @@ static void blackenObject(Obj *object) {
     }
 }
 
-static void freeObject(Obj *object) {
+void GC::freeObject(Obj *object) {
     if constexpr (DEBUG_LOG_GC) {
         printf("%p free type %d\n", (void *)object, object->type);
     }
@@ -169,7 +172,7 @@ static void freeObject(Obj *object) {
     }
 }
 
-static void markRoots() {
+void GC::markRoots() {
     for (Value *slot = vm.stack; slot < vm.stackTop; slot++) {
         markValue(*slot);
     }
@@ -188,16 +191,16 @@ static void markRoots() {
     markObject((Obj *)vm.initString);
 }
 
-static void traceReferences() {
-    while (vm.grayCount > 0) {
-        Obj *object = vm.grayStack[--vm.grayCount];
+void GC::traceReferences() {
+    while (grayCount > 0) {
+        Obj *object = grayStack[--grayCount];
         blackenObject(object);
     }
 }
 
-static void sweep() {
+void GC::sweep() {
     Obj *previous = nullptr;
-    Obj *object = vm.objects;
+    Obj *object = this->objects;
     while (object != nullptr) {
         if (object->isMarked) {
             object->isMarked = false;
@@ -209,7 +212,7 @@ static void sweep() {
             if (previous != nullptr) {
                 previous->next = object;
             } else {
-                vm.objects = object;
+                this->objects = object;
             }
 
             freeObject(unreached);
@@ -217,11 +220,11 @@ static void sweep() {
     }
 }
 
-void collectGarbage() {
+void GC::collectGarbage() {
     static size_t before;
     if constexpr (DEBUG_LOG_GC) {
         printf("-- gc begin\n");
-        size_t before = vm.bytesAllocated;
+        size_t before = this->bytesAllocated;
     }
 
     markRoots();
@@ -229,22 +232,32 @@ void collectGarbage() {
     vm.strings.removeWhite();
     sweep();
 
-    vm.nextGC = vm.bytesAllocated * GC_HEAP_GROW_FACTOR;
+    this->nextGC = this->bytesAllocated * GC_HEAP_GROW_FACTOR;
 
     if constexpr (DEBUG_LOG_GC) {
         printf("-- gc end\n");
         printf("   collected %zu bytes (from %zu to %zu) next at %zu\n",
-               before - vm.bytesAllocated, before, vm.bytesAllocated, vm.nextGC);
+               before - this->bytesAllocated, before, this->bytesAllocated, this->nextGC);
     }
 }
 
-void freeObjects() {
-    Obj *object = vm.objects;
+void GC::freeObjects() {
+    Obj *object = this->objects;
     while (object != nullptr) {
         Obj *next = object->next;
         freeObject(object);
         object = next;
     }
 
-    free(vm.grayStack);
+    free(this->grayStack);
+}
+
+void GC::init() {
+    objects = nullptr;
+    bytesAllocated = 0;
+    nextGC = 1024 * 1024;
+
+    grayCount = 0;
+    grayCapacity = 0;
+    grayStack = nullptr;
 }

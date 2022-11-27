@@ -854,7 +854,7 @@ ObjFunction *Lox_Compiler::compile(const char *source) {
 void Lox_Compiler::markCompilerRoots() {
     Compiler *compiler = current;
     while (compiler != nullptr) {
-        markObject((Obj *)compiler->function);
+        gc.markObject((Obj *)compiler->function);
         compiler = compiler->enclosing;
     }
 }

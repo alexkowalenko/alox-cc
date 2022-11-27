@@ -30,7 +30,28 @@ template <typename T> constexpr void free_array(T *pointer, size_t oldCount) {
     reallocate(pointer, sizeof(T) * (oldCount), 0);
 }
 
-void markObject(Obj *object);
-void markValue(Value value);
-void collectGarbage();
-void freeObjects();
+class GC {
+  public:
+    size_t bytesAllocated;
+    size_t nextGC;
+    Obj   *objects;
+    int    grayCount;
+    int    grayCapacity;
+    Obj  **grayStack;
+
+    void init();
+
+    void markObject(Obj *object);
+    void markValue(Value value);
+    void collectGarbage();
+    void freeObjects();
+
+  private:
+    void blackenObject(Obj *object);
+    void freeObject(Obj *object);
+    void markRoots();
+    void traceReferences();
+    void sweep();
+};
+
+extern GC gc;

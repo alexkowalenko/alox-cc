@@ -64,13 +64,6 @@ class VM {
     ObjUpvalue *openUpvalues;
 
     Lox_Compiler *compiler;
-
-    size_t bytesAllocated;
-    size_t nextGC;
-    Obj   *objects;
-    int    grayCount;
-    int    grayCapacity;
-    Obj  **grayStack;
 };
 
 extern VM vm;

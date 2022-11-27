@@ -4,7 +4,6 @@
 
 #include "chunk.hh"
 #include "memory.hh"
-#include "vm.hh"
 
 void Chunk::init() {
     this->count = 0;
@@ -36,8 +35,6 @@ void Chunk::write(uint8_t byte, int line) {
 }
 
 int Chunk::addConstant(Value value) {
-    //vm.push(value);
     this->constants.write(value);
-    //vm.pop();
     return this->constants.get_count() - 1;
 }

@@ -59,13 +59,6 @@ void VM::defineNative(const char *name, NativeFn function) {
 
 void VM::init() {
     resetStack();
-    objects = nullptr;
-    bytesAllocated = 0;
-    nextGC = 1024 * 1024;
-
-    grayCount = 0;
-    grayCapacity = 0;
-    grayStack = nullptr;
 
     globals.init();
     strings.init();
@@ -80,7 +73,7 @@ void VM::free() {
     globals.free();
     strings.free();
     initString = nullptr;
-    freeObjects();
+    gc.freeObjects();
 }
 
 void VM::push(Value value) {

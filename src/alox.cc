@@ -13,11 +13,13 @@
 #include <linenoise.h>
 
 #include "alox.hh"
+#include "memory.hh"
 #include "vm.hh"
 
 constexpr auto history_file = "./alox-cc";
 
 Alox::Alox() {
+    gc.init();
     vm.init();
 }
 

@@ -22,8 +22,8 @@ static Obj *allocateObject(size_t size, ObjType type) {
     object->type = type;
     object->isMarked = false;
 
-    object->next = vm.objects;
-    vm.objects = object;
+    object->next = gc.objects;
+    gc.objects = object;
 
     if constexpr (DEBUG_LOG_GC) {
         printf("%p allocate %zu for %d\n", (void *)object, size, type);

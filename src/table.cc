@@ -167,7 +167,7 @@ void Table::removeWhite() {
 void Table::mark() {
     for (int i = 0; i < this->capacity; i++) {
         Entry *entry = &this->entries[i];
-        markObject((Obj *)entry->key);
-        markValue(entry->value);
+        gc.markObject((Obj *)entry->key);
+        gc.markValue(entry->value);
     }
 }

@@ -22,6 +22,6 @@ void ValueArray::free() {
 
 void ValueArray::mark() {
     for (auto &v : *values) {
-        markValue(v);
+        gc.markValue(v);
     }
 }
