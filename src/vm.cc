@@ -18,8 +18,6 @@
 #include "object.hh"
 #include "vm.hh"
 
-VM vm; // [one]
-
 static Value clockNative(int /*argCount*/, Value * /*args*/) {
     return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
@@ -555,7 +553,7 @@ InterpretResult VM::run() {
 }
 
 InterpretResult VM::interpret(const char *source) {
-    compiler = std::make_unique<Lox_Compiler>();
+    compiler = std::make_unique<Lox_Compiler>(options);
     ObjFunction *function = compiler->compile(source);
     if (function == nullptr) {
         return INTERPRET_COMPILE_ERROR;
@@ -567,6 +565,8 @@ InterpretResult VM::interpret(const char *source) {
     push(OBJ_VAL(closure));
     call(closure, 0);
 
-    auto ret = run();
-    return ret;
+    if (options.debug_code) {
+        return INTERPRET_OK;
+    }
+    return run();
 }

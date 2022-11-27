@@ -4,7 +4,7 @@ LOX converted to C++
 
 Additions:
 
-* [ ] `break`, `continue`.
+* [x] `break`, `continue`.
 * [ ] Unicode strings and identifiers.
 * [ ] ++, --.
 * [ ] I/O read, write, stderr.

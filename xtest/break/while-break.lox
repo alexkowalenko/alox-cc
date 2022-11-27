@@ -1,0 +1,7 @@
+while (true)  {
+    print 1; // expect: 1
+    break;
+    print 2;
+}
+print "end"; // expect: end
+

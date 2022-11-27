@@ -8,11 +8,12 @@
 
 #include <string_view>
 
+#include "options.hh"
 #include "vm.hh"
 
 class Alox {
   public:
-    Alox();
+    Alox(const Options &opt);
     ~Alox();
 
     int  runFile(const std::string_view &path);
@@ -20,6 +21,8 @@ class Alox {
     void repl();
 
   private:
-    std::string readFile(const std::string_view &path);
-    VM          vm;
+    std::string    readFile(const std::string_view &path);
+    
+    const Options &options;
+    VM             vm;
 };

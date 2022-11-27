@@ -3,18 +3,27 @@
 //
 
 #include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 #include <map>
 #include <memory>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
+#include <fmt/core.h>
 
 #include "common.hh"
 #include "compiler.hh"
 #include "debug.hh"
 #include "memory.hh"
-
 #include "scanner.hh"
+
+inline constexpr auto debug_compile{false};
+template <typename S, typename... Args>
+static void debug(const S &format, const Args &...msg) {
+    if constexpr (debug_compile) {
+        std::cout << "compiler: " << fmt::format(fmt::runtime(format), msg...) << '\n';
+    }
+}
 
 void Lox_Compiler::emitByte(uint8_t byte) {
     currentChunk()->write(byte, parser->previous.line);
@@ -80,13 +89,20 @@ void Lox_Compiler::patchJump(int offset) {
     currentChunk()->get_code(offset + 1) = jump & 0xff;
 }
 
+void Compiler::init(Compiler *enclosing, FunctionType type) {
+    this->enclosing = enclosing;
+    this->function = nullptr;
+    this->type = type;
+    this->localCount = 0;
+    this->scopeDepth = 0;
+    this->function = newFunction();
+    this->last_break = 0;
+    this->last_continue = 0;
+    this->enclosing_loop = 0;
+}
+
 void Lox_Compiler::initCompiler(Compiler *compiler, FunctionType type) {
-    compiler->enclosing = current;
-    compiler->function = nullptr;
-    compiler->type = type;
-    compiler->localCount = 0;
-    compiler->scopeDepth = 0;
-    compiler->function = newFunction();
+    compiler->init(current, type);
     current = compiler;
     if (type != TYPE_SCRIPT) {
         current->function->name =
@@ -107,7 +123,7 @@ ObjFunction *Lox_Compiler::endCompiler() {
     emitReturn();
     ObjFunction *function = current->function;
 
-    if constexpr (DEBUG_PRINT_CODE) {
+    if (options.debug_code) {
         if (!parser->hadError) {
             disassembleChunk(currentChunk(), function->name != nullptr
                                                  ? function->name->chars
@@ -667,13 +683,22 @@ void Lox_Compiler::varDeclaration() {
 }
 
 void Lox_Compiler::expressionStatement() {
+    debug("expressionStatement");
     expression();
     parser->consume(TokenType::SEMICOLON, "Expect ';' after expression.");
     emitByte(OP_POP);
 }
 
+/**
+ * @brief forStatement - this is out of order, as there is no AST.
+ *
+ */
 void Lox_Compiler::forStatement() {
+    debug("forStatement");
     beginScope();
+
+    // initialiser expression
+    debug("forStatement init: {}", currentChunk()->get_count());
     parser->consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.");
     if (parser->match(TokenType::SEMICOLON)) {
         // No initializer.
@@ -683,7 +708,9 @@ void Lox_Compiler::forStatement() {
         expressionStatement();
     }
 
+    // condition
     int loopStart = currentChunk()->get_count();
+    debug("forStatement condition: {}", currentChunk()->get_count());
     int exitJump = -1;
     if (!parser->match(TokenType::SEMICOLON)) {
         expression();
@@ -694,9 +721,12 @@ void Lox_Compiler::forStatement() {
         emitByte(OP_POP); // Condition.
     }
 
+    // increment
+    debug("forStatement increment: {}", currentChunk()->get_count());
     if (!parser->match(TokenType::RIGHT_PAREN)) {
         int bodyJump = emitJump(OP_JUMP);
         int incrementStart = currentChunk()->get_count();
+        current->last_continue = currentChunk()->get_count();
         expression();
         emitByte(OP_POP);
         parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.");
@@ -706,11 +736,18 @@ void Lox_Compiler::forStatement() {
         patchJump(bodyJump);
     }
 
+    // statement
+    current->enclosing_loop++;
     statement();
+    current->enclosing_loop--;
     emitLoop(loopStart);
 
     if (exitJump != -1) {
         patchJump(exitJump);
+        if (current->last_break) {
+            patchJump(current->last_break);
+            current->last_break = 0;
+        }
         emitByte(OP_POP); // Condition.
     }
 
@@ -763,18 +800,46 @@ void Lox_Compiler::returnStatement() {
 }
 
 void Lox_Compiler::whileStatement() {
+    debug("whileStatement");
     int loopStart = currentChunk()->get_count();
+    current->last_continue = loopStart;
     parser->consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.");
     expression();
     parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
 
     int exitJump = emitJump(OP_JUMP_IF_FALSE);
     emitByte(OP_POP);
+    current->enclosing_loop++;
     statement();
+    current->enclosing_loop--;
     emitLoop(loopStart);
 
     patchJump(exitJump);
+    // handle break
+    if (current->last_break) {
+        patchJump(current->last_break);
+        current->last_break = 0;
+    }
     emitByte(OP_POP);
+}
+
+void Lox_Compiler::breakStatement(TokenType t) {
+    debug("breakStatement");
+    const auto *name = t == TokenType::BREAK ? "break" : "continue";
+    if (current->enclosing_loop == 0) {
+        parser->error(fmt::format("{} must be used in a loop.", name));
+    }
+    parser->consume(TokenType::SEMICOLON, fmt::format("Expect ';' after {}.", name));
+
+    if (t == TokenType::BREAK) {
+        current->last_break = emitJump(OP_JUMP);
+        return;
+    }
+    // continue
+    if (current->last_continue) {
+        emitLoop(current->last_continue);
+        current->last_continue = 0;
+    }
 }
 
 void Lox_Compiler::synchronize() {
@@ -803,6 +868,7 @@ void Lox_Compiler::synchronize() {
 }
 
 void Lox_Compiler::declaration() {
+    debug("declaration");
     if (parser->match(TokenType::CLASS)) {
         classDeclaration();
     } else if (parser->match(TokenType::FUN)) {
@@ -819,6 +885,7 @@ void Lox_Compiler::declaration() {
 }
 
 void Lox_Compiler::statement() {
+    debug("statement");
     if (parser->match(TokenType::PRINT)) {
         printStatement();
     } else if (parser->match(TokenType::FOR)) {
@@ -829,6 +896,10 @@ void Lox_Compiler::statement() {
         returnStatement();
     } else if (parser->match(TokenType::WHILE)) {
         whileStatement();
+    } else if (parser->match(TokenType::BREAK)) {
+        breakStatement(TokenType::BREAK);
+    } else if (parser->match(TokenType::CONTINUE)) {
+        breakStatement(TokenType::CONTINUE);
     } else if (parser->match(TokenType::LEFT_BRACE)) {
         beginScope();
         block();

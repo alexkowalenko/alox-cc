@@ -1,0 +1,1 @@
+continue; // error: [line 1] Error at 'continue': continue must be used in a loop.

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "object.hh"
+#include "options.hh"
 #include "parser.hh"
 #include "scanner.hh"
 
@@ -43,15 +44,26 @@ struct Upvalue {
 
 enum FunctionType { TYPE_FUNCTION, TYPE_INITIALIZER, TYPE_METHOD, TYPE_SCRIPT };
 
-struct Compiler {
-    Compiler    *enclosing;
-    ObjFunction *function;
+/**
+ * @brief This has all the info for the current function being compiled.
+ *
+ */
+class Compiler {
+  public:
+    void init(Compiler *enclosing, FunctionType type);
+
+    Compiler    *enclosing{nullptr};
+    ObjFunction *function{nullptr};
     FunctionType type;
 
-    Local   locals[UINT8_COUNT];
-    int     localCount;
-    Upvalue upvalues[UINT8_COUNT];
-    int     scopeDepth;
+    std::array<Local, UINT8_COUNT>   locals;
+    int                              localCount{0};
+    std::array<Upvalue, UINT8_COUNT> upvalues;
+    int                              scopeDepth{0};
+
+    int last_continue{0};
+    int last_break{0};
+    int enclosing_loop{0};
 };
 
 struct ClassCompiler {
@@ -61,6 +73,9 @@ struct ClassCompiler {
 
 class Lox_Compiler {
   public:
+    Lox_Compiler(const Options &opt) : options(opt){};
+    ~Lox_Compiler() = default;
+
     ObjFunction *compile(const char *source);
     void         markCompilerRoots();
 
@@ -131,7 +146,10 @@ class Lox_Compiler {
     void printStatement();
     void returnStatement();
     void whileStatement();
+    void breakStatement(TokenType t);
     void synchronize();
+
+    const Options &options;
 
     std::unique_ptr<Parser> parser;
 

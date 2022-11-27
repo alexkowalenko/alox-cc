@@ -5,18 +5,19 @@
 #include <iostream>
 
 #include "alox.hh"
+#include "options.hh"
 
 int main(int argc, const char *argv[]) {
 
-    Alox alox;
+    Options options;
+    getOptions(argc, argv, options);
 
-    if (argc == 1) {
+    Alox alox(options);
+
+    if (options.file_name == "") {
         alox.repl();
-    } else if (argc == 2) {
-        return alox.runFile(argv[1]);
     } else {
-        std::cerr << "Usage: alox [path]\n";
-        return 64;
+        return alox.runFile(options.file_name);
     }
     return 0;
 }

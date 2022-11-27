@@ -10,7 +10,8 @@ template <typename... ExtraArgs>
 static void BM_Test(benchmark::State &state, ExtraArgs &&...extra_args) {
     // Perform setup here
 
-    Alox alox;
+    Options options;
+    Alox    alox(options);
 
     for (auto _ : state) {
         // This code gets timed

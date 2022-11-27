@@ -2,6 +2,7 @@
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
 add_library(lox STATIC
+   options.cc
    chunk.cc
    compiler.cc
    debug.cc
@@ -19,3 +20,4 @@ add_library(lox STATIC
 target_link_libraries(lox fmt)
 
 target_include_directories(lox PUBLIC "${linenoise_SOURCE_DIR}/include")
+target_include_directories(lox PUBLIC "${CLI11_SOURCE_DIR}/include")

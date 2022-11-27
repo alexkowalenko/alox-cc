@@ -1,0 +1,8 @@
+var x = true;
+while(x) {
+    print "in"; // expect: in
+    x = false;
+    continue;
+    print "no";
+}
+print "end"; // expect: end

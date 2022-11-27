@@ -4,11 +4,13 @@
 
 #pragma once
 
+#include <memory>
+
 #include "compiler.hh"
 #include "object.hh"
+#include "options.hh"
 #include "table.hh"
 #include "value.hh"
-#include <memory>
 
 class Lox_Compiler;
 
@@ -25,6 +27,9 @@ enum InterpretResult { INTERPRET_OK, INTERPRET_COMPILE_ERROR, INTERPRET_RUNTIME_
 
 class VM {
   public:
+    VM(const Options &opt) : options(opt){};
+    ~VM() = default;
+    
     void init();
     void free();
 
@@ -57,6 +62,8 @@ class VM {
     InterpretResult run();
 
     int addConstant(Value value);
+
+    const Options &options;
 
     CallFrame frames[FRAMES_MAX];
     int       frameCount;

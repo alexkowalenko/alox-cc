@@ -18,7 +18,7 @@
 
 constexpr auto history_file = "./alox-cc";
 
-Alox::Alox() {
+Alox::Alox(const Options &opt) : options(opt), vm(options) {
     gc.init(&vm);
     vm.init();
 }

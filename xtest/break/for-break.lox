@@ -1,0 +1,7 @@
+for(var x = 0; x < 10; ) {
+    print x; // expect: 0
+    break;
+    print 1;
+}
+print "end";
+// expect: end

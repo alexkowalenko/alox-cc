@@ -1,0 +1,1 @@
+break; // error: [line 1] Error at 'break': break must be used in a loop.

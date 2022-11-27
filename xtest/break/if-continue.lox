@@ -1,0 +1,13 @@
+for(var i = 0; i < 3; i = i + 1) {
+    print i;
+    if (i == 1) {
+        continue;
+    }
+    print "do";
+}
+// expect: 0
+// expect: do
+// expect: 1
+// expect: 2
+// expect: do
+print "end"; // expect: end
