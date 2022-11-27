@@ -22,10 +22,7 @@ void Parser::errorAt(Token *token, std::string_view message) {
     } else if (token->type == TokenType::ERROR) {
         // Nothing.
     } else {
-        std::array<char, buf_len> buf{};
-        (void)snprintf(buf.data(), buf_len, " at '%.*s'", token->text.data(),
-                       token->text.size());
-        std::cerr << buf.data();
+        std::cerr << fmt::format(" at '{:s}'", token->text);
     }
     std::cerr << fmt::format(": {}\n", message);
     hadError = true;

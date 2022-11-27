@@ -16,12 +16,11 @@ class ValueArray {
     ValueArray(const ValueArray &) = delete;
 
     void init();
-    void free();
+    void free() { values = nullptr; };
 
-    void write(const Value &value);
-    void mark();
+    size_t write(const Value &value);
+    void   mark();
 
-    [[nodiscard]] constexpr size_t get_count() const { return values->size(); };
     [[nodiscard]] constexpr Value &get_value(size_t n) { return (*values)[n]; }
 
   private:
