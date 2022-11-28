@@ -15,26 +15,26 @@ template <typename T> constexpr T *allocate_obj(ObjType objectType) {
 }
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
-    auto *bound = allocate_obj<ObjBoundMethod>(OBJ_BOUND_METHOD);
+    auto *bound = gc.allocateObject<ObjBoundMethod>(ObjType::BOUND_METHOD);
     bound->receiver = receiver;
     bound->method = method;
     return bound;
 }
 
 ObjClass *newClass(ObjString *name) {
-    auto *klass = gc.allocateObject<ObjClass>(OBJ_CLASS);
+    auto *klass = gc.allocateObject<ObjClass>(ObjType::CLASS);
     klass->name = name; // [klass]
     klass->methods.init();
     return klass;
 }
 
 ObjClosure *newClosure(ObjFunction *function) {
-    auto **upvalues = allocate<ObjUpvalue *>(function->upvalueCount);
+    auto **upvalues = allocate<ObjUpvalue *>(function->upvalueCount); // allocate array
     for (int i = 0; i < function->upvalueCount; i++) {
         upvalues[i] = nullptr;
     }
 
-    auto *closure = allocate_obj<ObjClosure>(OBJ_CLOSURE);
+    auto *closure = gc.allocateObject<ObjClosure>(ObjType::CLOSURE);
     closure->function = function;
     closure->upvalues = upvalues;
     closure->upvalueCount = function->upvalueCount;
@@ -42,7 +42,7 @@ ObjClosure *newClosure(ObjFunction *function) {
 }
 
 ObjFunction *newFunction() {
-    auto *function = allocate_obj<ObjFunction>(OBJ_FUNCTION);
+    auto *function = gc.allocateObject<ObjFunction>(ObjType::FUNCTION);
     function->arity = 0;
     function->upvalueCount = 0;
     function->name = nullptr;
@@ -51,20 +51,20 @@ ObjFunction *newFunction() {
 }
 
 ObjInstance *newInstance(ObjClass *klass) {
-    auto *instance = allocate_obj<ObjInstance>(OBJ_INSTANCE);
+    auto *instance = gc.allocateObject<ObjInstance>(ObjType::INSTANCE);
     instance->klass = klass;
     instance->fields.init();
     return instance;
 }
 
 ObjNative *newNative(NativeFn function) {
-    auto *native = allocate_obj<ObjNative>(OBJ_NATIVE);
+    auto *native = gc.allocateObject<ObjNative>(ObjType::NATIVE);
     native->function = function;
     return native;
 }
 
 ObjString *allocateString(char *chars, int length, uint32_t hash) {
-    auto *string = allocate_obj<ObjString>(OBJ_STRING);
+    auto *string = allocate_obj<ObjString>(ObjType::STRING);
     string->length = length;
     string->chars = chars;
     string->hash = hash;
@@ -107,7 +107,7 @@ ObjString *copyString(const char *chars, int length) {
 }
 
 ObjUpvalue *newUpvalue(Value *slot) {
-    auto *upvalue = allocate_obj<ObjUpvalue>(OBJ_UPVALUE);
+    auto *upvalue = gc.allocateObject<ObjUpvalue>(ObjType::UPVALUE);
     upvalue->closed = NIL_VAL;
     upvalue->location = slot;
     upvalue->next = nullptr;
@@ -124,28 +124,28 @@ static void printFunction(ObjFunction *function) {
 
 void printObject(Value value) {
     switch (OBJ_TYPE(value)) {
-    case OBJ_BOUND_METHOD:
+    case ObjType::BOUND_METHOD:
         printFunction(AS_BOUND_METHOD(value)->method->function);
         break;
-    case OBJ_CLASS:
+    case ObjType::CLASS:
         printf("%s", AS_CLASS(value)->name->chars);
         break;
-    case OBJ_CLOSURE:
+    case ObjType::CLOSURE:
         printFunction(AS_CLOSURE(value)->function);
         break;
-    case OBJ_FUNCTION:
+    case ObjType::FUNCTION:
         printFunction(AS_FUNCTION(value));
         break;
-    case OBJ_INSTANCE:
+    case ObjType::INSTANCE:
         printf("%s instance", AS_INSTANCE(value)->klass->name->chars);
         break;
-    case OBJ_NATIVE:
+    case ObjType::NATIVE:
         printf("<native fn>");
         break;
-    case OBJ_STRING:
+    case ObjType::STRING:
         printf("%s", AS_CSTRING(value));
         break;
-    case OBJ_UPVALUE:
+    case ObjType::UPVALUE:
         printf("upvalue");
         break;
     }

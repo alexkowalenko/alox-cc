@@ -9,15 +9,15 @@
 #include "table.hh"
 #include "value.hh"
 
-enum ObjType {
-    OBJ_BOUND_METHOD,
-    OBJ_CLASS,
-    OBJ_CLOSURE,
-    OBJ_FUNCTION,
-    OBJ_INSTANCE,
-    OBJ_NATIVE,
-    OBJ_STRING,
-    OBJ_UPVALUE
+enum class ObjType {
+    BOUND_METHOD,
+    CLASS,
+    CLOSURE,
+    FUNCTION,
+    INSTANCE,
+    NATIVE,
+    STRING,
+    UPVALUE
 };
 
 struct Obj {
@@ -89,31 +89,31 @@ constexpr bool isObjType(Value value, ObjType type) {
 }
 
 constexpr bool IS_BOUND_METHOD(Value value) {
-    return isObjType(value, OBJ_BOUND_METHOD);
+    return isObjType(value, ObjType::BOUND_METHOD);
 }
 
 constexpr bool IS_CLASS(Value value) {
-    return isObjType(value, OBJ_CLASS);
+    return isObjType(value, ObjType::CLASS);
 }
 
 constexpr bool IS_CLOSURE(Value value) {
-    return isObjType(value, OBJ_CLOSURE);
+    return isObjType(value, ObjType::CLOSURE);
 }
 
 constexpr bool IS_FUNCTION(Value value) {
-    return isObjType(value, OBJ_FUNCTION);
+    return isObjType(value, ObjType::FUNCTION);
 }
 
 constexpr bool IS_INSTANCE(Value value) {
-    return isObjType(value, OBJ_INSTANCE);
+    return isObjType(value, ObjType::INSTANCE);
 }
 
 constexpr bool IS_NATIVE(Value value) {
-    return isObjType(value, OBJ_NATIVE);
+    return isObjType(value, ObjType::NATIVE);
 }
 
 constexpr bool IS_STRING(Value value) {
-    return isObjType(value, OBJ_STRING);
+    return isObjType(value, ObjType::STRING);
 }
 
 inline ObjBoundMethod *AS_BOUND_METHOD(Value value) {

@@ -126,12 +126,12 @@ bool VM::call(ObjClosure *closure, int argCount) {
 bool VM::callValue(Value callee, int argCount) {
     if (IS_OBJ(callee)) {
         switch (OBJ_TYPE(callee)) {
-        case OBJ_BOUND_METHOD: {
+        case ObjType::BOUND_METHOD: {
             ObjBoundMethod *bound = AS_BOUND_METHOD(callee);
             stackTop[-argCount - 1] = bound->receiver;
             return call(bound->method, argCount);
         }
-        case OBJ_CLASS: {
+        case ObjType::CLASS: {
             ObjClass *klass = AS_CLASS(callee);
             stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
             Value initializer;
@@ -144,9 +144,9 @@ bool VM::callValue(Value callee, int argCount) {
             }
             return true;
         }
-        case OBJ_CLOSURE:
+        case ObjType::CLOSURE:
             return call(AS_CLOSURE(callee), argCount);
-        case OBJ_NATIVE: {
+        case ObjType::NATIVE: {
             NativeFn native = AS_NATIVE(callee);
             Value    result = native(argCount, stackTop - argCount);
             stackTop -= argCount + 1;

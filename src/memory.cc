@@ -117,19 +117,19 @@ void GC::blackenObject(Obj *object) {
     }
 
     switch (object->type) {
-    case OBJ_BOUND_METHOD: {
+    case ObjType::BOUND_METHOD: {
         ObjBoundMethod *bound = (ObjBoundMethod *)object;
         markValue(bound->receiver);
         markObject((Obj *)bound->method);
         break;
     }
-    case OBJ_CLASS: {
+    case ObjType::CLASS: {
         ObjClass *klass = (ObjClass *)object;
         markObject((Obj *)klass->name);
         klass->methods.mark();
         break;
     }
-    case OBJ_CLOSURE: {
+    case ObjType::CLOSURE: {
         ObjClosure *closure = (ObjClosure *)object;
         markObject((Obj *)closure->function);
         for (int i = 0; i < closure->upvalueCount; i++) {
@@ -137,23 +137,23 @@ void GC::blackenObject(Obj *object) {
         }
         break;
     }
-    case OBJ_FUNCTION: {
+    case ObjType::FUNCTION: {
         ObjFunction *function = (ObjFunction *)object;
         markObject((Obj *)function->name);
         function->chunk.get_constants().mark();
         break;
     }
-    case OBJ_INSTANCE: {
+    case ObjType::INSTANCE: {
         ObjInstance *instance = (ObjInstance *)object;
         markObject((Obj *)instance->klass);
         instance->fields.mark();
         break;
     }
-    case OBJ_UPVALUE:
+    case ObjType::UPVALUE:
         markValue(((ObjUpvalue *)object)->closed);
         break;
-    case OBJ_NATIVE:
-    case OBJ_STRING:
+    case ObjType::NATIVE:
+    case ObjType::STRING:
         break;
     }
 }
@@ -164,45 +164,45 @@ void GC::freeObject(Obj *object) {
     }
 
     switch (object->type) {
-    case OBJ_BOUND_METHOD:
-        FREE<ObjBoundMethod>(object);
+    case ObjType::BOUND_METHOD:
+        del<ObjBoundMethod>((ObjBoundMethod *)object);
         break;
-    case OBJ_CLASS: {
+    case ObjType::CLASS: {
         ObjClass *klass = (ObjClass *)object;
         klass->methods.free();
         del(klass);
         // FREE<ObjClass>(object);
         break;
     } // [braces]
-    case OBJ_CLOSURE: {
+    case ObjType::CLOSURE: {
         ObjClosure *closure = (ObjClosure *)object;
         free_array<ObjUpvalue *>(closure->upvalues, closure->upvalueCount);
-        FREE<ObjClosure>(object);
+        del<ObjClosure>(closure);
         break;
     }
-    case OBJ_FUNCTION: {
+    case ObjType::FUNCTION: {
         ObjFunction *function = (ObjFunction *)object;
         function->chunk.free();
-        FREE<ObjFunction>(object);
+        del<ObjFunction>(function);
         break;
     }
-    case OBJ_INSTANCE: {
+    case ObjType::INSTANCE: {
         ObjInstance *instance = (ObjInstance *)object;
         instance->fields.free();
-        FREE<ObjInstance>(object);
+        del<ObjInstance>(instance);
         break;
     }
-    case OBJ_NATIVE:
-        FREE<ObjNative>(object);
+    case ObjType::NATIVE:
+        del<ObjNative>((ObjNative *)object);
         break;
-    case OBJ_STRING: {
+    case ObjType::STRING: {
         ObjString *string = (ObjString *)object;
         free_array<char>(string->chars, string->length + 1);
         FREE<ObjString>(object);
         break;
     }
-    case OBJ_UPVALUE:
-        FREE<ObjUpvalue>(object);
+    case ObjType::UPVALUE:
+        del<ObjUpvalue>((ObjUpvalue *)object);
         break;
     }
 }
