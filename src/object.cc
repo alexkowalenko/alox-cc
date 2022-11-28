@@ -24,8 +24,7 @@ ObjClass *newClass(ObjString *name) {
 }
 
 ObjClosure *newClosure(ObjFunction *function) {
-    auto **upvalues =
-        gc.allocate_array<ObjUpvalue *>(function->upvalueCount); // allocate array
+    auto **upvalues = gc.allocate_array<ObjUpvalue *>(function->upvalueCount);
     for (int i = 0; i < function->upvalueCount; i++) {
         upvalues[i] = nullptr;
     }

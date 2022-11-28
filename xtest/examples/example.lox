@@ -1,0 +1,31 @@
+for (var i = 1; i < 5; i = i + 1) {
+  print i * i;
+}
+
+// expect: 1
+// expect: 4
+// expect: 9
+// expect: 16
+
+class Duck {
+  init(name) {
+    this.name = name;
+  }
+
+  quack() {
+    print this.name + " quacks";
+  }
+}
+
+var duck = Duck("Waddles");
+duck.quack(); // expect: Waddles quacks
+
+fun make_adder(n) {
+  fun adder(i) {
+    return n + i;
+  }
+  return adder;
+}
+var add5 = make_adder(5);
+print add5(1); //expect: 6
+print add5(100); //expect: 105
