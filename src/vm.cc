@@ -247,7 +247,7 @@ void VM::concatenate() {
     ObjString *a = AS_STRING(peek(1));
 
     int   length = a->length + b->length;
-    char *chars = allocate<char>(length + 1);
+    char *chars = gc.allocate_array<char>(length + 1);
     memcpy(chars, a->chars, a->length);
     memcpy(chars + a->length, b->chars, b->length);
     chars[length] = '\0';

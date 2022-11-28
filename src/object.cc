@@ -10,10 +10,6 @@
 #include "table.hh"
 #include "value.hh"
 
-template <typename T> constexpr T *allocate_obj(ObjType objectType) {
-    return (T *)gc.allocateObject(sizeof(T), objectType);
-}
-
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
     auto *bound = gc.allocateObject<ObjBoundMethod>(ObjType::BOUND_METHOD);
     bound->receiver = receiver;
@@ -29,7 +25,8 @@ ObjClass *newClass(ObjString *name) {
 }
 
 ObjClosure *newClosure(ObjFunction *function) {
-    auto **upvalues = allocate<ObjUpvalue *>(function->upvalueCount); // allocate array
+    auto **upvalues =
+        gc.allocate_array<ObjUpvalue *>(function->upvalueCount); // allocate array
     for (int i = 0; i < function->upvalueCount; i++) {
         upvalues[i] = nullptr;
     }
@@ -64,7 +61,7 @@ ObjNative *newNative(NativeFn function) {
 }
 
 ObjString *allocateString(char *chars, int length, uint32_t hash) {
-    auto *string = allocate_obj<ObjString>(ObjType::STRING);
+    auto *string = gc.allocateObject<ObjString>(ObjType::STRING);
     string->length = length;
     string->chars = chars;
     string->hash = hash;
@@ -73,7 +70,7 @@ ObjString *allocateString(char *chars, int length, uint32_t hash) {
     return string;
 }
 
-static uint32_t hashString(const char *key, int length) {
+static constexpr uint32_t hashString(const char *key, int length) {
     uint32_t hash = 2166136261u;
     for (int i = 0; i < length; i++) {
         hash ^= (uint8_t)key[i];
@@ -86,7 +83,7 @@ ObjString *takeString(char *chars, int length) {
     uint32_t   hash = hashString(chars, length);
     ObjString *interned = gc.strings.findString(chars, length, hash);
     if (interned != nullptr) {
-        free_array<char>(chars, length + 1);
+        gc.delete_array<char>(chars, length + 1);
         return interned;
     }
 
@@ -100,7 +97,7 @@ ObjString *copyString(const char *chars, int length) {
         return interned;
     }
 
-    char *heapChars = allocate<char>(length + 1);
+    char *heapChars = gc.allocate_array<char>(length + 1);
     memcpy(heapChars, chars, length);
     heapChars[length] = '\0';
     return allocateString(heapChars, length, hash);

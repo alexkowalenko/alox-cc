@@ -19,7 +19,7 @@ void Table::init() {
 }
 
 void Table::free() {
-    free_array<Entry>(this->entries, this->capacity);
+    gc.delete_array<Entry>(this->entries, this->capacity);
     init();
 }
 
@@ -65,7 +65,7 @@ bool Table::get(ObjString *key, Value *value) {
 }
 
 void Table::adjustCapacity(size_t capacity) {
-    auto *entries = allocate<Entry>(capacity);
+    auto *entries = gc.allocate_array<Entry>(capacity);
     for (int i = 0; i < capacity; i++) {
         entries[i].key = nullptr;
         entries[i].value = NIL_VAL;
@@ -84,7 +84,7 @@ void Table::adjustCapacity(size_t capacity) {
         this->count++;
     }
 
-    free_array<Entry>(this->entries, this->capacity);
+    gc.delete_array<Entry>(this->entries, this->capacity);
     this->entries = entries;
     this->capacity = capacity;
 }

@@ -2,7 +2,7 @@
 // ALOX-CC
 //
 
-#include <stdlib.h>
+#include <iostream>
 
 #include "compiler.hh"
 #include "memory.hh"
@@ -26,36 +26,12 @@ void GC::trigger(size_t oldSize, size_t newSize) {
     }
 }
 
-void *GC::reallocate(void *pointer, size_t oldSize, size_t newSize) {
-    trigger(oldSize, newSize);
-    if (newSize == 0) {
-        ::free(pointer);
-        return nullptr;
-    }
-
-    void *result = realloc(pointer, newSize);
-    if (result == nullptr) {
-        exit(1);
-    }
-    return result;
-}
-
 void GC::placeObject(Obj *object, ObjType type) {
     object->type = type;
     object->isMarked = false;
 
     object->next = this->objects;
     this->objects = object;
-}
-
-Obj *GC::allocateObject(size_t size, ObjType type) {
-    Obj *object = (Obj *)this->reallocate(nullptr, 0, size);
-    placeObject(object, type);
-
-    if constexpr (DEBUG_LOG_GC) {
-        printf("%p allocate %zu for %d\n", (void *)object, size, type);
-    }
-    return object;
 }
 
 void GC::init(VM *vm) {
@@ -165,44 +141,44 @@ void GC::freeObject(Obj *object) {
 
     switch (object->type) {
     case ObjType::BOUND_METHOD:
-        del<ObjBoundMethod>((ObjBoundMethod *)object);
+        deleteObject<ObjBoundMethod>((ObjBoundMethod *)object);
         break;
     case ObjType::CLASS: {
-        ObjClass *klass = (ObjClass *)object;
+        auto *klass = (ObjClass *)object;
         klass->methods.free();
-        del(klass);
+        deleteObject(klass);
         // FREE<ObjClass>(object);
         break;
     } // [braces]
     case ObjType::CLOSURE: {
-        ObjClosure *closure = (ObjClosure *)object;
-        free_array<ObjUpvalue *>(closure->upvalues, closure->upvalueCount);
-        del<ObjClosure>(closure);
+        auto *closure = (ObjClosure *)object;
+        gc.delete_array<ObjUpvalue *>(closure->upvalues, closure->upvalueCount);
+        deleteObject<ObjClosure>(closure);
         break;
     }
     case ObjType::FUNCTION: {
-        ObjFunction *function = (ObjFunction *)object;
+        auto *function = (ObjFunction *)object;
         function->chunk.free();
-        del<ObjFunction>(function);
+        deleteObject<ObjFunction>(function);
         break;
     }
     case ObjType::INSTANCE: {
-        ObjInstance *instance = (ObjInstance *)object;
+        auto *instance = (ObjInstance *)object;
         instance->fields.free();
-        del<ObjInstance>(instance);
+        deleteObject<ObjInstance>(instance);
         break;
     }
     case ObjType::NATIVE:
-        del<ObjNative>((ObjNative *)object);
+        deleteObject<ObjNative>((ObjNative *)object);
         break;
     case ObjType::STRING: {
-        ObjString *string = (ObjString *)object;
-        free_array<char>(string->chars, string->length + 1);
-        FREE<ObjString>(object);
+        auto *string = (ObjString *)object;
+        gc.delete_array<char>(string->chars, string->length + 1);
+        deleteObject<ObjString>(string);
         break;
     }
     case ObjType::UPVALUE:
-        del<ObjUpvalue>((ObjUpvalue *)object);
+        deleteObject<ObjUpvalue>((ObjUpvalue *)object);
         break;
     }
 }

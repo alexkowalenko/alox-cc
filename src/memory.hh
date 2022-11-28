@@ -16,11 +16,19 @@ class GC {
     void init(VM *vm);
     void free();
 
-    void *reallocate(void *pointer, size_t oldSize,
-                     size_t newSize);                // Main memory allocation routine.
-    Obj  *allocateObject(size_t size, ObjType type); // Allocates all the objects
+    // New allocators
+    template <typename T> T             *allocateObject(ObjType type);
+    template <typename T> T             *allocate_array(size_t count);
+    template <typename T> constexpr void deleteObject(T *pointer);
+    template <typename T> constexpr void delete_array(T *pointer, size_t oldCount);
 
-    template <typename T> T *allocateObject(ObjType type);
+    template <typename T>
+    constexpr T *grow_array(T *pointer, size_t oldCount, size_t newCount) {
+        auto result = allocate_array<T>(newCount);
+        memcpy(result, pointer, sizeof(T) * oldCount);
+        delete_array<T>(pointer, oldCount);
+        return result;
+    };
 
     void markObject(Obj *object);
     void markValue(Value value);
@@ -49,6 +57,13 @@ class GC {
 
 extern GC gc;
 
+/**
+ * @brief new allocator based on new/delete
+ *
+ * @tparam T
+ * @param type Object type
+ * @return T*
+ */
 template <typename T> T *GC::allocateObject(ObjType type) {
     trigger(0, sizeof(T));
     auto *object = new T;
@@ -59,28 +74,46 @@ template <typename T> T *GC::allocateObject(ObjType type) {
     return object;
 }
 
-template <typename T> constexpr T *allocate(size_t count) {
-    return (T *)gc.reallocate(nullptr, 0, sizeof(T) * (count));
+/**
+ * @brief new allocator of arrays based on new/delete
+ *
+ * @tparam T
+ * @param count
+ * @return T*
+ */
+template <typename T> T *GC::allocate_array(size_t count) {
+    trigger(0, sizeof(T) * count);
+    auto *object = new T[count];
+    if constexpr (DEBUG_LOG_GC) {
+        printf("%p allocate array %zu (%zu * %zu)\n", (void *)object, sizeof(T) * count,
+               sizeof(T), count);
+    }
+    return object;
 }
 
-template <typename T> constexpr void FREE(Obj *pointer) {
-    gc.reallocate(pointer, sizeof(T), 0);
-}
-
-template <typename T> constexpr void del(T *pointer) {
+/**
+ * @brief new deallocator based on new/delete
+ *
+ * @tparam T
+ * @param pointer
+ */
+template <typename T> constexpr void GC::deleteObject(T *pointer) {
     delete pointer;
-    gc.trigger(sizeof(T), 0);
+    trigger(sizeof(T), 0);
+}
+
+/**
+ * @brief new dellacator of arrays based on new/delete
+ *
+ * @tparam T
+ * @param pointer
+ * @param oldCount
+ */
+template <typename T> constexpr void GC::delete_array(T *pointer, size_t oldCount) {
+    delete[] pointer;
+    trigger(sizeof(T) * oldCount, 0);
 }
 
 constexpr size_t grow_capacity(size_t capacity) {
     return ((capacity) < 8 ? 8 : (capacity)*2);
 };
-
-template <typename T>
-constexpr T *grow_array(T *pointer, size_t oldCount, size_t newCount) {
-    return (T *)gc.reallocate(pointer, sizeof(T) * (oldCount), sizeof(T) * (newCount));
-}
-
-template <typename T> constexpr void free_array(T *pointer, size_t oldCount) {
-    gc.reallocate(pointer, sizeof(T) * (oldCount), 0);
-}

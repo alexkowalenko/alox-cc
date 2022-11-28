@@ -15,7 +15,7 @@ void Chunk::init() {
 }
 
 void Chunk::free() {
-    free_array<uint8_t>(this->code, this->capacity);
+    gc.delete_array<uint8_t>(this->code, this->capacity);
     this->constants.free();
     delete lines;
 
@@ -26,7 +26,7 @@ void Chunk::write(uint8_t byte, int line) {
     if (this->capacity < this->count + 1) {
         size_t oldCapacity = this->capacity;
         this->capacity = grow_capacity(oldCapacity);
-        this->code = grow_array<uint8_t>(this->code, oldCapacity, this->capacity);
+        this->code = gc.grow_array<uint8_t>(this->code, oldCapacity, this->capacity);
     }
 
     this->code[this->count] = byte;
