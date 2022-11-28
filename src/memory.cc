@@ -8,16 +8,13 @@
 #include "memory.hh"
 #include "vm.hh"
 
-#ifdef DEBUG_LOG_GC
-#include "debug.h"
-#include <stdio.h>
-#endif
-
 #define GC_HEAP_GROW_FACTOR 2
 
 GC gc;
 
-void *GC::reallocate(void *pointer, size_t oldSize, size_t newSize) {
+inline constexpr auto Base_GC_Size = 1024 * 1024;
+
+void GC::trigger(size_t oldSize, size_t newSize) {
     this->bytesAllocated += newSize - oldSize;
     if (newSize > oldSize) {
         if constexpr (DEBUG_STRESS_GC) {
@@ -27,7 +24,10 @@ void *GC::reallocate(void *pointer, size_t oldSize, size_t newSize) {
             this->collectGarbage();
         }
     }
+}
 
+void *GC::reallocate(void *pointer, size_t oldSize, size_t newSize) {
+    trigger(oldSize, newSize);
     if (newSize == 0) {
         ::free(pointer);
         return nullptr;
@@ -40,25 +40,28 @@ void *GC::reallocate(void *pointer, size_t oldSize, size_t newSize) {
     return result;
 }
 
-Obj *GC::allocateObject(size_t size, ObjType type) {
-    Obj *object = (Obj *)this->reallocate(nullptr, 0, size);
+void GC::placeObject(Obj *object, ObjType type) {
     object->type = type;
     object->isMarked = false;
 
     object->next = this->objects;
     this->objects = object;
+}
+
+Obj *GC::allocateObject(size_t size, ObjType type) {
+    Obj *object = (Obj *)this->reallocate(nullptr, 0, size);
+    placeObject(object, type);
 
     if constexpr (DEBUG_LOG_GC) {
         printf("%p allocate %zu for %d\n", (void *)object, size, type);
     }
-
     return object;
 }
 
 void GC::init(VM *vm) {
     objects = nullptr;
     bytesAllocated = 0;
-    nextGC = 1024 * 1024;
+    nextGC = Base_GC_Size;
 
     grayCount = 0;
     grayCapacity = 0;
@@ -167,7 +170,8 @@ void GC::freeObject(Obj *object) {
     case OBJ_CLASS: {
         ObjClass *klass = (ObjClass *)object;
         klass->methods.free();
-        FREE<ObjClass>(object);
+        del(klass);
+        // FREE<ObjClass>(object);
         break;
     } // [braces]
     case OBJ_CLOSURE: {

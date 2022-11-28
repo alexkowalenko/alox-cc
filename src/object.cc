@@ -22,7 +22,7 @@ ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
 }
 
 ObjClass *newClass(ObjString *name) {
-    auto *klass = allocate_obj<ObjClass>(OBJ_CLASS);
+    auto *klass = gc.allocateObject<ObjClass>(OBJ_CLASS);
     klass->name = name; // [klass]
     klass->methods.init();
     return klass;

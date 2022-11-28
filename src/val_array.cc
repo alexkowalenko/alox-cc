@@ -9,7 +9,8 @@
 #include <vector>
 
 size_t ValueArray::write(const Value &value) {
-    auto result = std::find(values->begin(), values->end(), value);
+    auto result = std::find_if(values->begin(), values->end(),
+                               [&value](auto &x) { return OBJ_EQ(x, value); });
     if (result != values->end()) {
         return std::distance(values->begin(), result);
     }
