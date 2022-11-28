@@ -18,13 +18,12 @@ class Table {
 
     Table(const Table &) = delete;
 
-    void init() {};
     void free();
 
     bool        get(ObjString *key, Value *value);
     bool        set(ObjString *key, Value value);
     bool        del(ObjString *key);
-    static void addAll(Table *from, Table *to);
+    static void addAll(const Table &from, Table &to);
     ObjString  *findString(const char *chars, int length, uint32_t hash);
 
     void removeWhite();

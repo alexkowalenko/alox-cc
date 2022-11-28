@@ -60,7 +60,6 @@ void VM::defineNative(const char *name, NativeFn function) {
 void VM::init() {
     resetStack();
 
-    globals.init();
     initString = copyString("init", 4);
 
     defineNative("clock", clockNative);
@@ -69,8 +68,6 @@ void VM::init() {
 void VM::free() {
     globals.free();
     initString = nullptr;
-    gc.free();
-    gc.freeObjects();
 }
 
 void VM::markRoots() {
@@ -543,7 +540,7 @@ InterpretResult VM::run() {
             }
 
             ObjClass *subclass = AS_CLASS(peek(0));
-            Table::addAll(&AS_CLASS(superclass)->methods, &subclass->methods);
+            Table::addAll(AS_CLASS(superclass)->methods, subclass->methods);
             pop(); // Subclass.
             break;
         }

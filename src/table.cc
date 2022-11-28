@@ -118,11 +118,11 @@ bool Table::del(ObjString *key) {
     return true;
 }
 
-void Table::addAll(Table *from, Table *to) {
-    for (int i = 0; i < from->capacity; i++) {
-        Entry *entry = &from->entries[i];
+void Table::addAll(const Table &from, Table &to) {
+    for (int i = 0; i < from.capacity; i++) {
+        Entry *entry = &from.entries[i];
         if (entry->key != nullptr) {
-            to->set(entry->key, entry->value);
+            to.set(entry->key, entry->value);
         }
     }
 }

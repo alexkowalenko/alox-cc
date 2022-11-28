@@ -34,7 +34,6 @@ void GC::placeObject(Obj *object, ObjType type) {
 
 void GC::init(VM *vm) {
     this->vm = vm;
-    strings.init();
 }
 
 void GC::free() {

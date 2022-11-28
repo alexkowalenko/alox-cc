@@ -20,7 +20,6 @@ ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
 ObjClass *newClass(ObjString *name) {
     auto *klass = gc.allocateObject<ObjClass>(ObjType::CLASS);
     klass->name = name; // [klass]
-    klass->methods.init();
     return klass;
 }
 
@@ -49,7 +48,6 @@ ObjFunction *newFunction() {
 ObjInstance *newInstance(ObjClass *klass) {
     auto *instance = gc.allocateObject<ObjInstance>(ObjType::INSTANCE);
     instance->klass = klass;
-    instance->fields.init();
     return instance;
 }
 
