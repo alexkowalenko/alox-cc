@@ -72,7 +72,7 @@ class VM {
     Value *stackTop;
     Table  globals;
 
-    ObjString  *initString; // name of LOX class constructor method.
+    ObjString  *initString{nullptr}; // name of LOX class constructor method.
     ObjUpvalue *openUpvalues;
 
     std::unique_ptr<Lox_Compiler> compiler;

@@ -57,13 +57,12 @@ class Chunk {
 
     Chunk(const Chunk &) = delete;
 
-    void init();
     void free();
     void write(uint8_t byte, int line);
     int  addConstant(Value value);
 
     [[nodiscard]] constexpr size_t get_count() const { return count; }
-    [[nodiscard]] constexpr size_t get_line(size_t n) const { return (*lines)[n]; }
+    [[nodiscard]] constexpr size_t get_line(size_t n) const { return lines[n]; }
 
     [[nodiscard]] constexpr ValueArray &get_constants() { return constants; }
     [[nodiscard]] constexpr Value &get_value(size_t n) { return constants.get_value(n); }
@@ -72,10 +71,10 @@ class Chunk {
     [[nodiscard]] constexpr uint8_t *get_code() const { return code; };
 
   private:
-    size_t   count;
-    size_t   capacity;
-    uint8_t *code;
+    size_t   count{0};
+    size_t   capacity{0};
+    uint8_t *code{nullptr};
 
-    std::vector<size_t> *lines;
-    ValueArray           constants;
+    std::vector<size_t> lines;
+    ValueArray          constants;
 };

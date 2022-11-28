@@ -5,21 +5,8 @@
 #include "chunk.hh"
 #include "memory.hh"
 
-void Chunk::init() {
-    this->count = 0;
-    this->capacity = 0;
-    this->code = nullptr;
-    this->constants.init();
-
-    lines = new std::vector<size_t>;
-}
-
 void Chunk::free() {
     gc.delete_array<uint8_t>(this->code, this->capacity);
-    this->constants.free();
-    delete lines;
-
-    init();
 }
 
 void Chunk::write(uint8_t byte, int line) {
@@ -30,7 +17,7 @@ void Chunk::write(uint8_t byte, int line) {
     }
 
     this->code[this->count] = byte;
-    this->lines->push_back(line);
+    this->lines.push_back(line);
     this->count++;
 }
 

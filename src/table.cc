@@ -10,17 +10,12 @@
 #include "table.hh"
 #include "value.hh"
 
-#define TABLE_MAX_LOAD 0.75
-
-void Table::init() {
-    this->count = 0;
-    this->capacity = 0;
-    this->entries = nullptr;
-}
+inline constexpr auto TABLE_MAX_LOAD = 0.75;
 
 void Table::free() {
     gc.delete_array<Entry>(this->entries, this->capacity);
-    init();
+    this->entries = nullptr;
+    this->capacity = 0;
 }
 
 // NOTE: The "Optimization" chapter has a manual copy of this function.

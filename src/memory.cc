@@ -8,11 +8,9 @@
 #include "memory.hh"
 #include "vm.hh"
 
-#define GC_HEAP_GROW_FACTOR 2
+inline constexpr auto GC_HEAP_GROW_FACTOR = 2;
 
 GC gc;
-
-inline constexpr auto Base_GC_Size = 1024 * 1024;
 
 void GC::trigger(size_t oldSize, size_t newSize) {
     this->bytesAllocated += newSize - oldSize;
@@ -35,13 +33,6 @@ void GC::placeObject(Obj *object, ObjType type) {
 }
 
 void GC::init(VM *vm) {
-    objects = nullptr;
-    bytesAllocated = 0;
-    nextGC = Base_GC_Size;
-
-    grayCount = 0;
-    grayCapacity = 0;
-    grayStack = nullptr;
     this->vm = vm;
     strings.init();
 }

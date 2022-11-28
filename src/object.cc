@@ -43,7 +43,6 @@ ObjFunction *newFunction() {
     function->arity = 0;
     function->upvalueCount = 0;
     function->name = nullptr;
-    function->chunk.init();
     return function;
 }
 

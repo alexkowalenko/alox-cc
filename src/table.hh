@@ -18,7 +18,7 @@ class Table {
 
     Table(const Table &) = delete;
 
-    void init();
+    void init() {};
     void free();
 
     bool        get(ObjString *key, Value *value);

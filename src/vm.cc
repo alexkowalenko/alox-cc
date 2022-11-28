@@ -61,8 +61,6 @@ void VM::init() {
     resetStack();
 
     globals.init();
-
-    initString = nullptr;
     initString = copyString("init", 4);
 
     defineNative("clock", clockNative);

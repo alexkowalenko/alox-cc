@@ -8,8 +8,13 @@
 #include "object.hh"
 #include "vm.hh"
 
+inline constexpr auto Base_GC_Size = 1024 * 1024;
+
 class GC {
   public:
+    GC() = default;
+    ~GC() = default;
+
     // global string table;
     Table strings;
 
@@ -47,12 +52,12 @@ class GC {
 
     VM *vm{nullptr};
 
-    size_t bytesAllocated;
-    size_t nextGC;
-    Obj   *objects;
-    int    grayCount;
-    int    grayCapacity;
-    Obj  **grayStack;
+    size_t bytesAllocated{0};
+    size_t nextGC{Base_GC_Size};
+    Obj   *objects{nullptr};
+    int    grayCount{0};
+    int    grayCapacity{0};
+    Obj  **grayStack{nullptr};
 };
 
 extern GC gc;

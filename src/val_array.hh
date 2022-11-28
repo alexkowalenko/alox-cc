@@ -15,14 +15,11 @@ class ValueArray {
 
     ValueArray(const ValueArray &) = delete;
 
-    void init();
-    void free() { values = nullptr; };
-
     size_t write(const Value &value);
     void   mark();
 
-    [[nodiscard]] constexpr Value &get_value(size_t n) { return (*values)[n]; }
+    [[nodiscard]] constexpr Value &get_value(size_t n) { return values[n]; }
 
   private:
-    std::vector<Value> *values{nullptr};
+    std::vector<Value> values{};
 };
