@@ -36,7 +36,7 @@ template <typename... T> void VM::runtimeError(const char *format, const T &...m
     for (int i = frameCount - 1; i >= 0; i--) {
         CallFrame   *frame = &frames[i];
         ObjFunction *function = frame->closure->function;
-        size_t       instruction = frame->ip - function->chunk.get_code() - 1;
+        const size_t instruction = frame->ip - function->chunk.get_code() - 1;
         std::cerr << fmt::format("[line {:d}] in ", // [minus]
                                  function->chunk.get_line(instruction));
         if (function->name == nullptr) {
@@ -133,8 +133,8 @@ bool VM::callValue(Value callee, int argCount) {
         case ObjType::CLOSURE:
             return call(AS_CLOSURE(callee), argCount);
         case ObjType::NATIVE: {
-            NativeFn native = AS_NATIVE(callee);
-            Value    result = native(argCount, stackTop - argCount);
+            NativeFn    native = AS_NATIVE(callee);
+            const Value result = native(argCount, stackTop - argCount);
             stackTop -= argCount + 1;
             push(result);
             return true;
@@ -157,7 +157,7 @@ bool VM::invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
 }
 
 bool VM::invoke(ObjString *name, int argCount) {
-    Value receiver = peek(argCount);
+    const Value receiver = peek(argCount);
 
     if (!IS_INSTANCE(receiver)) {
         runtimeError("Only instances have methods.");
@@ -222,8 +222,8 @@ void VM::closeUpvalues(Value const *last) {
 }
 
 void VM::defineMethod(ObjString *name) {
-    Value     method = peek(0);
-    ObjClass *klass = AS_CLASS(peek(1));
+    const Value method = peek(0);
+    ObjClass   *klass = AS_CLASS(peek(1));
     klass->methods.set(name, method);
     pop();
 }
@@ -232,8 +232,8 @@ void VM::concatenate() {
     ObjString *b = AS_STRING(peek(0));
     ObjString *a = AS_STRING(peek(1));
 
-    int   length = a->length + b->length;
-    char *chars = gc.allocate_array<char>(length + 1);
+    const int length = a->length + b->length;
+    char     *chars = gc.allocate_array<char>(length + 1);
     memcpy(chars, a->chars, a->length);
     memcpy(chars + a->length, b->chars, b->length);
     chars[length] = '\0';
@@ -264,8 +264,8 @@ InterpretResult VM::run() {
             runtimeError("Operands must be numbers.");                                   \
             return INTERPRET_RUNTIME_ERROR;                                              \
         }                                                                                \
-        double b = AS_NUMBER(pop());                                                     \
-        double a = AS_NUMBER(pop());                                                     \
+        const double b = AS_NUMBER(pop());                                               \
+        const double a = AS_NUMBER(pop());                                               \
         push(valueType(a op b));                                                         \
     } while (false)
 
@@ -286,7 +286,7 @@ InterpretResult VM::run() {
         auto instruction = OpCode(READ_BYTE());
         switch (instruction) {
         case OpCode::CONSTANT: {
-            Value constant = READ_CONSTANT();
+            const Value constant = READ_CONSTANT();
             push(constant);
             break;
         }
@@ -309,12 +309,12 @@ InterpretResult VM::run() {
             pop();
             break;
         case OpCode::GET_LOCAL: {
-            uint8_t slot = READ_BYTE();
+            const uint8_t slot = READ_BYTE();
             push(frame->slots[slot]);
             break;
         }
         case OpCode::SET_LOCAL: {
-            uint8_t slot = READ_BYTE();
+            const uint8_t slot = READ_BYTE();
             frame->slots[slot] = peek(0);
             break;
         }
@@ -344,12 +344,12 @@ InterpretResult VM::run() {
             break;
         }
         case OpCode::GET_UPVALUE: {
-            uint8_t slot = READ_BYTE();
+            const uint8_t slot = READ_BYTE();
             push(*frame->closure->upvalues[slot]->location);
             break;
         }
         case OpCode::SET_UPVALUE: {
-            uint8_t slot = READ_BYTE();
+            const uint8_t slot = READ_BYTE();
             *frame->closure->upvalues[slot]->location = peek(0);
             break;
         }
@@ -382,7 +382,7 @@ InterpretResult VM::run() {
 
             ObjInstance *instance = AS_INSTANCE(peek(1));
             instance->fields.set(READ_STRING(), peek(0));
-            Value value = pop();
+            const Value value = pop();
             pop();
             push(value);
             break;
@@ -397,8 +397,8 @@ InterpretResult VM::run() {
             break;
         }
         case OpCode::EQUAL: {
-            Value b = pop();
-            Value a = pop();
+            const Value b = pop();
+            const Value a = pop();
             push(BOOL_VAL(valuesEqual(a, b)));
             break;
         }
@@ -446,23 +446,23 @@ InterpretResult VM::run() {
             break;
         }
         case OpCode::JUMP: {
-            uint16_t offset = READ_SHORT();
+            const uint16_t offset = READ_SHORT();
             frame->ip += offset;
             break;
         }
         case OpCode::JUMP_IF_FALSE: {
-            uint16_t offset = READ_SHORT();
+            const uint16_t offset = READ_SHORT();
             if (isFalsey(peek(0)))
                 frame->ip += offset;
             break;
         }
         case OpCode::LOOP: {
-            uint16_t offset = READ_SHORT();
+            const uint16_t offset = READ_SHORT();
             frame->ip -= offset;
             break;
         }
         case OpCode::CALL: {
-            int argCount = READ_BYTE();
+            const int argCount = READ_BYTE();
             if (!callValue(peek(argCount), argCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -471,7 +471,7 @@ InterpretResult VM::run() {
         }
         case OpCode::INVOKE: {
             ObjString *method = READ_STRING();
-            int        argCount = READ_BYTE();
+            const int  argCount = READ_BYTE();
             if (!invoke(method, argCount)) {
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -480,7 +480,7 @@ InterpretResult VM::run() {
         }
         case OpCode::SUPER_INVOKE: {
             ObjString *method = READ_STRING();
-            int        argCount = READ_BYTE();
+            const int  argCount = READ_BYTE();
             ObjClass  *superclass = AS_CLASS(pop());
             if (!invokeFromClass(superclass, method, argCount)) {
                 return INTERPRET_RUNTIME_ERROR;
@@ -493,8 +493,8 @@ InterpretResult VM::run() {
             ObjClosure  *closure = newClosure(function);
             push(OBJ_VAL(closure));
             for (int i = 0; i < closure->upvalueCount; i++) {
-                uint8_t isLocal = READ_BYTE();
-                uint8_t index = READ_BYTE();
+                const uint8_t isLocal = READ_BYTE();
+                const uint8_t index = READ_BYTE();
                 if (isLocal) {
                     closure->upvalues[i] = captureUpvalue(frame->slots + index);
                 } else {
@@ -508,7 +508,7 @@ InterpretResult VM::run() {
             pop();
             break;
         case OpCode::RETURN: {
-            Value result = pop();
+            const Value result = pop();
             closeUpvalues(frame->slots);
             frameCount--;
             if (frameCount == 0) {
@@ -525,7 +525,7 @@ InterpretResult VM::run() {
             push(OBJ_VAL(newClass(READ_STRING())));
             break;
         case OpCode::INHERIT: {
-            Value superclass = peek(1);
+            const Value superclass = peek(1);
             if (!IS_CLASS(superclass)) {
                 runtimeError("Superclass must be a class.");
                 return INTERPRET_RUNTIME_ERROR;

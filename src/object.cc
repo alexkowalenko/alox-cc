@@ -2,8 +2,8 @@
 // ALOX-CC
 //
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "memory.hh"
 #include "object.hh"
@@ -76,8 +76,8 @@ static constexpr uint32_t hashString(const char *key, int length) {
 }
 
 ObjString *takeString(char *chars, int length) {
-    uint32_t   hash = hashString(chars, length);
-    ObjString *interned = gc.strings.findString(chars, length, hash);
+    const uint32_t hash = hashString(chars, length);
+    ObjString     *interned = gc.strings.findString(chars, length, hash);
     if (interned != nullptr) {
         gc.delete_array<char>(chars, length + 1);
         return interned;
@@ -87,8 +87,8 @@ ObjString *takeString(char *chars, int length) {
 }
 
 ObjString *copyString(const char *chars, int length) {
-    uint32_t   hash = hashString(chars, length);
-    ObjString *interned = gc.strings.findString(chars, length, hash);
+    const uint32_t hash = hashString(chars, length);
+    ObjString     *interned = gc.strings.findString(chars, length, hash);
     if (interned != nullptr) {
         return interned;
     }

@@ -11,6 +11,7 @@
         "json",
         "node"
     ],
+    "testTimeout": 20000,
     "collectCoverage": true,
     "verbose": true
 }

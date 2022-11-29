@@ -19,7 +19,7 @@ var zoo = Zoo();
 var sum = 0;
 var start = clock();
 var batch = 0;
-while (clock() - start < 10) {
+while (clock() - start < 5) {
   for (var i = 0; i < 10000; i = i + 1) {
     sum = sum + zoo.ant()
               + zoo.banana()
@@ -31,6 +31,8 @@ while (clock() - start < 10) {
   batch = batch + 1;
 }
 
-print sum; // expect: 2.0706e+08
-print batch; // expect: 3451
+print "end"; // expect: end
+print batch; // these number vary due to timed loop
+print sum;
+
 print clock() - start;

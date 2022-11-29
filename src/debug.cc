@@ -28,12 +28,13 @@ static int constantInstruction(const char *name, Chunk *chunk, int offset) {
 }
 
 static int invokeInstruction(const char *name, Chunk *chunk, int offset) {
-    uint8_t constant = chunk->get_code(offset + 1);
-    uint8_t argCount = chunk->get_code(offset + 2);
+    auto constant = const_index_t(chunk->get_code(offset + 1) << UINT8_WIDTH);
+    constant |= chunk->get_code(offset + 2);
+    uint8_t argCount = chunk->get_code(offset + 3);
     fmt::print("{:<16}    ({:d} args) {:4d} '", name, argCount, constant);
     printValue(chunk->get_value(constant));
     std::cout << "'\n";
-    return offset + 3;
+    return offset + 4;
 }
 
 static int simpleInstruction(const char *name, int offset) {
@@ -62,7 +63,7 @@ int disassembleInstruction(Chunk *chunk, int offset) {
         fmt::print("{:04d} ", chunk->get_line(offset));
     }
 
-    OpCode instruction = OpCode(chunk->get_code(offset));
+    auto instruction = OpCode(chunk->get_code(offset));
     switch (instruction) {
     case OpCode::CONSTANT:
         return constantInstruction("CONSTANT", chunk, offset);
@@ -132,14 +133,15 @@ int disassembleInstruction(Chunk *chunk, int offset) {
         return invokeInstruction("SUPER_INVOKE", chunk, offset);
     case OpCode::CLOSURE: {
         offset++;
-        uint8_t constant = chunk->get_code(offset++);
+        auto constant = const_index_t(chunk->get_code(offset++) << UINT8_WIDTH);
+        constant |= chunk->get_code(offset++);
         fmt::print("{:<16} {:4d} ", "CLOSURE", constant);
         printValue(chunk->get_value(constant));
         fmt::print("\n");
 
         ObjFunction *function = AS_FUNCTION(chunk->get_value(constant));
         for (int j = 0; j < function->upvalueCount; j++) {
-            int isLocal = chunk->get_code(offset++);
+            const int isLocal = chunk->get_code(offset++);
             int index = chunk->get_code(offset++);
             fmt::print("{:04d}      |                     {} {:d}\n", offset - 2,
                        isLocal ? "local" : "upvalue", index);

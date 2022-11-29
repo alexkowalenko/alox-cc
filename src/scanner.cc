@@ -47,7 +47,7 @@ Token Scanner::errorToken(const char *message) {
 
 void Scanner::skipWhitespace() {
     for (;;) {
-        char c = peek();
+        const char c = peek();
         switch (c) {
         case ' ':
         case '\r':
@@ -192,7 +192,7 @@ Token Scanner::scanToken() {
         return makeToken(TokenType::EOFS);
     }
 
-    char c = advance();
+    const char c = advance();
     if (isAlpha(c)) {
         return identifier();
     }

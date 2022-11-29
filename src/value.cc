@@ -2,8 +2,7 @@
 // ALOX-CC
 //
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
 
 #include "memory.hh"
 #include "object.hh"

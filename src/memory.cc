@@ -84,19 +84,19 @@ void GC::blackenObject(Obj *object) {
 
     switch (object->type) {
     case ObjType::BOUND_METHOD: {
-        ObjBoundMethod *bound = (ObjBoundMethod *)object;
+        auto *bound = (ObjBoundMethod *)object;
         markValue(bound->receiver);
         markObject((Obj *)bound->method);
         break;
     }
     case ObjType::CLASS: {
-        ObjClass *klass = (ObjClass *)object;
+        auto *klass = (ObjClass *)object;
         markObject((Obj *)klass->name);
         klass->methods.mark();
         break;
     }
     case ObjType::CLOSURE: {
-        ObjClosure *closure = (ObjClosure *)object;
+        auto *closure = (ObjClosure *)object;
         markObject((Obj *)closure->function);
         for (int i = 0; i < closure->upvalueCount; i++) {
             markObject((Obj *)closure->upvalues[i]);
@@ -104,13 +104,13 @@ void GC::blackenObject(Obj *object) {
         break;
     }
     case ObjType::FUNCTION: {
-        ObjFunction *function = (ObjFunction *)object;
+        auto *function = (ObjFunction *)object;
         markObject((Obj *)function->name);
         function->chunk.get_constants().mark();
         break;
     }
     case ObjType::INSTANCE: {
-        ObjInstance *instance = (ObjInstance *)object;
+        auto *instance = (ObjInstance *)object;
         markObject((Obj *)instance->klass);
         instance->fields.mark();
         break;

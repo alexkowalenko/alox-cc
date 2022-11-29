@@ -2,12 +2,9 @@
 // ALOX-CC
 //
 
-#include <stdlib.h>
-#include <string.h>
-
+#include "table.hh"
 #include "memory.hh"
 #include "object.hh"
-#include "table.hh"
 #include "value.hh"
 
 inline constexpr auto TABLE_MAX_LOAD = 0.75;
@@ -90,8 +87,8 @@ bool Table::set(ObjString *key, Value value) {
         adjustCapacity(capacity);
     }
 
-    Entry *entry = findEntry(this->entries, this->capacity, key);
-    bool   isNewKey = entry->key == nullptr;
+    Entry     *entry = findEntry(this->entries, this->capacity, key);
+    const bool isNewKey = entry->key == nullptr;
     if (isNewKey && IS_NIL(entry->value)) {
         this->count++;
     }

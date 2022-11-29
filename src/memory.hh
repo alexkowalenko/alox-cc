@@ -55,8 +55,8 @@ class GC {
     size_t bytesAllocated{0};
     size_t nextGC{Base_GC_Size};
     Obj   *objects{nullptr};
-    int    grayCount{0};
-    int    grayCapacity{0};
+    size_t grayCount{0};
+    size_t grayCapacity{0};
     Obj  **grayStack{nullptr};
 };
 

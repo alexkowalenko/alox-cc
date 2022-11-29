@@ -21,8 +21,8 @@ class Alox {
     void repl();
 
   private:
-    std::string    readFile(const std::string_view &path);
-    
+    static std::string readFile(const std::string_view &path);
+
     const Options &options;
     VM             vm;
 };

@@ -151,7 +151,7 @@ async function run_test(name: string) {
 }
 
 function run_tests() {
-    jest.setTimeout(10000);
+    //jest.setTimeout(10000);
     let files = find_files(base_dir, ".lox");
     let promises = [];
     for (let file of files) {

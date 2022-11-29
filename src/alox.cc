@@ -47,7 +47,7 @@ void Alox::repl() {
 }
 
 std::string Alox::readFile(const std::string_view &path) {
-    std::filesystem::path file{path};
+    const std::filesystem::path file{path};
     if (!std::filesystem::exists(file)) {
         throw std::runtime_error(fmt::format("file {} doesn't exist.", path));
     }
