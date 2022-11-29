@@ -100,18 +100,19 @@ class Lox_Compiler {
     void           emitByte(uint8_t byte);
     constexpr void emitByte(OpCode byte) { return emitByte(uint8_t(byte)); };
     void           emitBytes(uint8_t byte1, uint8_t byte2);
+    void           emitByteConst(OpCode byte1, const_index_t c);
     constexpr void emitBytes(OpCode byte1, OpCode byte2) {
         return emitBytes(uint8_t(byte1), uint8_t(byte2));
     }
     constexpr void emitBytes(OpCode byte1, uint8_t byte2) {
         return emitBytes(uint8_t(byte1), byte2);
     }
-    void    emitLoop(int loopStart);
-    int     emitJump(OpCode instruction);
-    void    emitReturn();
-    uint8_t makeConstant(Value value);
-    void    emitConstant(Value value);
-    void    patchJump(int offset);
+    void          emitLoop(int loopStart);
+    int           emitJump(OpCode instruction);
+    void          emitReturn();
+    const_index_t makeConstant(Value value);
+    void          emitConstant(Value value);
+    void          patchJump(int offset);
 
     void         initCompiler(Compiler *compiler, FunctionType type);
     ObjFunction *endCompiler();
@@ -125,16 +126,16 @@ class Lox_Compiler {
     static ParseRule const *getRule(TokenType type);
     void                    parsePrecedence(Precedence precedence);
 
-    uint8_t     identifierConstant(Token *name);
-    static bool identifiersEqual(Token *a, Token *b);
-    int         resolveLocal(Compiler *compiler, Token *name);
-    int         addUpvalue(Compiler *compiler, uint8_t index, bool isLocal);
-    int         resolveUpvalue(Compiler *compiler, Token *name);
-    void        addLocal(Token name);
-    void        declareVariable();
-    uint8_t     parseVariable(const char *errorMessage);
-    void        markInitialized();
-    void        defineVariable(uint8_t global);
+    const_index_t identifierConstant(Token *name);
+    static bool   identifiersEqual(Token *a, Token *b);
+    int           resolveLocal(Compiler *compiler, Token *name);
+    int           addUpvalue(Compiler *compiler, uint8_t index, bool isLocal);
+    int           resolveUpvalue(Compiler *compiler, Token *name);
+    void          addLocal(Token name);
+    void          declareVariable();
+    const_index_t parseVariable(const char *errorMessage);
+    void          markInitialized();
+    void          defineVariable(const_index_t global);
 
     uint8_t argumentList();
 

@@ -19,7 +19,7 @@
 #include "value.hh"
 #include "vm.hh"
 
-static Value clockNative(int /*argCount*/, Value * /*args*/) {
+Value clockNative(int /*argCount*/, Value * /*args*/) {
     return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
 
@@ -62,6 +62,7 @@ void VM::init() {
 
     initString = copyString("init", 4);
 
+    // these are defined before the compiler starts
     defineNative("clock", clockNative);
 }
 
@@ -87,16 +88,6 @@ void VM::markRoots() {
     this->globals.mark();
     this->compiler->markCompilerRoots();
     gc.markObject((Obj *)this->initString);
-}
-
-void VM::push(Value value) {
-    *stackTop = value;
-    stackTop++;
-}
-
-Value VM::pop() {
-    stackTop--;
-    return *stackTop;
 }
 
 bool VM::call(ObjClosure *closure, int argCount) {
@@ -263,7 +254,7 @@ InterpretResult VM::run() {
 
 #define READ_SHORT() (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
 
-#define READ_CONSTANT() (frame->closure->function->chunk.get_value(READ_BYTE()))
+#define READ_CONSTANT() (frame->closure->function->chunk.get_value(READ_SHORT()))
 
 #define READ_STRING() AS_STRING(READ_CONSTANT())
 #define BINARY_OP(valueType, op)                                                         \

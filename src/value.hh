@@ -77,10 +77,6 @@ inline Obj *AS_OBJ(Value value) {
 
 #define OBJ_VAL(obj) (Value(SIGN_BIT | QNAN | (uint64_t)(uintptr_t)(obj)))
 
-constexpr bool OBJ_EQ(Value a, Value b) {
-    return a == b;
-}
-
 #else
 
 enum ValueType {
@@ -143,22 +139,6 @@ constexpr Value NUMBER_VAL(double value) {
 
 #define OBJ_VAL(object) (Value({VAL_OBJ, {.obj = (Obj *)(object)}}))
 #pragma clang diagnostic pop
-
-constexpr bool OBJ_EQ(const Value &a, const Value &b) {
-    if (a.type == b.type) {
-        if (a.type == VAL_NIL) {
-            return true;
-        }
-        if (a.type == VAL_BOOL && a.as.boolean == b.as.boolean) {
-            return true;
-        } else if (a.type == VAL_NUMBER && a.as.number == b.as.number) {
-            return true;
-        } else if (a.as.obj == b.as.obj) {
-            return true;
-        }
-    }
-    return false;
-}
 
 #endif
 

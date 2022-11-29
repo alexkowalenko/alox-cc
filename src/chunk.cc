@@ -21,6 +21,6 @@ void Chunk::write(uint8_t byte, int line) {
     this->count++;
 }
 
-int Chunk::addConstant(Value value) {
+const_index_t Chunk::add_constant(Value value) {
     return this->constants.write(value);
 }

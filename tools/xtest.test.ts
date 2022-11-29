@@ -109,7 +109,7 @@ async function execute_test(name: string, options: TestOptions): Promise<FileInf
     // Execute ALOX program and capture output
 
     const file = `${base_dir}/${name}`;
-    console.log(`do ${file}`)
+    // console.log(`do ${file}`)
     let cmd = `${exec_file} `
     cmd += `${file}`;
     // console.log("cmd: " + cmd)

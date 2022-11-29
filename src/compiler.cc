@@ -3,6 +3,7 @@
 //
 
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -26,6 +27,9 @@ static void debug(const S &format, const Args &...msg) {
     }
 }
 
+constexpr auto MAX_ARGS = UINT8_MAX;
+constexpr auto MAX_CONSTANTS = UINT16_MAX;
+
 void Lox_Compiler::emitByte(uint8_t byte) {
     currentChunk()->write(byte, parser->previous.line);
 }
@@ -33,6 +37,12 @@ void Lox_Compiler::emitByte(uint8_t byte) {
 void Lox_Compiler::emitBytes(uint8_t byte1, uint8_t byte2) {
     emitByte(byte1);
     emitByte(byte2);
+}
+
+void Lox_Compiler::emitByteConst(OpCode byte1, const_index_t c) {
+    emitByte(uint8_t(byte1));
+    emitByte((c >> 8) & 0xff);
+    emitByte(c & 0xff);
 }
 
 void Lox_Compiler::emitLoop(int loopStart) {
@@ -64,9 +74,9 @@ void Lox_Compiler::emitReturn() {
     emitByte(OpCode::RETURN);
 }
 
-uint8_t Lox_Compiler::makeConstant(Value value) {
-    int constant = currentChunk()->addConstant(value);
-    if (constant > UINT8_MAX) {
+const_index_t Lox_Compiler::makeConstant(Value value) {
+    int constant = currentChunk()->add_constant(value);
+    if (constant > MAX_CONSTANTS) {
         parser->error("Too many constants in one chunk.");
         return 0;
     }
@@ -75,7 +85,7 @@ uint8_t Lox_Compiler::makeConstant(Value value) {
 }
 
 void Lox_Compiler::emitConstant(Value value) {
-    emitBytes(OpCode::CONSTANT, makeConstant(value));
+    emitByteConst(OpCode::CONSTANT, makeConstant(value));
 }
 
 void Lox_Compiler::patchJump(int offset) {
@@ -150,7 +160,7 @@ void Lox_Compiler::endScope() {
     }
 }
 
-uint8_t Lox_Compiler::identifierConstant(Token *name) {
+const_index_t Lox_Compiler::identifierConstant(Token *name) {
     return makeConstant(OBJ_VAL(copyString(name->text.data(), name->text.size())));
 }
 
@@ -246,7 +256,7 @@ void Lox_Compiler::declareVariable() {
     addLocal(*name);
 }
 
-uint8_t Lox_Compiler::parseVariable(const char *errorMessage) {
+const_index_t Lox_Compiler::parseVariable(const char *errorMessage) {
     parser->consume(TokenType::IDENTIFIER, errorMessage);
 
     declareVariable();
@@ -264,13 +274,13 @@ void Lox_Compiler::markInitialized() {
     current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
-void Lox_Compiler::defineVariable(uint8_t global) {
+void Lox_Compiler::defineVariable(const_index_t global) {
     if (current->scopeDepth > 0) {
         markInitialized();
         return;
     }
 
-    emitBytes(OpCode::DEFINE_GLOBAL, global);
+    emitByteConst(OpCode::DEFINE_GLOBAL, global);
 }
 
 uint8_t Lox_Compiler::argumentList() {
@@ -345,17 +355,17 @@ void Lox_Compiler::call(bool /*canAssign*/) {
 
 void Lox_Compiler::dot(bool canAssign) {
     parser->consume(TokenType::IDENTIFIER, "Expect property name after '.'.");
-    uint8_t name = identifierConstant(&parser->previous);
+    auto name = identifierConstant(&parser->previous);
 
     if (canAssign && parser->match(TokenType::EQUAL)) {
         expression();
-        emitBytes(OpCode::SET_PROPERTY, name);
+        emitByteConst(OpCode::SET_PROPERTY, name);
     } else if (parser->match(TokenType::LEFT_PAREN)) {
         uint8_t argCount = argumentList();
-        emitBytes(OpCode::INVOKE, name);
+        emitByteConst(OpCode::INVOKE, name);
         emitByte(argCount);
     } else {
-        emitBytes(OpCode::GET_PROPERTY, name);
+        emitByteConst(OpCode::GET_PROPERTY, name);
     }
 }
 
@@ -411,6 +421,7 @@ void Lox_Compiler::string(bool /*canAssign*/) {
 
 void Lox_Compiler::namedVariable(Token name, bool canAssign) {
     OpCode getOp, setOp;
+    bool   is_16{false};
     int    arg = resolveLocal(current, &name);
     if (arg != -1) {
         getOp = OpCode::GET_LOCAL;
@@ -422,13 +433,22 @@ void Lox_Compiler::namedVariable(Token name, bool canAssign) {
         arg = identifierConstant(&name);
         getOp = OpCode::GET_GLOBAL;
         setOp = OpCode::SET_GLOBAL;
+        is_16 = true;
     }
 
     if (canAssign && parser->match(TokenType::EQUAL)) {
         expression();
-        emitBytes(setOp, (uint8_t)arg);
+        if (is_16) {
+            emitByteConst(setOp, (const_index_t)arg);
+        } else {
+            emitBytes(setOp, (uint8_t)arg);
+        }
     } else {
-        emitBytes(getOp, (uint8_t)arg);
+        if (is_16) {
+            emitByteConst(getOp, (const_index_t)arg);
+        } else {
+            emitBytes(getOp, (uint8_t)arg);
+        }
     }
 }
 
@@ -451,17 +471,17 @@ void Lox_Compiler::super_(bool /*canAssign*/) {
 
     parser->consume(TokenType::DOT, "Expect '.' after 'super'.");
     parser->consume(TokenType::IDENTIFIER, "Expect superclass method name.");
-    uint8_t name = identifierConstant(&parser->previous);
+    auto name = identifierConstant(&parser->previous);
 
     namedVariable(syntheticToken("this"), false);
     if (parser->match(TokenType::LEFT_PAREN)) {
         uint8_t argCount = argumentList();
         namedVariable(syntheticToken("super"), false);
-        emitBytes(OpCode::SUPER_INVOKE, name);
+        emitByteConst(OpCode::SUPER_INVOKE, name);
         emitByte(argCount);
     } else {
         namedVariable(syntheticToken("super"), false);
-        emitBytes(OpCode::GET_SUPER, name);
+        emitByteConst(OpCode::GET_SUPER, name);
     }
 }
 
@@ -607,7 +627,7 @@ void Lox_Compiler::function(FunctionType type) {
     block();
 
     ObjFunction *function = endCompiler();
-    emitBytes(OpCode::CLOSURE, makeConstant(OBJ_VAL(function)));
+    emitByteConst(OpCode::CLOSURE, makeConstant(OBJ_VAL(function)));
 
     for (int i = 0; i < function->upvalueCount; i++) {
         emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
@@ -617,7 +637,7 @@ void Lox_Compiler::function(FunctionType type) {
 
 void Lox_Compiler::method() {
     parser->consume(TokenType::IDENTIFIER, "Expect method name.");
-    uint8_t constant = identifierConstant(&parser->previous);
+    auto constant = identifierConstant(&parser->previous);
 
     FunctionType type = TYPE_METHOD;
     if (parser->previous.text.size() == 4 &&
@@ -626,16 +646,16 @@ void Lox_Compiler::method() {
     }
 
     function(type);
-    emitBytes(OpCode::METHOD, constant);
+    emitByteConst(OpCode::METHOD, constant);
 }
 
 void Lox_Compiler::classDeclaration() {
     parser->consume(TokenType::IDENTIFIER, "Expect class name.");
-    Token   className = parser->previous;
-    uint8_t nameConstant = identifierConstant(&parser->previous);
+    Token className = parser->previous;
+    auto  nameConstant = identifierConstant(&parser->previous);
     declareVariable();
 
-    emitBytes(OpCode::CLASS, nameConstant);
+    emitByteConst(OpCode::CLASS, nameConstant);
     defineVariable(nameConstant);
 
     ClassCompiler classCompiler;

@@ -19,11 +19,12 @@ void disassembleChunk(Chunk *chunk, const char *name) {
 }
 
 static int constantInstruction(const char *name, Chunk *chunk, int offset) {
-    uint8_t constant = chunk->get_code(offset + 1);
+    auto constant = const_index_t(chunk->get_code(offset + 1) << 8);
+    constant |= chunk->get_code(offset + 2);
     fmt::print("{:<16}    {:d} '", name, constant);
     printValue(chunk->get_value(constant));
     std::cout << "'\n";
-    return offset + 2;
+    return offset + 3;
 }
 
 static int invokeInstruction(const char *name, Chunk *chunk, int offset) {

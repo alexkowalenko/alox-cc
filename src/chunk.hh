@@ -50,6 +50,8 @@ enum class OpCode {
     METHOD
 };
 
+using const_index_t = uint16_t;
+
 class Chunk {
   public:
     Chunk() = default;
@@ -59,13 +61,15 @@ class Chunk {
 
     void free();
     void write(uint8_t byte, int line);
-    int  addConstant(Value value);
 
     [[nodiscard]] constexpr size_t get_count() const { return count; }
     [[nodiscard]] constexpr size_t get_line(size_t n) const { return lines[n]; }
 
     [[nodiscard]] constexpr ValueArray &get_constants() { return constants; }
-    [[nodiscard]] constexpr Value &get_value(size_t n) { return constants.get_value(n); }
+    const_index_t                       add_constant(Value value);
+    [[nodiscard]] constexpr Value      &get_value(const_index_t n) {
+        return constants.get_value(n);
+    }
 
     constexpr uint8_t               &get_code(size_t n) { return code[n]; };
     [[nodiscard]] constexpr uint8_t *get_code() const { return code; };

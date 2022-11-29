@@ -38,10 +38,18 @@ class VM {
     void markRoots();
 
   private:
-    void  resetStack();
-    void  push(Value value);
-    Value pop();
-    Value peek(int distance) { return stackTop[-1 - distance]; }
+    void           resetStack();
+    constexpr void push(const Value value) noexcept {
+        *stackTop = value;
+        stackTop++;
+    }
+    constexpr Value pop() noexcept {
+        stackTop--;
+        return *stackTop;
+    }
+    [[nodiscard]] constexpr Value peek(const int distance) const noexcept {
+        return stackTop[-1 - distance];
+    }
 
     template <typename... T> void runtimeError(const char *format, const T &...msg);
 
@@ -55,7 +63,7 @@ class VM {
     void        closeUpvalues(Value const *last);
     void        defineMethod(ObjString *name);
 
-    bool isFalsey(Value value) {
+    static constexpr bool isFalsey(const Value value) noexcept {
         return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
     };
     void            concatenate();
