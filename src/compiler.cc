@@ -99,7 +99,6 @@ void Lox_Compiler::patchJump(int offset) {
     currentChunk()->get_code(offset + 1) = jump & 0xff;
 }
 
-//
 void Compiler::init(Compiler *enclosing, FunctionType type) {
     // Compiler is created on the stack.
     this->enclosing = enclosing;

@@ -72,10 +72,13 @@ constexpr Value BOOL_VAL(bool b) {
 }
 
 inline Obj *AS_OBJ(Value value) {
-    return ((Obj *)(uintptr_t)((value) & ~(SIGN_BIT | QNAN)));
+    return (Obj *)(uintptr_t)((value) & ~(SIGN_BIT | QNAN));
 }
 
-#define OBJ_VAL(obj) (Value(SIGN_BIT | QNAN | (uint64_t)(uintptr_t)(obj)))
+template <typename T> Value OBJ_VAL(T *obj) {
+    return static_cast<Value>(SIGN_BIT | QNAN |
+                              static_cast<uint64_t>(reinterpret_cast<uintptr_t>(obj)));
+}
 
 #else
 
@@ -98,46 +101,49 @@ struct Value {
 };
 
 constexpr bool IS_BOOL(Value value) {
-    return ((value).type == VAL_BOOL);
+    return value.type == VAL_BOOL;
 }
 
 constexpr bool IS_NIL(Value value) {
-    return ((value).type == VAL_NIL);
+    return value.type == VAL_NIL;
 }
 
 constexpr bool IS_NUMBER(Value value) {
-    return ((value).type == VAL_NUMBER);
+    return value.type == VAL_NUMBER;
 }
 
 constexpr bool IS_OBJ(Value value) {
-    return ((value).type == VAL_OBJ);
+    return value.type == VAL_OBJ;
 }
 
 constexpr Obj *AS_OBJ(Value value) {
-    return ((value).as.obj);
+    return value.as.obj;
 }
 
 constexpr bool AS_BOOL(Value value) {
-    return ((value).as.boolean);
+    return value.as.boolean;
 }
 
 constexpr double AS_NUMBER(Value value) {
-    return ((value).as.number);
+    return value.as.number;
 }
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wc99-extensions"
 constexpr Value BOOL_VAL(bool value) {
-    return ((Value){VAL_BOOL, {.boolean = value}});
+    return (Value){VAL_BOOL, {.boolean = value}};
 }
 
 constexpr Value NIL_VAL = ((Value){VAL_NIL, {.number = 0}});
 
 constexpr Value NUMBER_VAL(double value) {
-    return ((Value){VAL_NUMBER, {.number = value}});
+    return (Value){VAL_NUMBER, {.number = value}};
 }
 
-#define OBJ_VAL(object) (Value({VAL_OBJ, {.obj = (Obj *)(object)}}))
+template <typename T> inline Value OBJ_VAL(T *object) {
+    return Value({VAL_OBJ, {.obj = (Obj *)(object)}});
+}
+
 #pragma clang diagnostic pop
 
 #endif
