@@ -41,7 +41,7 @@ void Lox_Compiler::emitBytes(uint8_t byte1, uint8_t byte2) {
 
 void Lox_Compiler::emitByteConst(OpCode byte1, const_index_t c) {
     emitByte(uint8_t(byte1));
-    emitByte((c >> 8) & 0xff);
+    emitByte((c >> UINT8_WIDTH) & 0xff);
     emitByte(c & 0xff);
 }
 
@@ -53,7 +53,7 @@ void Lox_Compiler::emitLoop(int loopStart) {
         parser->error("Loop body too large.");
     }
 
-    emitByte((offset >> 8) & 0xff);
+    emitByte((offset >> UINT8_WIDTH) & 0xff);
     emitByte(offset & 0xff);
 }
 
@@ -75,13 +75,12 @@ void Lox_Compiler::emitReturn() {
 }
 
 const_index_t Lox_Compiler::makeConstant(Value value) {
-    int constant = currentChunk()->add_constant(value);
+    auto constant = currentChunk()->add_constant(value);
     if (constant > MAX_CONSTANTS) {
         parser->error("Too many constants in one chunk.");
         return 0;
     }
-
-    return (uint8_t)constant;
+    return constant;
 }
 
 void Lox_Compiler::emitConstant(Value value) {
@@ -96,7 +95,7 @@ void Lox_Compiler::patchJump(int offset) {
         parser->error("Too much code to jump over.");
     }
 
-    currentChunk()->get_code(offset) = (jump >> 8) & 0xff;
+    currentChunk()->get_code(offset) = (jump >> UINT8_WIDTH) & 0xff;
     currentChunk()->get_code(offset + 1) = jump & 0xff;
 }
 

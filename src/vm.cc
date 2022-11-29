@@ -252,7 +252,8 @@ InterpretResult VM::run() {
 
 #define READ_BYTE() (*frame->ip++)
 
-#define READ_SHORT() (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
+#define READ_SHORT()                                                                     \
+    (frame->ip += 2, (uint16_t)((frame->ip[-2] << UINT8_WIDTH) | frame->ip[-1]))
 
 #define READ_CONSTANT() (frame->closure->function->chunk.get_value(READ_SHORT()))
 

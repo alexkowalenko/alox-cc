@@ -11,7 +11,7 @@ void Chunk::free() {
 
 void Chunk::write(uint8_t byte, int line) {
     if (this->capacity < this->count + 1) {
-        size_t oldCapacity = this->capacity;
+        const size_t oldCapacity = this->capacity;
         this->capacity = grow_capacity(oldCapacity);
         this->code = gc.grow_array<uint8_t>(this->code, oldCapacity, this->capacity);
     }

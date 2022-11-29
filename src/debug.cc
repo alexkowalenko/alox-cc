@@ -19,7 +19,7 @@ void disassembleChunk(Chunk *chunk, const char *name) {
 }
 
 static int constantInstruction(const char *name, Chunk *chunk, int offset) {
-    auto constant = const_index_t(chunk->get_code(offset + 1) << 8);
+    auto constant = const_index_t(chunk->get_code(offset + 1) << UINT8_WIDTH);
     constant |= chunk->get_code(offset + 2);
     fmt::print("{:<16}    {:d} '", name, constant);
     printValue(chunk->get_value(constant));
@@ -48,7 +48,7 @@ static int byteInstruction(const char *name, Chunk *chunk, int offset) {
 }
 
 static int jumpInstruction(const char *name, int sign, Chunk *chunk, int offset) {
-    auto jump = (uint16_t)(chunk->get_code(offset + 1) << 8);
+    auto jump = (uint16_t)(chunk->get_code(offset + 1) << UINT8_WIDTH);
     jump |= chunk->get_code(offset + 2);
     fmt::print("{:<16}   {:4d} -> {:d}\n", name, offset, offset + 3 + sign * jump);
     return offset + 3;
