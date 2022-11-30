@@ -99,13 +99,6 @@ void Lox_Compiler::patchJump(int offset) {
     currentChunk()->get_code(offset + 1) = jump & 0xff;
 }
 
-void Compiler::init(Compiler *enclosing, FunctionType type) {
-    // Compiler is created on the stack.
-    this->enclosing = enclosing;
-    this->type = type;
-    this->function = newFunction();
-}
-
 void Lox_Compiler::initCompiler(Compiler *compiler, FunctionType type) {
     compiler->init(current, type);
     current = compiler;
@@ -146,9 +139,14 @@ void Lox_Compiler::beginScope() {
 
 void Lox_Compiler::endScope() {
     current->scopeDepth--;
+    adjust_locals(current->scopeDepth);
+}
 
+void Lox_Compiler::adjust_locals(int depth) {
+    debug("adjust locals {}", depth);
     while (current->localCount > 0 &&
-           current->locals[current->localCount - 1].depth > current->scopeDepth) {
+           current->locals[current->localCount - 1].depth > depth) {
+        debug("pop");
         if (current->locals[current->localCount - 1].isCaptured) {
             emitByte(OpCode::CLOSE_UPVALUE);
         } else {
@@ -184,7 +182,7 @@ int Lox_Compiler::resolveLocal(Compiler *compiler, Token *name) {
 }
 
 int Lox_Compiler::addUpvalue(Compiler *compiler, uint8_t index, bool isLocal) {
-    int upvalueCount = compiler->function->upvalueCount;
+    const int upvalueCount = compiler->function->upvalueCount;
 
     for (int i = 0; i < upvalueCount; i++) {
         Upvalue *upvalue = &compiler->upvalues[i];
@@ -208,13 +206,13 @@ int Lox_Compiler::resolveUpvalue(Compiler *compiler, Token *name) {
         return -1;
     }
 
-    int local = resolveLocal(compiler->enclosing, name);
+    const int local = resolveLocal(compiler->enclosing, name);
     if (local != -1) {
         compiler->enclosing->locals[local].isCaptured = true;
         return addUpvalue(compiler, (uint8_t)local, true);
     }
 
-    int upvalue = resolveUpvalue(compiler->enclosing, name);
+    const int upvalue = resolveUpvalue(compiler->enclosing, name);
     if (upvalue != -1) {
         return addUpvalue(compiler, (uint8_t)upvalue, false);
     }
@@ -297,7 +295,7 @@ uint8_t Lox_Compiler::argumentList() {
 }
 
 void Lox_Compiler::and_(bool /*canAssign*/) {
-    int endJump = emitJump(OpCode::JUMP_IF_FALSE);
+    const int endJump = emitJump(OpCode::JUMP_IF_FALSE);
 
     emitByte(OpCode::POP);
     parsePrecedence(Precedence::AND);
@@ -306,8 +304,8 @@ void Lox_Compiler::and_(bool /*canAssign*/) {
 }
 
 void Lox_Compiler::binary(bool /*canAssign*/) {
-    TokenType   operatorType = parser->previous.type;
-    const auto *rule = getRule(operatorType);
+    const TokenType operatorType = parser->previous.type;
+    const auto     *rule = getRule(operatorType);
     parsePrecedence((Precedence)(int(rule->precedence) + 1));
 
     switch (operatorType) {
@@ -347,7 +345,7 @@ void Lox_Compiler::binary(bool /*canAssign*/) {
 }
 
 void Lox_Compiler::call(bool /*canAssign*/) {
-    uint8_t argCount = argumentList();
+    const uint8_t argCount = argumentList();
     emitBytes(OpCode::CALL, argCount);
 }
 
@@ -359,7 +357,7 @@ void Lox_Compiler::dot(bool canAssign) {
         expression();
         emitByteConst(OpCode::SET_PROPERTY, name);
     } else if (parser->match(TokenType::LEFT_PAREN)) {
-        uint8_t argCount = argumentList();
+        const uint8_t argCount = argumentList();
         emitByteConst(OpCode::INVOKE, name);
         emitByte(argCount);
     } else {
@@ -389,7 +387,7 @@ void Lox_Compiler::grouping(bool /*canAssign*/) {
 }
 
 void Lox_Compiler::number(bool /*canAssign*/) {
-    double value = strtod(parser->previous.text.data(), nullptr);
+    const double value = strtod(parser->previous.text.data(), nullptr);
     if (value == 0) {
         emitByte(OpCode::ZERO);
         return;
@@ -473,7 +471,7 @@ void Lox_Compiler::super_(bool /*canAssign*/) {
 
     namedVariable(syntheticToken("this"), false);
     if (parser->match(TokenType::LEFT_PAREN)) {
-        uint8_t argCount = argumentList();
+        const uint8_t argCount = argumentList();
         namedVariable(syntheticToken("super"), false);
         emitByteConst(OpCode::SUPER_INVOKE, name);
         emitByte(argCount);
@@ -493,7 +491,7 @@ void Lox_Compiler::this_(bool /*canAssign*/) {
 } // [this]
 
 void Lox_Compiler::unary(bool /*canAssign*/) {
-    TokenType operatorType = parser->previous.type;
+    const TokenType operatorType = parser->previous.type;
 
     // Compile the operand.
     parsePrecedence(Precedence::UNARY);
@@ -579,7 +577,7 @@ void Lox_Compiler::parsePrecedence(Precedence precedence) {
 
     while (precedence <= getRule(parser->current.type)->precedence) {
         parser->advance();
-        ParseFn infixRule = getRule(parser->previous.type)->infix;
+        const ParseFn infixRule = getRule(parser->previous.type)->infix;
         infixRule(*this, canAssign);
     }
 
@@ -613,10 +611,11 @@ void Lox_Compiler::function(FunctionType type) {
     if (!parser->check(TokenType::RIGHT_PAREN)) {
         do {
             current->function->arity++;
-            if (current->function->arity > 255) {
-                parser->errorAtCurrent("Can't have more than 255 parameters.");
+            if (current->function->arity > MAX_ARGS) {
+                parser->errorAtCurrent(
+                    fmt::format("Can't have more than {} parameters.", MAX_ARGS));
             }
-            uint8_t constant = parseVariable("Expect parameter name.");
+            const uint8_t constant = parseVariable("Expect parameter name.");
             defineVariable(constant);
         } while (parser->match(TokenType::COMMA));
     }
@@ -656,7 +655,7 @@ void Lox_Compiler::classDeclaration() {
     emitByteConst(OpCode::CLASS, nameConstant);
     defineVariable(nameConstant);
 
-    ClassCompiler classCompiler;
+    ClassCompiler classCompiler{};
     classCompiler.hasSuperclass = false;
     classCompiler.enclosing = currentClass;
     currentClass = &classCompiler;
@@ -694,14 +693,14 @@ void Lox_Compiler::classDeclaration() {
 }
 
 void Lox_Compiler::funDeclaration() {
-    uint8_t global = parseVariable("Expect function name.");
+    const uint8_t global = parseVariable("Expect function name.");
     markInitialized();
     function(TYPE_FUNCTION);
     defineVariable(global);
 }
 
 void Lox_Compiler::varDeclaration() {
-    uint8_t global = parseVariable("Expect variable name.");
+    const uint8_t global = parseVariable("Expect variable name.");
 
     if (parser->match(TokenType::EQUAL)) {
         expression();
@@ -728,8 +727,9 @@ void Lox_Compiler::forStatement() {
     debug("forStatement");
     beginScope();
 
-    // initialiser expression
+    //  initialiser expression
     debug("forStatement init: {}", currentChunk()->get_count());
+    auto context = current->save_break_context();
     parser->consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.");
     if (parser->match(TokenType::SEMICOLON)) {
         // No initializer.
@@ -740,7 +740,8 @@ void Lox_Compiler::forStatement() {
     }
 
     // condition
-    int loopStart = currentChunk()->get_count();
+
+    auto loopStart = currentChunk()->get_count();
     debug("forStatement condition: {}", currentChunk()->get_count());
     int exitJump = -1;
     if (!parser->match(TokenType::SEMICOLON)) {
@@ -755,8 +756,8 @@ void Lox_Compiler::forStatement() {
     // increment
     debug("forStatement increment: {}", currentChunk()->get_count());
     if (!parser->match(TokenType::RIGHT_PAREN)) {
-        int bodyJump = emitJump(OpCode::JUMP);
-        int incrementStart = currentChunk()->get_count();
+        const auto bodyJump = emitJump(OpCode::JUMP);
+        const auto incrementStart = currentChunk()->get_count();
         current->last_continue = currentChunk()->get_count();
         expression();
         emitByte(OpCode::POP);
@@ -781,6 +782,8 @@ void Lox_Compiler::forStatement() {
         }
         emitByte(OpCode::POP); // Condition.
     }
+
+    current->restore_break_context(context);
 
     endScope();
 }
@@ -832,13 +835,17 @@ void Lox_Compiler::returnStatement() {
 
 void Lox_Compiler::whileStatement() {
     debug("whileStatement");
-    int loopStart = currentChunk()->get_count();
+
+    auto context = current->save_break_context();
+
+    const auto loopStart = currentChunk()->get_count();
     current->last_continue = loopStart;
+
     parser->consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.");
     expression();
     parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
 
-    int exitJump = emitJump(OpCode::JUMP_IF_FALSE);
+    const auto exitJump = emitJump(OpCode::JUMP_IF_FALSE);
     emitByte(OpCode::POP);
     current->enclosing_loop++;
     statement();
@@ -852,6 +859,8 @@ void Lox_Compiler::whileStatement() {
         current->last_break = 0;
     }
     emitByte(OpCode::POP);
+
+    current->restore_break_context(context);
 }
 
 void Lox_Compiler::breakStatement(TokenType t) {
@@ -862,12 +871,22 @@ void Lox_Compiler::breakStatement(TokenType t) {
     }
     parser->consume(TokenType::SEMICOLON, fmt::format("Expect ';' after {}.", name));
 
+    // take off local variables
     if (t == TokenType::BREAK) {
+        // take off local variables
+        debug("last scope depth {} current {}", current->last_scope_depth,
+              current->scopeDepth);
+        adjust_locals(current->scopeDepth);
         current->last_break = emitJump(OpCode::JUMP);
         return;
     }
     // continue
     if (current->last_continue) {
+        // take off local variables
+        debug("last scope depth {} current {}", current->last_scope_depth,
+              current->scopeDepth);
+        adjust_locals(current->last_scope_depth);
+
         emitLoop(current->last_continue);
         current->last_continue = 0;
     }

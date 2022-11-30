@@ -19,13 +19,15 @@
 #include "value.hh"
 #include "vm.hh"
 
-inline constexpr auto debug_vm{true};
+inline constexpr auto debug_vm{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
     if constexpr (debug_vm) {
         std::cout << "compiler: " << fmt::format(fmt::runtime(format), msg...) << '\n';
     }
 }
+
+constexpr auto DEBUG_TRACE_EXECUTION{true};
 
 Value clockNative(int /*argCount*/, Value * /*args*/) {
     return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
@@ -280,16 +282,18 @@ InterpretResult VM::run() {
 
     for (;;) {
         if constexpr (DEBUG_TRACE_EXECUTION) {
-            std::cout << "          ";
-            for (Value *slot = stack; slot < stackTop; slot++) {
-                std::cout << "[ ";
-                printValue(*slot);
-                std::cout << " ]";
+            if (options.trace) {
+                std::cout << "          ";
+                for (Value *slot = stack; slot < stackTop; slot++) {
+                    std::cout << "[ ";
+                    printValue(*slot);
+                    std::cout << " ]";
+                }
+                std::cout << "\n";
+                disassembleInstruction(
+                    &frame->closure->function->chunk,
+                    (int)(ip - frame->closure->function->chunk.get_code()));
             }
-            std::cout << "\n";
-            disassembleInstruction(
-                &frame->closure->function->chunk,
-                (int)(ip - frame->closure->function->chunk.get_code()));
         }
 
         auto instruction = OpCode(READ_BYTE());
@@ -591,7 +595,7 @@ InterpretResult VM::interpret(const char *source) {
     push(OBJ_VAL(closure));
     call(closure, 0);
 
-    if (options.debug_code) {
+    if (options.debug_code && !options.trace) {
         return INTERPRET_OK;
     }
     return run();

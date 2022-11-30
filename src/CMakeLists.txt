@@ -5,6 +5,7 @@ add_library(lox STATIC
    options.cc
    chunk.cc
    compiler.cc
+   comp.cc
    debug.cc
    memory.cc
    object.cc

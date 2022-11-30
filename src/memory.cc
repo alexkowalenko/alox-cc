@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+#include <fmt/core.h>
+
 #include "compiler.hh"
 #include "memory.hh"
 #include "vm.hh"
@@ -49,9 +51,9 @@ void GC::markObject(Obj *object) {
     }
 
     if constexpr (DEBUG_LOG_GC) {
-        printf("%p mark ", (void *)object);
+        fmt::print("{:#0d} mark ", reinterpret_cast<uint64_t>(object));
         printValue(OBJ_VAL(object));
-        printf("\n");
+        std::cout << "\n";
     }
 
     object->isMarked = true;
@@ -77,9 +79,9 @@ void GC::markValue(Value value) {
 
 void GC::blackenObject(Obj *object) {
     if constexpr (DEBUG_LOG_GC) {
-        printf("%p blacken ", (void *)object);
+        fmt::print("{:#0d} blacken ", reinterpret_cast<uint64_t>(object));
         printValue(OBJ_VAL(object));
-        printf("\n");
+        std::cout << "\n";
     }
 
     switch (object->type) {
@@ -126,7 +128,8 @@ void GC::blackenObject(Obj *object) {
 
 void GC::freeObject(Obj *object) {
     if constexpr (DEBUG_LOG_GC) {
-        printf("%p free type %d\n", (void *)object, object->type);
+        fmt::print("{:#0d} free type {}\n", reinterpret_cast<uint64_t>(object),
+                   static_cast<int>(object->type));
     }
 
     switch (object->type) {
@@ -210,8 +213,8 @@ void GC::sweep() {
 void GC::collectGarbage() {
     static size_t before;
     if constexpr (DEBUG_LOG_GC) {
-        printf("-- gc begin\n");
-        size_t before = this->bytesAllocated;
+        std::cout << "-- gc begin\n";
+        const size_t before = this->bytesAllocated;
     }
 
     markRoots();
@@ -222,7 +225,7 @@ void GC::collectGarbage() {
     this->nextGC = this->bytesAllocated * GC_HEAP_GROW_FACTOR;
 
     if constexpr (DEBUG_LOG_GC) {
-        printf("-- gc end\n");
+        std::cout << "-- gc end\n";
         printf("   collected %zu bytes (from %zu to %zu) next at %zu\n",
                before - this->bytesAllocated, before, this->bytesAllocated, this->nextGC);
     }

@@ -37,7 +37,7 @@ Token Scanner::makeToken(TokenType type) {
     return token;
 }
 
-Token Scanner::errorToken(const char *message) {
+Token Scanner::errorToken(const char *message) const {
     Token token{};
     token.type = TokenType::ERROR;
     token.text = {message, strlen(message)};

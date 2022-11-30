@@ -6,6 +6,7 @@ set(CMAKE_CXX_COMPILER ${AX_BASE_CLANG}/bin/clang++)
 message(STATUS "C++ compiler = ${CMAKE_CXX_COMPILER}")
 
 # set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE DEBUG)
 
 # Set the project name to your project name, my project isn't very descriptive
 project(alox-cc CXX)

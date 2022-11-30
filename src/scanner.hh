@@ -80,7 +80,7 @@ class Scanner {
 
     bool      match(char expected);
     Token     makeToken(TokenType type);
-    Token     errorToken(const char *message);
+    Token     errorToken(const char *message) const;
     void      skipWhitespace();
     TokenType checkKeyword(int start, int length, const char *rest, TokenType type);
     TokenType identifierType();

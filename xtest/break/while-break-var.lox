@@ -1,0 +1,7 @@
+while (true)  {
+    var x = 1;
+    print x; // expect: 1
+    break;
+    print 2;
+}
+print "end"; // expect: end

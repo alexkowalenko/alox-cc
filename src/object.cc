@@ -2,8 +2,10 @@
 // ALOX-CC
 //
 
-#include <cstdio>
 #include <cstring>
+#include <iostream>
+
+#include <fmt/core.h>
 
 #include "memory.hh"
 #include "object.hh"
@@ -109,10 +111,10 @@ ObjUpvalue *newUpvalue(Value *slot) {
 
 static void printFunction(ObjFunction *function) {
     if (function->name == nullptr) {
-        printf("<script>");
+        std::cout << "<script>";
         return;
     }
-    printf("<fn %s>", function->name->chars);
+    fmt::print("<fn {}>", function->name->chars);
 }
 
 void printObject(Value value) {
@@ -121,7 +123,7 @@ void printObject(Value value) {
         printFunction(AS_BOUND_METHOD(value)->method->function);
         break;
     case ObjType::CLASS:
-        printf("%s", AS_CLASS(value)->name->chars);
+        fmt::print("{}", AS_CLASS(value)->name->chars);
         break;
     case ObjType::CLOSURE:
         printFunction(AS_CLOSURE(value)->function);
@@ -130,16 +132,16 @@ void printObject(Value value) {
         printFunction(AS_FUNCTION(value));
         break;
     case ObjType::INSTANCE:
-        printf("%s instance", AS_INSTANCE(value)->klass->name->chars);
+        fmt::print("{} instance", AS_INSTANCE(value)->klass->name->chars);
         break;
     case ObjType::NATIVE:
-        printf("<native fn>");
+        std::cout << "<native fn>";
         break;
     case ObjType::STRING:
-        printf("%s", AS_CSTRING(value));
+        fmt::print("{}", AS_CSTRING(value));
         break;
     case ObjType::UPVALUE:
-        printf("upvalue");
+        std::cout << "upvalue";
         break;
     }
 }

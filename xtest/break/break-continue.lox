@@ -1,0 +1,24 @@
+for(var i = 0; i < 3; i = i + 1) {
+    var x = 1;
+    var y = "Hello";
+    print i;
+
+    for(var xx = 0; xx < 4; xx = xx + 1) {
+        var z = 1;
+        print xx;
+        break;
+    }
+    print y;
+    continue;
+    print "no";
+}
+// expect: 0
+// expect: 0
+// expect: Hello
+// expect: 1
+// expect: 0
+// expect: Hello
+// expect: 2
+// expect: 0
+// expect: Hello
+print "end"; // expect: end

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "chunk.hh"
+#include "comp.hh"
 #include "object.hh"
 #include "options.hh"
 #include "parser.hh"
@@ -31,40 +32,6 @@ struct ParseRule {
     ParseFn    prefix;
     ParseFn    infix;
     Precedence precedence;
-};
-struct Local {
-    Token name;
-    int   depth;
-    bool  isCaptured;
-};
-
-struct Upvalue {
-    uint8_t index;
-    bool    isLocal;
-};
-
-enum FunctionType { TYPE_FUNCTION, TYPE_INITIALIZER, TYPE_METHOD, TYPE_SCRIPT };
-
-/**
- * @brief This has all the info for the current function being compiled.
- *
- */
-class Compiler {
-  public:
-    void init(Compiler *enclosing, FunctionType type);
-
-    Compiler    *enclosing{nullptr};
-    ObjFunction *function{nullptr};
-    FunctionType type;
-
-    std::array<Local, UINT8_COUNT>   locals;
-    int                              localCount{0};
-    std::array<Upvalue, UINT8_COUNT> upvalues;
-    int                              scopeDepth{0};
-
-    int last_continue{0};
-    int last_break{0};
-    int enclosing_loop{0};
 };
 
 struct ClassCompiler {
@@ -119,6 +86,7 @@ class Lox_Compiler {
 
     void beginScope();
     void endScope();
+    void adjust_locals(int depth);
 
     void                    expression();
     void                    statement();
