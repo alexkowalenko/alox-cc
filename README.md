@@ -30,7 +30,7 @@ Book modifications:
 * [ ] Generalised Table<Value, Value> (Chapter 20 Q.1). Change to STL.
 * [ ] `case` statement (Chapter 23 Q.1)
 * [/] `continue`. Check for popping locals off the stack. (Chapter 23 Q.2)
-* [ ] Speed up with ip in VM. (Chapter 24 Q.1)
+* [x] Speed up with ip in VM. (Chapter 24 Q.1)
 * [ ] Validate native function calls. (Chapter 24 Q.2)
 * [ ] Optimise Obj fields in all objects (Chapter 26 Q.1)
 * [ ] Check for fields in objects (Chapter 27 Q.1)

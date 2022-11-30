@@ -19,6 +19,14 @@
 #include "value.hh"
 #include "vm.hh"
 
+inline constexpr auto debug_vm{true};
+template <typename S, typename... Args>
+static void debug(const S &format, const Args &...msg) {
+    if constexpr (debug_vm) {
+        std::cout << "compiler: " << fmt::format(fmt::runtime(format), msg...) << '\n';
+    }
+}
+
 Value clockNative(int /*argCount*/, Value * /*args*/) {
     return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
@@ -249,11 +257,11 @@ const inline auto number_one = NUMBER_VAL(1);
 
 InterpretResult VM::run() {
     CallFrame *frame = &frames[frameCount - 1];
+    uint8_t   *ip = frame->ip;
 
-#define READ_BYTE() (*frame->ip++)
+#define READ_BYTE() (*ip++)
 
-#define READ_SHORT()                                                                     \
-    (frame->ip += 2, (uint16_t)((frame->ip[-2] << UINT8_WIDTH) | frame->ip[-1]))
+#define READ_SHORT() (ip += 2, (uint16_t)(ip[-2] << UINT8_WIDTH) | ip[-1])
 
 #define READ_CONSTANT() (frame->closure->function->chunk.get_value(READ_SHORT()))
 
@@ -261,6 +269,7 @@ InterpretResult VM::run() {
 #define BINARY_OP(valueType, op)                                                         \
     do {                                                                                 \
         if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) {                                \
+            frame->ip = ip;                                                              \
             runtimeError("Operands must be numbers.");                                   \
             return INTERPRET_RUNTIME_ERROR;                                              \
         }                                                                                \
@@ -280,7 +289,7 @@ InterpretResult VM::run() {
             std::cout << "\n";
             disassembleInstruction(
                 &frame->closure->function->chunk,
-                (int)(frame->ip - frame->closure->function->chunk.get_code()));
+                (int)(ip - frame->closure->function->chunk.get_code()));
         }
 
         auto instruction = OpCode(READ_BYTE());
@@ -322,6 +331,7 @@ InterpretResult VM::run() {
             ObjString *name = READ_STRING();
             Value      value;
             if (!globals.get(name, &value)) {
+                frame->ip = ip;
                 runtimeError("Undefined variable '{}'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -338,6 +348,7 @@ InterpretResult VM::run() {
             ObjString *name = READ_STRING();
             if (globals.set(name, peek(0))) {
                 globals.del(name); // [delete]
+                frame->ip = ip;
                 runtimeError("Undefined variable '{}'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -355,6 +366,7 @@ InterpretResult VM::run() {
         }
         case OpCode::GET_PROPERTY: {
             if (!IS_INSTANCE(peek(0))) {
+                frame->ip = ip;
                 runtimeError("Only instances have properties.");
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -370,12 +382,14 @@ InterpretResult VM::run() {
             }
 
             if (!bindMethod(instance->klass, name)) {
+                frame->ip = ip;
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
         }
         case OpCode::SET_PROPERTY: {
             if (!IS_INSTANCE(peek(1))) {
+                frame->ip = ip;
                 runtimeError("Only instances have fields.");
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -392,6 +406,7 @@ InterpretResult VM::run() {
             ObjClass  *superclass = AS_CLASS(pop());
 
             if (!bindMethod(superclass, name)) {
+                frame->ip = ip;
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
@@ -416,6 +431,7 @@ InterpretResult VM::run() {
                 double a = AS_NUMBER(pop());
                 push(NUMBER_VAL(a + b));
             } else {
+                frame->ip = ip;
                 runtimeError("Operands must be two numbers or two strings.");
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -435,6 +451,7 @@ InterpretResult VM::run() {
             break;
         case OpCode::NEGATE:
             if (!IS_NUMBER(peek(0))) {
+                frame->ip = ip;
                 runtimeError("Operand must be a number.");
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -447,45 +464,54 @@ InterpretResult VM::run() {
         }
         case OpCode::JUMP: {
             const uint16_t offset = READ_SHORT();
-            frame->ip += offset;
+            ip += offset;
             break;
         }
         case OpCode::JUMP_IF_FALSE: {
             const uint16_t offset = READ_SHORT();
             if (isFalsey(peek(0)))
-                frame->ip += offset;
+                ip += offset;
             break;
         }
         case OpCode::LOOP: {
             const uint16_t offset = READ_SHORT();
-            frame->ip -= offset;
+            ip -= offset;
             break;
         }
         case OpCode::CALL: {
             const int argCount = READ_BYTE();
+            frame->ip = ip;
             if (!callValue(peek(argCount), argCount)) {
+                frame->ip = ip;
                 return INTERPRET_RUNTIME_ERROR;
             }
             frame = &frames[frameCount - 1];
+            ip = frame->ip;
             break;
         }
         case OpCode::INVOKE: {
             ObjString *method = READ_STRING();
             const int  argCount = READ_BYTE();
+            frame->ip = ip;
             if (!invoke(method, argCount)) {
+                frame->ip = ip;
                 return INTERPRET_RUNTIME_ERROR;
             }
             frame = &frames[frameCount - 1];
+            ip = frame->ip;
             break;
         }
         case OpCode::SUPER_INVOKE: {
             ObjString *method = READ_STRING();
             const int  argCount = READ_BYTE();
             ObjClass  *superclass = AS_CLASS(pop());
+            frame->ip = ip;
             if (!invokeFromClass(superclass, method, argCount)) {
+                frame->ip = ip;
                 return INTERPRET_RUNTIME_ERROR;
             }
             frame = &frames[frameCount - 1];
+            ip = frame->ip;
             break;
         }
         case OpCode::CLOSURE: {
@@ -513,12 +539,14 @@ InterpretResult VM::run() {
             frameCount--;
             if (frameCount == 0) {
                 pop();
+                frame->ip = ip;
                 return INTERPRET_OK;
             }
 
             stackTop = frame->slots;
             push(result);
             frame = &frames[frameCount - 1];
+            ip = frame->ip;
             break;
         }
         case OpCode::CLASS:
@@ -527,6 +555,7 @@ InterpretResult VM::run() {
         case OpCode::INHERIT: {
             const Value superclass = peek(1);
             if (!IS_CLASS(superclass)) {
+                frame->ip = ip;
                 runtimeError("Superclass must be a class.");
                 return INTERPRET_RUNTIME_ERROR;
             }

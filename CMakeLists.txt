@@ -5,7 +5,7 @@ set(AX_BASE_CLANG /usr/local/opt/llvm)
 set(CMAKE_CXX_COMPILER ${AX_BASE_CLANG}/bin/clang++)
 message(STATUS "C++ compiler = ${CMAKE_CXX_COMPILER}")
 
-# set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Release)
 
 # Set the project name to your project name, my project isn't very descriptive
 project(alox-cc CXX)
