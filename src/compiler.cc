@@ -567,18 +567,18 @@ inline const std::map<TokenType, ParseRule> rules{
 void Lox_Compiler::parsePrecedence(Precedence precedence) {
     parser->advance();
     auto prefixRule = getRule(parser->previous.type)->prefix;
-    if (&prefixRule == nullptr) {
+    if (prefixRule == nullptr) {
         parser->error("Expect expression.");
         return;
     }
 
     bool canAssign = precedence <= Precedence::ASSIGNMENT;
-    prefixRule(*this, canAssign);
+    prefixRule(this, canAssign);
 
     while (precedence <= getRule(parser->current.type)->precedence) {
         parser->advance();
         const ParseFn infixRule = getRule(parser->previous.type)->infix;
-        infixRule(*this, canAssign);
+        infixRule(this, canAssign);
     }
 
     if (canAssign && parser->match(TokenType::EQUAL)) {

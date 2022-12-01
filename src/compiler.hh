@@ -26,7 +26,7 @@ enum class Precedence {
 };
 
 class Lox_Compiler;
-using ParseFn = std::__mem_fn<void (Lox_Compiler::*)(bool)>;
+using ParseFn = std::function<void(Lox_Compiler*, bool)>;
 
 struct ParseRule {
     ParseFn    prefix;

@@ -38,11 +38,9 @@ if(ENABLE_IPO)
 endif()
 
 # ICU unicode library
-# set(ICU_INCLUDE_DIRS /usr/local/opt/icu4c/include)
-# set(ICU_LIBRARY_DIRS /usr/local/opt/icu4c/lib)
-# set(ICU_LIBRARIES icuuc)
-# include_directories(${ICU_INCLUDE_DIRS})
-# link_directories(${ICU_LIBRARY_DIRS})
+set(ICU_INCLUDE_DIRS /usr/local/opt/icu4c/include)
+set(ICU_LIBRARY_DIRS /usr/local/opt/icu4c/lib)
+set(ICU_LIBRARIES icuuc)
 
 include(cmake/CPM.cmake)
 CPMAddPackage("gh:fmtlib/fmt#9.1.0")

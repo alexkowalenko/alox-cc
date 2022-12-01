@@ -7,9 +7,9 @@ Additions:
 * [x] `break`, `continue`.
 * [ ] Unicode strings and identifiers.
 * [ ] ++, --.
-* [ ] I/O read, write, stderr.
+* [ ] I/O read, write, stderr. `getc()`, `chr(ch)`, `exit(status)`, `print_error(message)`.
 * [ ] `lambda` functions. lambda () { }
-* [ ] Lists [1,2,3], Maps, Arrays, Sets.
+* [ ] Lists [1,2,3], Maps, Arrays, Sets. Object initialisers {s: value....};
 * [ ] Conditional expressions: `print x == 5 ? "5" : nil;`
 * [ ] file inclusion `include`.
 * [ ] module system `import`, `export`. Namespaces.
@@ -21,7 +21,7 @@ Modifications:
 * [x] Opcodes ZERO, ONE for number constants.
 * [x] Change from realloc to new/delete for Objects.
 * [x] Move init() functions to constructors, default initialisers.
-* [ ] Compare with zero, nil Opcodes.
+* [ ] NOT_EQUAL, NOT_LESS, NOT_GREATER
 
 Book modifications:
 
