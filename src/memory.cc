@@ -38,10 +38,6 @@ void GC::init(VM *vm) {
     this->vm = vm;
 }
 
-void GC::free() {
-    strings.free();
-}
-
 void GC::markObject(Obj *object) {
     if (object == nullptr) {
         return;
@@ -166,7 +162,6 @@ void GC::freeObject(Obj *object) {
         break;
     case ObjType::STRING: {
         auto *string = (ObjString *)object;
-        gc.delete_array<char>(string->chars, string->length + 1);
         deleteObject<ObjString>(string);
         break;
     }
@@ -219,7 +214,6 @@ void GC::collectGarbage() {
 
     markRoots();
     traceReferences();
-    this->strings.removeWhite();
     sweep();
 
     this->nextGC = this->bytesAllocated * GC_HEAP_GROW_FACTOR;

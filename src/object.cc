@@ -3,9 +3,11 @@
 //
 
 #include <cstring>
+#include <functional>
 #include <iostream>
 
 #include <fmt/core.h>
+#include <string_view>
 
 #include "memory.hh"
 #include "object.hh"
@@ -58,47 +60,20 @@ ObjNative *newNative(NativeFn function) {
     return native;
 }
 
-ObjString *allocateString(char *chars, int length, uint32_t hash) {
-    auto *string = gc.allocateObject<ObjString>(ObjType::STRING);
-    string->length = length;
-    string->chars = chars;
-    string->hash = hash;
-
-    gc.strings.set(string, NIL_VAL);
-    return string;
-}
-
-static constexpr uint32_t hashString(const char *key, int length) {
+inline uint32_t hashString(const std::string_view &s) {
     uint32_t hash = 2166136261u;
-    for (int i = 0; i < length; i++) {
-        hash ^= (uint8_t)key[i];
+    for (auto c : s) {
+        hash ^= (uint8_t)c;
         hash *= 16777619;
     }
     return hash;
 }
 
-ObjString *takeString(char *chars, int length) {
-    const uint32_t hash = hashString(chars, length);
-    ObjString     *interned = gc.strings.findString(chars, length, hash);
-    if (interned != nullptr) {
-        gc.delete_array<char>(chars, length + 1);
-        return interned;
-    }
-
-    return allocateString(chars, length, hash);
-}
-
-ObjString *copyString(const char *chars, int length) {
-    const uint32_t hash = hashString(chars, length);
-    ObjString     *interned = gc.strings.findString(chars, length, hash);
-    if (interned != nullptr) {
-        return interned;
-    }
-
-    char *heapChars = gc.allocate_array<char>(length + 1);
-    memcpy(heapChars, chars, length);
-    heapChars[length] = '\0';
-    return allocateString(heapChars, length, hash);
+ObjString *newString(std::string const &s) {
+    auto *string = gc.allocateObject<ObjString>(ObjType::STRING);
+    string->str = s;
+    string->hash = hashString(s);
+    return string;
 }
 
 ObjUpvalue *newUpvalue(Value *slot) {
@@ -114,7 +89,7 @@ static void printFunction(ObjFunction *function) {
         std::cout << "<script>";
         return;
     }
-    fmt::print("<fn {}>", function->name->chars);
+    fmt::print("<fn {}>", function->name->str);
 }
 
 void printObject(Value value) {
@@ -123,7 +98,7 @@ void printObject(Value value) {
         printFunction(AS_BOUND_METHOD(value)->method->function);
         break;
     case ObjType::CLASS:
-        fmt::print("{}", AS_CLASS(value)->name->chars);
+        fmt::print("{}", AS_CLASS(value)->name->str);
         break;
     case ObjType::CLOSURE:
         printFunction(AS_CLOSURE(value)->function);
@@ -132,7 +107,7 @@ void printObject(Value value) {
         printFunction(AS_FUNCTION(value));
         break;
     case ObjType::INSTANCE:
-        fmt::print("{} instance", AS_INSTANCE(value)->klass->name->chars);
+        fmt::print("{} instance", AS_INSTANCE(value)->klass->name->str);
         break;
     case ObjType::NATIVE:
         std::cout << "<native fn>";

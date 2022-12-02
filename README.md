@@ -21,7 +21,9 @@ Modifications:
 * [x] Opcodes ZERO, ONE for number constants.
 * [x] Change from realloc to new/delete for Objects.
 * [x] Move init() functions to constructors, default initialisers.
-* [ ] NOT_EQUAL, NOT_LESS, NOT_GREATER
+* [x] NOT_EQUAL, NOT_LESS, NOT_GREATER.
+* [x] moved from char* to std::string.
+
 
 Book modifications:
 

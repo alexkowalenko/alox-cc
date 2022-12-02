@@ -15,11 +15,7 @@ class GC {
     GC() = default;
     ~GC() = default;
 
-    // global string table;
-    Table strings;
-
     void init(VM *vm);
-    void free();
 
     // New allocators
     template <typename T> T             *allocateObject(ObjType type);

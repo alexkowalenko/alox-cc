@@ -10,7 +10,7 @@
 #include "object.hh"
 #include "value.hh"
 
-void disassembleChunk(Chunk *chunk, const char *name) {
+void disassembleChunk(Chunk *chunk, const std::string_view &name) {
     fmt::print("== {} ==\n", name);
 
     for (int offset = 0; offset < chunk->get_count();) {
@@ -105,6 +105,12 @@ int disassembleInstruction(Chunk *chunk, int offset) {
         return simpleInstruction("GREATER", offset);
     case OpCode::LESS:
         return simpleInstruction("LESS", offset);
+    case OpCode::NOT_EQUAL:
+        return simpleInstruction("NOT_EQUAL", offset);
+    case OpCode::NOT_GREATER:
+        return simpleInstruction("NOT_GREATER", offset);
+    case OpCode::NOT_LESS:
+        return simpleInstruction("NOT_LESS", offset);
     case OpCode::ADD:
         return simpleInstruction("ADD", offset);
     case OpCode::SUBTRACT:
@@ -142,7 +148,7 @@ int disassembleInstruction(Chunk *chunk, int offset) {
         ObjFunction *function = AS_FUNCTION(chunk->get_value(constant));
         for (int j = 0; j < function->upvalueCount; j++) {
             const int isLocal = chunk->get_code(offset++);
-            int index = chunk->get_code(offset++);
+            int       index = chunk->get_code(offset++);
             fmt::print("{:04d}      |                     {} {:d}\n", offset - 2,
                        isLocal ? "local" : "upvalue", index);
         }

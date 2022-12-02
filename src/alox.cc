@@ -25,7 +25,6 @@ Alox::Alox(const Options &opt) : options(opt), vm(options) {
 
 Alox::~Alox() {
     vm.free();
-    gc.free();
     gc.freeObjects(); // and the last to be destroyed is death.
 }
 

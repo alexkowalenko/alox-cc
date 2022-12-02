@@ -103,8 +103,7 @@ void Lox_Compiler::initCompiler(Compiler *compiler, FunctionType type) {
     compiler->init(current, type);
     current = compiler;
     if (type != TYPE_SCRIPT) {
-        current->function->name =
-            copyString(parser->previous.text.data(), parser->previous.text.size());
+        current->function->name = newString(parser->previous.text);
     }
 
     Local *local = &current->locals[current->localCount++];
@@ -124,7 +123,7 @@ ObjFunction *Lox_Compiler::endCompiler() {
     if (options.debug_code) {
         if (!parser->hadError) {
             disassembleChunk(currentChunk(), function->name != nullptr
-                                                 ? function->name->chars
+                                                 ? function->name->str
                                                  : "<script>");
         }
     }
@@ -157,7 +156,7 @@ void Lox_Compiler::adjust_locals(int depth) {
 }
 
 const_index_t Lox_Compiler::identifierConstant(Token *name) {
-    return makeConstant(OBJ_VAL(copyString(name->text.data(), name->text.size())));
+    return makeConstant(OBJ_VAL(newString(name->text)));
 }
 
 bool Lox_Compiler::identifiersEqual(Token *a, Token *b) {
@@ -310,7 +309,7 @@ void Lox_Compiler::binary(bool /*canAssign*/) {
 
     switch (operatorType) {
     case TokenType::BANG_EQUAL:
-        emitBytes(OpCode::EQUAL, OpCode::NOT);
+        emitByte(OpCode::NOT_EQUAL);
         break;
     case TokenType::EQUAL_EQUAL:
         emitByte(OpCode::EQUAL);
@@ -319,13 +318,13 @@ void Lox_Compiler::binary(bool /*canAssign*/) {
         emitByte(OpCode::GREATER);
         break;
     case TokenType::GREATER_EQUAL:
-        emitBytes(OpCode::LESS, OpCode::NOT);
+        emitByte(OpCode::NOT_LESS);
         break;
     case TokenType::LESS:
         emitByte(OpCode::LESS);
         break;
     case TokenType::LESS_EQUAL:
-        emitBytes(OpCode::GREATER, OpCode::NOT);
+        emitByte(OpCode::NOT_GREATER);
         break;
     case TokenType::PLUS:
         emitByte(OpCode::ADD);
@@ -411,8 +410,7 @@ void Lox_Compiler::or_(bool /*canAssign*/) {
 }
 
 void Lox_Compiler::string(bool /*canAssign*/) {
-    emitConstant(OBJ_VAL(
-        copyString(parser->previous.text.data() + 1, parser->previous.text.size() - 2)));
+    emitConstant(OBJ_VAL(newString(parser->previous.text)));
 }
 
 void Lox_Compiler::namedVariable(Token name, bool canAssign) {

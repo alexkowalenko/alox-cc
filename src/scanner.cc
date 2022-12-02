@@ -6,6 +6,7 @@
 #include <map>
 
 #include <fmt/core.h>
+#include <string>
 #include <unicode/uchar.h>
 #include <utf8.h>
 
@@ -114,11 +115,10 @@ Char Scanner::get_char() {
 
 // expecting strings with the " character - might comeback and take these off.
 auto Scanner::get_string() -> Token {
-    std::string buf("\"");
+    std::string buf;
     while (peek() != 0) {
         auto c = scan();
         if (c == '"') {
-            buf.append("\"");
             return {TokenType::STRING, buf, line};
         }
         utf8::append(char32_t(c), buf);

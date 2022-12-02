@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <string>
+
 #include "chunk.hh"
 #include "common.hh"
 #include "table.hh"
@@ -43,10 +45,9 @@ struct ObjNative {
 };
 
 struct ObjString {
-    Obj      obj;
-    int      length;
-    char    *chars;
-    uint32_t hash;
+    Obj         obj;
+    std::string str;
+    uint32_t    hash;
 };
 
 struct ObjUpvalue {
@@ -144,8 +145,8 @@ inline ObjString *AS_STRING(Value value) {
     return reinterpret_cast<ObjString *>(AS_OBJ(value));
 }
 
-inline char *AS_CSTRING(Value value) {
-    return reinterpret_cast<ObjString *>(AS_OBJ(value))->chars;
+inline const std::string &AS_CSTRING(Value value) {
+    return reinterpret_cast<ObjString *>(AS_OBJ(value))->str;
 }
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
@@ -154,7 +155,6 @@ ObjClosure     *newClosure(ObjFunction *function);
 ObjFunction    *newFunction();
 ObjInstance    *newInstance(ObjClass *klass);
 ObjNative      *newNative(NativeFn function);
-ObjString      *takeString(char *chars, int length);
-ObjString      *copyString(const char *chars, int length);
+ObjString      *newString(std::string const &s);
 ObjUpvalue     *newUpvalue(Value *slot);
 void            printObject(Value value);

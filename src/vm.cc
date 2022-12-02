@@ -52,15 +52,15 @@ template <typename... T> void VM::runtimeError(const char *format, const T &...m
         if (function->name == nullptr) {
             std::cerr << "script\n";
         } else {
-            std::cerr << fmt::format("{}()\n", function->name->chars);
+            std::cerr << fmt::format("{}()\n", function->name->str);
         }
     }
 
     resetStack();
 }
 
-void VM::defineNative(const char *name, NativeFn function) {
-    push(OBJ_VAL(copyString(name, (int)strlen(name))));
+void VM::defineNative(const std::string &name, NativeFn function) {
+    push(OBJ_VAL(newString(name)));
     push(OBJ_VAL(newNative(function)));
     globals.set(AS_STRING(stack[0]), stack[1]);
     pop();
@@ -70,7 +70,7 @@ void VM::defineNative(const char *name, NativeFn function) {
 void VM::init() {
     resetStack();
 
-    initString = copyString("init", 4);
+    initString = newString("init");
 
     // these are defined before the compiler starts
     defineNative("clock", clockNative);
@@ -160,7 +160,7 @@ bool VM::callValue(Value callee, int argCount) {
 bool VM::invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
     Value method;
     if (!klass->methods.get(name, &method)) {
-        runtimeError("Undefined property '{}'.", name->chars);
+        runtimeError("Undefined property '{}'.", name->str);
         return false;
     }
     return call(AS_CLOSURE(method), argCount);
@@ -188,7 +188,7 @@ bool VM::invoke(ObjString *name, int argCount) {
 bool VM::bindMethod(ObjClass *klass, ObjString *name) {
     Value method;
     if (!klass->methods.get(name, &method)) {
-        runtimeError("Undefined property '{}'.", name->chars);
+        runtimeError("Undefined property '{}'.", name->str);
         return false;
     }
 
@@ -241,14 +241,7 @@ void VM::defineMethod(ObjString *name) {
 void VM::concatenate() {
     ObjString *b = AS_STRING(peek(0));
     ObjString *a = AS_STRING(peek(1));
-
-    const int length = a->length + b->length;
-    char     *chars = gc.allocate_array<char>(length + 1);
-    memcpy(chars, a->chars, a->length);
-    memcpy(chars + a->length, b->chars, b->length);
-    chars[length] = '\0';
-
-    ObjString *result = takeString(chars, length);
+    ObjString *result = newString(a->str + b->str);
     pop();
     pop();
     push(OBJ_VAL(result));
@@ -336,7 +329,7 @@ InterpretResult VM::run() {
             Value      value;
             if (!globals.get(name, &value)) {
                 frame->ip = ip;
-                runtimeError("Undefined variable '{}'.", name->chars);
+                runtimeError("Undefined variable '{}'.", name->str);
                 return INTERPRET_RUNTIME_ERROR;
             }
             push(value);
@@ -353,7 +346,7 @@ InterpretResult VM::run() {
             if (globals.set(name, peek(0))) {
                 globals.del(name); // [delete]
                 frame->ip = ip;
-                runtimeError("Undefined variable '{}'.", name->chars);
+                runtimeError("Undefined variable '{}'.", name->str);
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
@@ -421,11 +414,23 @@ InterpretResult VM::run() {
             push(BOOL_VAL(valuesEqual(a, b)));
             break;
         }
+        case OpCode::NOT_EQUAL: {
+            const Value b = pop();
+            const Value a = pop();
+            push(BOOL_VAL(!valuesEqual(a, b)));
+            break;
+        }
         case OpCode::GREATER:
             BINARY_OP(BOOL_VAL, >);
             break;
+        case OpCode::NOT_GREATER:
+            BINARY_OP(BOOL_VAL, <=);
+            break;
         case OpCode::LESS:
             BINARY_OP(BOOL_VAL, <);
+            break;
+        case OpCode::NOT_LESS:
+            BINARY_OP(BOOL_VAL, >=);
             break;
         case OpCode::ADD: {
             if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {

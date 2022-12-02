@@ -44,10 +44,14 @@ bool valuesEqual(Value a, Value b) {
     if (IS_NUMBER(a) && IS_NUMBER(b)) {
         return AS_NUMBER(a) == AS_NUMBER(b);
     }
+    if (IS_STRING(a) && IS_STRING(b)) {
+        return AS_STRING(a)->str == AS_STRING(b)->str;
+    }
     return a == b;
 #else
-    if (a.type != b.type)
+    if (a.type != b.type) {
         return false;
+    }
     switch (a.type) {
     case VAL_BOOL:
         return AS_BOOL(a) == AS_BOOL(b);
@@ -55,8 +59,12 @@ bool valuesEqual(Value a, Value b) {
         return true;
     case VAL_NUMBER:
         return AS_NUMBER(a) == AS_NUMBER(b);
-    case VAL_OBJ:
+    case VAL_OBJ: {
+        if (IS_STRING(a) && IS_STRING(b)) {
+            return AS_STRING(a)->str == AS_STRING(b)->str;
+        }
         return AS_OBJ(a) == AS_OBJ(b);
+    }
     default:
         return false; // Unreachable.
     }

@@ -53,7 +53,7 @@ class VM {
 
     template <typename... T> void runtimeError(const char *format, const T &...msg);
 
-    void        defineNative(const char *name, NativeFn function);
+    void        defineNative(const std::string &name, NativeFn function);
     bool        call(ObjClosure *closure, int argCount);
     bool        callValue(Value callee, int argCount);
     bool        invokeFromClass(ObjClass *klass, ObjString *name, int argCount);

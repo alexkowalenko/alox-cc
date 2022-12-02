@@ -31,4 +31,5 @@ endmacro()
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
 package_add_test(scanner.test scanner.test.cc)
+package_add_test(string.test string.test.cc)
 

@@ -65,13 +65,13 @@ TEST(Scanner, basic) { // NOLINT
 
 TEST(Scanner, strings) { // NOLINT
     std::vector<TestLexer> const tests = {
-        {R"("a")", TokenType::STRING, R"("a")"},
-        {R"("")", TokenType::STRING, R"("")"},
-        {R"("estação def")", TokenType::STRING, R"("estação def")"},
-        {R"("ἄλφα")", TokenType::STRING, R"("ἄλφα")"},
-        {R"("一二三四五六七")", TokenType::STRING, R"("一二三四五六七")"},
-        {R"("👾")", TokenType::STRING, R"("👾")"},
-        {R"("🍏🍎🍐🍊🍋🍌🍉🍇🍓🍈🍒")", TokenType::STRING, R"("🍏🍎🍐🍊🍋🍌🍉🍇🍓🍈🍒")"},
+        {R"("a")", TokenType::STRING, R"(a)"},
+        {R"("")", TokenType::STRING, R"()"},
+        {R"("estação def")", TokenType::STRING, R"(estação def)"},
+        {R"("ἄλφα")", TokenType::STRING, R"(ἄλφα)"},
+        {R"("一二三四五六七")", TokenType::STRING, R"(一二三四五六七)"},
+        {R"("👾")", TokenType::STRING, R"(👾)"},
+        {R"("🍏🍎🍐🍊🍋🍌🍉🍇🍓🍈🍒")", TokenType::STRING, R"(🍏🍎🍐🍊🍋🍌🍉🍇🍓🍈🍒)"},
     };
 
     test_Lexer(tests);

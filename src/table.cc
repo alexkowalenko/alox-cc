@@ -33,7 +33,7 @@ Entry *findEntry(Entry *entries, size_t capacity, ObjString *key) {
                 tombstone = entry;
             }
 
-        } else if (entry->key == key) {
+        } else if (entry->key->str == key->str) {
             // We found the key.
             return entry;
         }
@@ -121,29 +121,6 @@ void Table::addAll(const Table &from, Table &to) {
         if (entry->key != nullptr) {
             to.set(entry->key, entry->value);
         }
-    }
-}
-
-ObjString *Table::findString(const char *chars, int length, uint32_t hash) {
-    if (this->count == 0) {
-        return nullptr;
-    }
-
-    uint32_t index = hash & (this->capacity - 1);
-    for (;;) {
-        Entry *entry = &this->entries[index];
-        if (entry->key == nullptr) {
-            // Stop if we find an empty non-tombstone entry.
-            if (IS_NIL(entry->value)) {
-                return nullptr;
-            }
-        } else if (entry->key->length == length && entry->key->hash == hash &&
-                   memcmp(entry->key->chars, chars, length) == 0) {
-            // We found it.
-            return entry->key;
-        }
-
-        index = (index + 1) & (this->capacity - 1);
     }
 }
 
