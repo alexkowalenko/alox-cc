@@ -2,42 +2,65 @@
 // ALOX-CC
 //
 
-#include <cstdio>
-#include <cstring>
+#include <iostream>
+#include <map>
 
-#include "common.hh"
+#include <fmt/core.h>
+#include <unicode/uchar.h>
+#include <utf8.h>
+
 #include "scanner.hh"
+#include "utf8/checked.h"
 
-Scanner::Scanner(const char *source) : start(source), current(source) {}
-
-static constexpr bool isAlpha(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-}
-
-static constexpr bool isDigit(char c) {
-    return c >= '0' && c <= '9';
-}
-
-bool Scanner::match(char expected) {
-    if (isAtEnd()) {
-        return false;
+inline constexpr auto debug_scan{false};
+template <typename S, typename... Args>
+static void debug(const S &format, const Args &...msg) {
+    if constexpr (debug_scan) {
+        std::cout << "scanner: " << fmt::format(fmt::runtime(format), msg...) << '\n';
     }
-    if (*current != expected) {
-        return false;
-    }
-    current++;
-    return true;
 }
 
-Token Scanner::makeToken(TokenType type) {
-    Token token{};
-    token.type = type;
-    token.text = {start, static_cast<size_t>((int)(current - start))};
-    token.line = line;
-    return token;
+Scanner::Scanner(const std::string &s) : source(s), current(begin(source)) {
+    debug(source);
 }
 
-Token Scanner::errorToken(const char *message) const {
+constexpr bool is_emoji(Char c) {
+    return (0x1f600 <= c && c <= 0x1f64f) || // Emoticons NOLINT
+           (0x1F300 <= c && c <= 0x1F5FF) || // Misc Symbols and Pictographs NOLINT
+           (0x1F680 <= c && c <= 0x1F6FF) || // Transport and Map NOLINT
+           (0x1F1E6 <= c && c <= 0x1F1FF) || // Regional country flags NOLINT
+           (0x2600 <= c && c <= 0x26FF) ||   // Misc symbols NOLINT
+           (0x2700 <= c && c <= 0x27BF) ||   // Dingbats NOLINT
+           (0xE0020 <= c && c <= 0xE007F) || // Tags NOLINT
+           (0xFE00 <= c && c <= 0xFE0F) ||   // Variation Selectors NOLINT
+           (0x1F900 <= c &&
+            c <= 0x1F9FF) || // Supplemental Symbols and Pictographs NOLINT
+           (0x1F018 <= c && c <= 0x1F270) || // Various asian characters NOLINT
+           (0x238C <= c && c <= 0x2454) ||   // Misc items NOLINT
+           (0x20D0 <= c && c <= 0x20FF);     // NOLINT
+}
+
+const std::map<Char, TokenType> single_tokens = {
+    {'+', TokenType::PLUS},       {'-', TokenType::MINUS},
+    {'*', TokenType::ASTÉRIX},    {'/', TokenType::SLASH},
+    {'(', TokenType::LEFT_PAREN}, {')', TokenType::RIGHT_PAREN},
+    {'{', TokenType::LEFT_BRACE}, {'}', TokenType::RIGHT_BRACE},
+    {';', TokenType::SEMICOLON},  {',', TokenType::COMMA},
+    {'.', TokenType::DOT}};
+
+const std::map<std::string, TokenType> keyword_map = {
+    {"and", TokenType::AND},     {"break", TokenType::BREAK},
+    {"class", TokenType::CLASS}, {"continue", TokenType::CONTINUE},
+    {"else", TokenType::ELSE},   {"false", TokenType::FALSE},
+    {"for", TokenType::FOR},     {"fun", TokenType::FUN},
+    {"if", TokenType::IF},       {"nil", TokenType::NIL},
+    {"or", TokenType::OR},       {"return", TokenType::RETURN},
+    {"print", TokenType::PRINT}, {"super", TokenType::SUPER},
+    {"this", TokenType::THIS},   {"true", TokenType::TRUE},
+    {"var", TokenType::VAR},     {"while", TokenType::WHILE},
+};
+
+Token Scanner::error_token(const char *message) const {
     Token token{};
     token.type = TokenType::ERROR;
     token.text = {message, strlen(message)};
@@ -45,195 +68,151 @@ Token Scanner::errorToken(const char *message) const {
     return token;
 }
 
-void Scanner::skipWhitespace() {
-    for (;;) {
-        const char c = peek();
-        switch (c) {
-        case ' ':
-        case '\r':
-        case '\t':
-            advance();
-            break;
-        case '\n':
+Char Scanner::scan() {
+    if (current != end(source)) {
+        return utf8::next(current, end(source));
+    }
+    return 0;
+}
+
+Char Scanner::peek() {
+    if (current != end(source)) {
+        return utf8::peek_next(current, end(source));
+    }
+    return 0;
+}
+
+Char Scanner::prior() {
+    return utf8::prior(current, end(source));
+}
+
+Char Scanner::get_char() {
+    do {
+        auto c = scan();
+        if (c == 0) {
+            return c;
+        }
+        if (c == '\n') {
             line++;
-            advance();
-            break;
-        case '/':
-            if (peekNext() == '/') {
-                // A comment goes until the end of the line.
-                while (peek() != '\n' && !isAtEnd()) {
-                    advance();
-                }
-            } else {
-                return;
+            continue;
+        }
+        if (u_isspace(c)) {
+            continue;
+        }
+        if (c == '/' && peek() == '/') {
+            do {
+                c = scan();
+            } while (c != '\n' && c != 0);
+            if (c == '\n') {
+                line++;
             }
-            break;
-        default:
-            return;
+            continue;
         }
+        return c;
+    } while (true);
+};
+
+// expecting strings with the " character - might comeback and take these off.
+auto Scanner::get_string() -> Token {
+    std::string buf("\"");
+    while (peek() != 0) {
+        auto c = scan();
+        if (c == '"') {
+            buf.append("\"");
+            return {TokenType::STRING, buf, line};
+        }
+        utf8::append(char32_t(c), buf);
     }
+    return error_token("Unterminated string.");
 }
 
-TokenType Scanner::checkKeyword(int st, int length, const char *rest, TokenType type) {
-    if (current - start == st + length && memcmp(start + st, rest, length) == 0) {
-        return type;
-    }
-    return TokenType::IDENTIFIER;
-}
-
-TokenType Scanner::identifierType() {
-    switch (start[0]) {
-    case 'a':
-        return checkKeyword(1, 2, "nd", TokenType::AND);
-    case 'b':
-        return checkKeyword(1, 4, "reak", TokenType::BREAK);
-    case 'c':
-        if (current - start > 1) {
-            switch (start[1]) {
-            case 'l':
-                return checkKeyword(2, 3, "ass", TokenType::CLASS);
-            case 'o':
-                return checkKeyword(2, 6, "ntinue", TokenType::CONTINUE);
+auto Scanner::get_number(Char c) -> Token {
+    std::string buf;
+    utf8::append(char32_t(c), buf);
+    auto p = peek();
+    auto seen_dot{false};
+    while (u_isdigit(p) || p == '.') {
+        if (p == '.') {
+            if (seen_dot) {
+                break;
             }
+            seen_dot = true;
         }
-        break;
-    case 'e':
-        return checkKeyword(1, 3, "lse", TokenType::ELSE);
-    case 'f':
-        if (current - start > 1) {
-            switch (start[1]) {
-            case 'a':
-                return checkKeyword(2, 3, "lse", TokenType::FALSE);
-            case 'o':
-                return checkKeyword(2, 1, "r", TokenType::FOR);
-            case 'u':
-                return checkKeyword(2, 1, "n", TokenType::FUN);
-            }
-        }
-        break;
-    case 'i':
-        return checkKeyword(1, 1, "f", TokenType::IF);
-    case 'n':
-        return checkKeyword(1, 2, "il", TokenType::NIL);
-    case 'o':
-        return checkKeyword(1, 1, "r", TokenType::OR);
-    case 'p':
-        return checkKeyword(1, 4, "rint", TokenType::PRINT);
-    case 'r':
-        return checkKeyword(1, 5, "eturn", TokenType::RETURN);
-    case 's':
-        return checkKeyword(1, 4, "uper", TokenType::SUPER);
-    case 't':
-        if (current - start > 1) {
-            switch (start[1]) {
-            case 'h':
-                return checkKeyword(2, 2, "is", TokenType::THIS);
-            case 'r':
-                return checkKeyword(2, 2, "ue", TokenType::TRUE);
-            }
-        }
-        break;
-    case 'v':
-        return checkKeyword(1, 2, "ar", TokenType::VAR);
-    case 'w':
-        return checkKeyword(1, 4, "hile", TokenType::WHILE);
+        utf8::append(char32_t(scan()), buf);
+        p = peek();
     }
-
-    return TokenType::IDENTIFIER;
+    if (buf.ends_with(".")) {
+        prior();
+        return {TokenType::NUMBER, buf.substr(0, buf.size() - 1), line};
+    }
+    return {TokenType::NUMBER, buf, line};
 }
 
-Token Scanner::identifier() {
-    while (isAlpha(peek()) || isDigit(peek())) {
-        advance();
+auto Scanner::get_identifier(Char c) -> Token {
+    std::string buf;
+    utf8::append(char32_t(c), buf);
+    auto p = peek();
+    while (u_isalnum(p) || is_emoji(p) || p == '_') {
+        utf8::append(char32_t(scan()), buf);
+        p = peek();
     }
-    return makeToken(identifierType());
-}
-
-Token Scanner::number() {
-    while (isDigit(peek())) {
-        advance();
+    if (keyword_map.contains(buf)) {
+        return {keyword_map.at(buf), buf, line};
     }
-
-    // Look for a fractional part.
-    if (peek() == '.' && isDigit(peekNext())) {
-        // Consume the ".".
-        advance();
-
-        while (isDigit(peek())) {
-            advance();
-        }
-    }
-
-    return makeToken(TokenType::NUMBER);
-}
-
-Token Scanner::string() {
-    while (peek() != '"' && !isAtEnd()) {
-        if (peek() == '\n') {
-            line++;
-        }
-        advance();
-    }
-
-    if (isAtEnd()) {
-        return errorToken("Unterminated string.");
-    }
-
-    // The closing quote.
-    advance();
-    return makeToken(TokenType::STRING);
+    return {TokenType::IDENTIFIER, buf, line};
 }
 
 Token Scanner::scanToken() {
-    skipWhitespace();
-    start = current;
-
-    if (isAtEnd()) {
-        return makeToken(TokenType::EOFS);
+    auto c = get_char();
+    // debug("get_token :{0}: ", char(c));
+    if (c == 0) {
+        return {TokenType::EOFS, "", line};
+    }
+    if (single_tokens.contains(c)) {
+        return {single_tokens.at(c), {static_cast<char>(c)}, line};
     }
 
-    const char c = advance();
-    if (isAlpha(c)) {
-        return identifier();
-    }
-    if (isDigit(c)) {
-        return number();
-    }
-
+    auto next = peek();
     switch (c) {
-    case '(':
-        return makeToken(TokenType::LEFT_PAREN);
-    case ')':
-        return makeToken(TokenType::RIGHT_PAREN);
-    case '{':
-        return makeToken(TokenType::LEFT_BRACE);
-    case '}':
-        return makeToken(TokenType::RIGHT_BRACE);
-    case ';':
-        return makeToken(TokenType::SEMICOLON);
-    case ',':
-        return makeToken(TokenType::COMMA);
-    case '.':
-        return makeToken(TokenType::DOT);
-    case '-':
-        return makeToken(TokenType::MINUS);
-    case '+':
-        return makeToken(TokenType::PLUS);
-    case '/':
-        return makeToken(TokenType::SLASH);
-    case '*':
-        return makeToken(TokenType::ASTÉRIX);
-    case '!':
-        return makeToken(match('=') ? TokenType::BANG_EQUAL : TokenType::BANG);
-    case '=':
-        return makeToken(match('=') ? TokenType::EQUAL_EQUAL : TokenType::EQUAL);
-    case '<':
-        return makeToken(match('=') ? TokenType::LESS_EQUAL : TokenType::LESS);
-    case '>':
-        return makeToken(match('=') ? TokenType::GREATER_EQUAL : TokenType::GREATER);
-    case '"':
-        return string();
-    default:
-        return errorToken("Unexpected character.");
+    case '!': {
+        if (next == '=') {
+            get_char();
+            return {TokenType::BANG_EQUAL, "!=", line};
+        }
+        return {TokenType::BANG, "!", line};
     }
+    case '=': {
+        if (next == '=') {
+            get_char();
+            return {TokenType::EQUAL_EQUAL, "==", line};
+        }
+        return {TokenType::EQUAL, "=", line};
+    }
+    case '>': {
+        if (next == '=') {
+            get_char();
+            return {TokenType::GREATER_EQUAL, ">=", line};
+        }
+        return {TokenType::GREATER, ">", line};
+    }
+    case '<': {
+        if (next == '=') {
+            get_char();
+            return {TokenType::LESS_EQUAL, "<=", line};
+        }
+        return {TokenType::LESS, "<", line};
+    }
+    }
+
+    if (c == '"') {
+        return get_string();
+    }
+    if (u_isdigit(c)) {
+        return get_number(c);
+    }
+    if (u_isalpha(c) || is_emoji(c) || c == '_') {
+        return get_identifier(c);
+    }
+
+    return error_token("Unexpected character.");
 }

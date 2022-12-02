@@ -1,0 +1,11 @@
+var liberté = 3;
+print liberté; // expect: 3
+var 👾 = 7;
+print liberté + 👾; // expect: 10
+
+fun 🍎(🍌) {
+    return "🍎" + 🍌;
+}
+
+print 🍎("🍊"); // expect: 🍎🍊
+print 🍎("🫐"); // expect: 🍎🫐

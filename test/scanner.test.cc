@@ -79,7 +79,7 @@ TEST(Scanner, strings) { // NOLINT
 
 TEST(Scanner, numbers) { // NOLINT
     std::vector<TestLexer> const tests = {
-        {"1", TokenType::NUMBER, "1"},      {"1.", TokenType::NUMBER, "1"},
+        {"1", TokenType::NUMBER, "1"},      {"1. ", TokenType::NUMBER, "1"},
         {"0.1", TokenType::NUMBER, "0.1"},  {"134455345", TokenType::NUMBER, "134455345"},
         {"1.2.", TokenType::NUMBER, "1.2"},
     };
@@ -91,10 +91,10 @@ TEST(Scanner, identifiers) { // NOLINT
         {"a", TokenType::IDENTIFIER, "a"},
         {"a1", TokenType::IDENTIFIER, "a1"},
         {"A1_", TokenType::IDENTIFIER, "A1_"},
-        // {"liberté", TokenType::IDENTIFIER, "liberté"},
-        // {"Interpréteur", TokenType::IDENTIFIER, "Interpréteur"},
-        // {"👾", TokenType::IDENTIFIER, "👾"},
-        // {"🍎1", TokenType::IDENTIFIER, "🍎1"},
+        {"liberté", TokenType::IDENTIFIER, "liberté"},
+        {"Interpréteur", TokenType::IDENTIFIER, "Interpréteur"},
+        {"👾", TokenType::IDENTIFIER, "👾"},
+        {"🍎1", TokenType::IDENTIFIER, "🍎1"},
 
     };
     test_Lexer(tests);
@@ -103,7 +103,7 @@ TEST(Scanner, identifiers) { // NOLINT
 void test_Lexer(const std::vector<TestLexer> &tests) { // NOLINT
     for (const auto &test : tests) {
         try {
-            Scanner scanner(test.input.c_str());
+            Scanner scanner(test.input);
             auto    tok = scanner.scanToken();
 
             std::cout << fmt::format("type {} wanted {}\n", test.input, tok.text);

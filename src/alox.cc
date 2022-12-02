@@ -61,7 +61,7 @@ int Alox::runFile(const std::string_view &path) {
     InterpretResult result{INTERPRET_OK};
     try {
         auto source = readFile(path);
-        result = vm.interpret(source.c_str());
+        result = vm.interpret(source);
     } catch (std::exception &e) {
         std::cerr << e.what() << '\n';
         return 74;
@@ -76,6 +76,6 @@ int Alox::runFile(const std::string_view &path) {
     return 0;
 };
 
-void Alox::runString(const std::string_view &s) {
-    InterpretResult result = vm.interpret(s.data());
+void Alox::runString(const std::string &s) {
+    InterpretResult result = vm.interpret(s);
 }

@@ -33,7 +33,7 @@ class VM {
     void init();
     void free();
 
-    InterpretResult interpret(const char *source);
+    InterpretResult interpret(const std::string &source);
 
     void markRoots();
 

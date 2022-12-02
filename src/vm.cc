@@ -582,7 +582,7 @@ InterpretResult VM::run() {
 #undef BINARY_OP
 }
 
-InterpretResult VM::interpret(const char *source) {
+InterpretResult VM::interpret(const std::string &source) {
     compiler = std::make_unique<Lox_Compiler>(options);
     ObjFunction *function = compiler->compile(source);
     if (function == nullptr) {

@@ -959,7 +959,7 @@ void Lox_Compiler::statement() {
     }
 }
 
-ObjFunction *Lox_Compiler::compile(const char *source) {
+ObjFunction *Lox_Compiler::compile(const std::string &source) {
     auto scanner = std::make_unique<Scanner>(source);
     parser = std::make_unique<Parser>(scanner);
     Compiler compiler{};

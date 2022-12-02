@@ -5,7 +5,7 @@ LOX converted to C++
 Additions:
 
 * [x] `break`, `continue`.
-* [ ] Unicode strings and identifiers.
+* [x] Unicode strings and identifiers.
 * [ ] ++, --.
 * [ ] I/O read, write, stderr. `getc()`, `chr(ch)`, `exit(status)`, `print_error(message)`.
 * [ ] `lambda` functions. lambda () { }

@@ -4,7 +4,12 @@
 
 #pragma once
 
-#include <string_view>
+#include <string>
+
+#include "common.hh"
+
+#undef FALSE
+#undef TRUE
 
 enum class TokenType {
     // Single-character tokens.
@@ -57,38 +62,31 @@ enum class TokenType {
 };
 
 struct Token {
-    TokenType        type;
-    std::string_view text;
-    int              line;
+    TokenType   type;
+    std::string text;
+    int         line;
 };
 
 class Scanner {
   public:
-    explicit Scanner(const char *source);
+    explicit Scanner(const std::string &source);
     Token scanToken();
 
   private:
-    [[nodiscard]] constexpr bool isAtEnd() const { return *current == '\0'; };
-    constexpr char               advance() {
-        current++;
-        return current[-1];
-    }
-    [[nodiscard]] constexpr char peek() const { return *current; }
-    [[nodiscard]] constexpr char peekNext() const {
-        return isAtEnd() ? '\0' : current[1];
-    };
+    Token error_token(const char *message) const;
 
-    bool      match(char expected);
-    Token     makeToken(TokenType type);
-    Token     errorToken(const char *message) const;
-    void      skipWhitespace();
-    TokenType checkKeyword(int start, int length, const char *rest, TokenType type);
-    TokenType identifierType();
-    Token     identifier();
-    Token     number();
-    Token     string();
+    Char peek();
+    Char prior();
+    Char scan();
 
-    const char *start;
-    const char *current;
-    int         line{1};
+    Char get_char();
+
+    Token get_string();
+    Token get_number(Char c);
+    Token get_identifier(Char c);
+
+    const std::string          &source;
+    std::string::const_iterator current;
+
+    int line{1};
 };

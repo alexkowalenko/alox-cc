@@ -26,7 +26,7 @@ enum class Precedence {
 };
 
 class Lox_Compiler;
-using ParseFn = std::function<void(Lox_Compiler*, bool)>;
+using ParseFn = std::function<void(Lox_Compiler *, bool)>;
 
 struct ParseRule {
     ParseFn    prefix;
@@ -44,7 +44,7 @@ class Lox_Compiler {
     Lox_Compiler(const Options &opt) : options(opt){};
     ~Lox_Compiler() = default;
 
-    ObjFunction *compile(const char *source);
+    ObjFunction *compile(const std::string &source);
     void         markCompilerRoots();
 
     void and_(bool /*canAssign*/);

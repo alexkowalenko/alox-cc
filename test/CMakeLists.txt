@@ -5,6 +5,8 @@ include(GoogleTest)
 set_target_properties(gtest PROPERTIES FOLDER _deps)
 set_target_properties(gtest_main PROPERTIES FOLDER _deps)
 
+link_directories(${ICU_LIBRARY_DIRS})
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
 macro(package_add_test TESTNAME)
@@ -14,7 +16,7 @@ macro(package_add_test TESTNAME)
     # the test executable.  Remove g_test_main if writing your own main function.
     target_link_libraries(${TESTNAME} PRIVATE project_options project_warnings
     lox
-    gtest gtest_main fmt
+    gtest gtest_main fmt icuuc
     )
     
     # gtest_discover_tests replaces gtest_add_tests,
