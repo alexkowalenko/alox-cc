@@ -5,7 +5,7 @@
 #pragma once
 
 #include "chunk.hh"
-#include "comp.hh"
+#include "context.hh"
 #include "object.hh"
 #include "options.hh"
 #include "parser.hh"
@@ -25,8 +25,8 @@ enum class Precedence {
     PRIMARY
 };
 
-class Lox_Compiler;
-using ParseFn = std::function<void(Lox_Compiler *, bool)>;
+class Compiler;
+using ParseFn = std::function<void(Compiler *, bool)>;
 
 struct ParseRule {
     ParseFn    prefix;
@@ -34,15 +34,10 @@ struct ParseRule {
     Precedence precedence;
 };
 
-struct ClassCompiler {
-    struct ClassCompiler *enclosing;
-    bool                  hasSuperclass;
-};
-
-class Lox_Compiler {
+class Compiler {
   public:
-    Lox_Compiler(const Options &opt) : options(opt){};
-    ~Lox_Compiler() = default;
+    Compiler(const Options &opt) : options(opt){};
+    ~Compiler() = default;
 
     ObjFunction *compile(const std::string &source);
     void         markCompilerRoots();
@@ -81,7 +76,7 @@ class Lox_Compiler {
     void          emitConstant(Value value);
     void          patchJump(int offset);
 
-    void         initCompiler(Compiler *compiler, FunctionType type);
+    void         initCompiler(Context *compiler, FunctionType type);
     ObjFunction *endCompiler();
 
     void beginScope();
@@ -96,9 +91,9 @@ class Lox_Compiler {
 
     const_index_t identifierConstant(Token *name);
     static bool   identifiersEqual(Token *a, Token *b);
-    int           resolveLocal(Compiler *compiler, Token *name);
-    int           addUpvalue(Compiler *compiler, uint8_t index, bool isLocal);
-    int           resolveUpvalue(Compiler *compiler, Token *name);
+    int           resolveLocal(Context *compiler, Token *name);
+    int           addUpvalue(Context *compiler, uint8_t index, bool isLocal);
+    int           resolveUpvalue(Context *compiler, Token *name);
     void          addLocal(Token name);
     void          declareVariable();
     const_index_t parseVariable(const char *errorMessage);
@@ -130,6 +125,6 @@ class Lox_Compiler {
 
     std::unique_ptr<Parser> parser;
 
-    Compiler      *current{nullptr};
-    ClassCompiler *currentClass{nullptr};
+    Context      *current{nullptr};
+    ClassContext *currentClass{nullptr};
 };

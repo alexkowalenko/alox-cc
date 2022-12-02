@@ -8,7 +8,6 @@
 #include <fmt/core.h>
 #include <string>
 #include <unicode/uchar.h>
-#include <utf8.h>
 
 #include "scanner.hh"
 #include "utf8/checked.h"
@@ -67,24 +66,6 @@ Token Scanner::error_token(const char *message) const {
     token.text = {message, strlen(message)};
     token.line = line;
     return token;
-}
-
-Char Scanner::scan() {
-    if (current != end(source)) {
-        return utf8::next(current, end(source));
-    }
-    return 0;
-}
-
-Char Scanner::peek() {
-    if (current != end(source)) {
-        return utf8::peek_next(current, end(source));
-    }
-    return 0;
-}
-
-Char Scanner::prior() {
-    return utf8::prior(current, end(source));
 }
 
 Char Scanner::get_char() {

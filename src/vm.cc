@@ -588,7 +588,7 @@ InterpretResult VM::run() {
 }
 
 InterpretResult VM::interpret(const std::string &source) {
-    compiler = std::make_unique<Lox_Compiler>(options);
+    compiler = std::make_unique<Compiler>(options);
     ObjFunction *function = compiler->compile(source);
     if (function == nullptr) {
         return INTERPRET_COMPILE_ERROR;

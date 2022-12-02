@@ -26,14 +26,14 @@ using BreakContext = std::tuple<int, int, int>;
  * @brief This has all the info for the current function being compiled.
  *
  */
-class Compiler {
+class Context {
   public:
-    void init(Compiler *enclosing, FunctionType type);
+    void init(Context *enclosing, FunctionType type);
 
     BreakContext save_break_context();
     void         restore_break_context(const BreakContext &context);
 
-    Compiler    *enclosing{nullptr};
+    Context     *enclosing{nullptr};
     ObjFunction *function{nullptr};
     FunctionType type;
 
@@ -46,4 +46,9 @@ class Compiler {
     int last_break{0};
     int last_scope_depth{0};
     int enclosing_loop{0};
+};
+
+struct ClassContext {
+    struct ClassContext *enclosing;
+    bool                 hasSuperclass;
 };

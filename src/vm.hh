@@ -12,7 +12,7 @@
 #include "table.hh"
 #include "value.hh"
 
-class Lox_Compiler;
+class Compiler;
 
 constexpr auto FRAMES_MAX = 64;
 constexpr auto STACK_MAX = (FRAMES_MAX * UINT8_COUNT);
@@ -83,5 +83,5 @@ class VM {
     ObjString  *initString{nullptr}; // name of LOX class constructor method.
     ObjUpvalue *openUpvalues;
 
-    std::unique_ptr<Lox_Compiler> compiler;
+    std::unique_ptr<Compiler> compiler;
 };

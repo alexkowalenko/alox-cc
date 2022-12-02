@@ -5,7 +5,11 @@
 #pragma once
 
 #include <string>
-#include <string_view>
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#include <utf8.h>
+#pragma clang diagnostic pop
 
 #include "common.hh"
 
@@ -76,9 +80,13 @@ class Scanner {
   private:
     Token error_token(const char *message) const;
 
-    Char peek();
-    Char prior();
-    Char scan();
+    Char peek() {
+        return (current != end(source)) ? utf8::peek_next(current, end(source)) : 0;
+    };
+    Char prior() { return utf8::prior(current, end(source)); };
+    Char scan() {
+        return (current != end(source)) ? utf8::next(current, end(source)) : 0;
+    };
 
     Char get_char();
 
