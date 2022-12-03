@@ -157,4 +157,4 @@ ObjInstance    *newInstance(ObjClass *klass);
 ObjNative      *newNative(NativeFn function);
 ObjString      *newString(std::string const &s);
 ObjUpvalue     *newUpvalue(Value *slot);
-void            printObject(Value value);
+void            printObject(std::ostream & os, Value value);

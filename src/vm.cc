@@ -29,10 +29,6 @@ static void debug(const S &format, const Args &...msg) {
 
 constexpr auto DEBUG_TRACE_EXECUTION{true};
 
-Value clockNative(int /*argCount*/, Value * /*args*/) {
-    return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
-}
-
 void VM::resetStack() {
     stackTop = stack;
     frameCount = 0;
@@ -59,13 +55,10 @@ template <typename... T> void VM::runtimeError(const char *format, const T &...m
     resetStack();
 }
 
-void VM::defineNative(const std::string &name, NativeFn function) {
-    push(OBJ_VAL(newString(name)));
-    push(OBJ_VAL(newNative(function)));
-    globals.set(AS_STRING(stack[0]), stack[1]);
-    pop();
-    pop();
-}
+// Not necessarily fast with optimised code
+// #define push(value)    (*stackTop = (value), stackTop++)
+// #define pop()          (stackTop--, *stackTop)
+// #define peek(distance) (stackTop[-1 - (distance)])
 
 void VM::init() {
     resetStack();
@@ -73,7 +66,7 @@ void VM::init() {
     initString = newString("init");
 
     // these are defined before the compiler starts
-    defineNative("clock", clockNative);
+    def_stdlib();
 }
 
 void VM::free() {
@@ -279,7 +272,7 @@ InterpretResult VM::run() {
                 std::cout << "          ";
                 for (Value *slot = stack; slot < stackTop; slot++) {
                     std::cout << "[ ";
-                    printValue(*slot);
+                    printValue(std::cout, *slot);
                     std::cout << " ]";
                 }
                 std::cout << "\n";
@@ -467,7 +460,7 @@ InterpretResult VM::run() {
             push(NUMBER_VAL(-AS_NUMBER(pop())));
             break;
         case OpCode::PRINT: {
-            printValue(pop());
+            printValue(std::cout, pop());
             std::cout << "\n";
             break;
         }

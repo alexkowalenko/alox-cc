@@ -48,7 +48,7 @@ void GC::markObject(Obj *object) {
 
     if constexpr (DEBUG_LOG_GC) {
         fmt::print("{:#0d} mark ", reinterpret_cast<uint64_t>(object));
-        printValue(OBJ_VAL(object));
+        printValue(std::cout, OBJ_VAL(object));
         std::cout << "\n";
     }
 
@@ -76,7 +76,7 @@ void GC::markValue(Value value) {
 void GC::blackenObject(Obj *object) {
     if constexpr (DEBUG_LOG_GC) {
         fmt::print("{:#0d} blacken ", reinterpret_cast<uint64_t>(object));
-        printValue(OBJ_VAL(object));
+        printValue(std::cout, OBJ_VAL(object));
         std::cout << "\n";
     }
 

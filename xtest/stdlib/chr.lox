@@ -1,0 +1,13 @@
+var x = "f";
+print x; // expect: f
+
+var x1 = chr(102);
+print x1 == x; // expect: true
+
+x = "3";
+print ord(x); // expect: 51
+print x == chr(ord(x)); // expect: true
+
+x = 64;
+print chr(x); // expect: @
+print x == ord(chr(x)); // expect: true

@@ -84,39 +84,39 @@ ObjUpvalue *newUpvalue(Value *slot) {
     return upvalue;
 }
 
-static void printFunction(ObjFunction *function) {
+static void printFunction(std::ostream &os, ObjFunction *function) {
     if (function->name == nullptr) {
-        std::cout << "<script>";
+        os << "<script>";
         return;
     }
-    fmt::print("<fn {}>", function->name->str);
+    os << fmt::format("<fn {}>", function->name->str);
 }
 
-void printObject(Value value) {
+void printObject(std::ostream &os, Value value) {
     switch (OBJ_TYPE(value)) {
     case ObjType::BOUND_METHOD:
-        printFunction(AS_BOUND_METHOD(value)->method->function);
+        printFunction(os, AS_BOUND_METHOD(value)->method->function);
         break;
     case ObjType::CLASS:
         fmt::print("{}", AS_CLASS(value)->name->str);
         break;
     case ObjType::CLOSURE:
-        printFunction(AS_CLOSURE(value)->function);
+        printFunction(os, AS_CLOSURE(value)->function);
         break;
     case ObjType::FUNCTION:
-        printFunction(AS_FUNCTION(value));
+        printFunction(os, AS_FUNCTION(value));
         break;
     case ObjType::INSTANCE:
-        fmt::print("{} instance", AS_INSTANCE(value)->klass->name->str);
+        os << fmt::format("{} instance", AS_INSTANCE(value)->klass->name->str);
         break;
     case ObjType::NATIVE:
-        std::cout << "<native fn>";
+        os << "<native fn>";
         break;
     case ObjType::STRING:
-        fmt::print("{}", AS_CSTRING(value));
+        os << fmt::format("{}", AS_CSTRING(value));
         break;
     case ObjType::UPVALUE:
-        std::cout << "upvalue";
+        os << "upvalue";
         break;
     }
 }

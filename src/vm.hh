@@ -38,7 +38,8 @@ class VM {
     void markRoots();
 
   private:
-    void           resetStack();
+    void resetStack();
+
     constexpr void push(const Value value) noexcept {
         *stackTop = value;
         stackTop++;
@@ -53,7 +54,9 @@ class VM {
 
     template <typename... T> void runtimeError(const char *format, const T &...msg);
 
+    void        def_stdlib();
     void        defineNative(const std::string &name, NativeFn function);
+    
     bool        call(ObjClosure *closure, int argCount);
     bool        callValue(Value callee, int argCount);
     bool        invokeFromClass(ObjClass *klass, ObjString *name, int argCount);

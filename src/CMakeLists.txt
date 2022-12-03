@@ -15,6 +15,7 @@ add_library(lox STATIC
    value.cc
    val_array.cc
    vm.cc
+   vm_stdlib.cc
    alox.cc
    )
 

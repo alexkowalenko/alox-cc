@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <ostream>
 #include <stddef.h>
 #include <string.h>
 
@@ -149,4 +150,4 @@ template <typename T> inline Value OBJ_VAL(T *object) {
 #endif
 
 bool valuesEqual(Value a, Value b);
-void printValue(Value value);
+void printValue(std::ostream &os, Value value);

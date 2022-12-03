@@ -7,9 +7,11 @@ Additions:
 * [x] `break`, `continue`.
 * [x] Unicode strings and identifiers.
 * [ ] ++, --.
-* [ ] I/O read, write, stderr. `getc()`, `chr(ch)`, `exit(status)`, `print_error(message)`.
+* [x] `getc()`, `chr(ch)`, `exit(status)`, `print_error(message)`.
+* [ ] I/O read, write, stderr.
 * [ ] `lambda` functions. lambda () { }
-* [ ] Lists [1,2,3], Maps, Arrays, Sets. Object initialisers {s: value....};
+* [ ] Lists [1,2,3], Maps, Arrays, Sets. 
+* [ ] Object class, literal initialisers {s: value....};
 * [ ] Conditional expressions: `print x == 5 ? "5" : nil;`
 * [ ] file inclusion `include`.
 * [ ] module system `import`, `export`. Namespaces.
@@ -29,11 +31,11 @@ Book modifications:
 
 * [ ] More efficient line number storage (Chapter 14, Q.1)
 * [ ] Conditional expressions: `print x == 5 ? "5" : nil;` (Chapter 17 Q.3)
-* [ ] Generalised Table<Value, Value> (Chapter 20 Q.1). Change to STL.
+* [ ] Generalised Table<Value, Value> (Chapter 20 Q.1).
 * [ ] `case` statement (Chapter 23 Q.1)
 * [x] `continue`, `break`. Check for popping locals off the stack. (Chapter 23 Q.2)
 * [x] Speed up with ip in VM. (Chapter 24 Q.1)
 * [ ] Validate native function calls. (Chapter 24 Q.2)
 * [ ] Optimise Obj fields in all objects (Chapter 26 Q.1)
 * [ ] Check for fields in objects (Chapter 27 Q.1)
-* [ ] Set init method into the class (Chapter 28 Q.1)
+* [ ] Set init method into the class object (Chapter 28 Q.1)

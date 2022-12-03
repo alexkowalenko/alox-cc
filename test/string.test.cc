@@ -16,7 +16,7 @@ TEST(Table, basic) { // NOLINT
     Value b = BOOL_VAL(true);
 
     auto key1 = newString("cat");
-    printObject(OBJ_VAL(key1));
+    printObject(std::cout, OBJ_VAL(key1));
     std::cout << "\n";
     fmt::print("hash: {}\n", key1->hash);
 
@@ -27,7 +27,7 @@ TEST(Table, basic) { // NOLINT
     table.set(key2, b);
 
     auto key3 = newString("cat");
-    printObject(OBJ_VAL(key3));
+    printObject(std::cout, OBJ_VAL(key3));
     std::cout << "\n";
     fmt::print("hash: {}\n", key3->hash);
 

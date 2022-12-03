@@ -23,8 +23,9 @@ inline constexpr auto debug_compile{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
     if constexpr (debug_compile) {
-        std::cout << "compiler: " << fmt::format(fmt::runtime(format), msg...) << '\n';
-    }
+         std::cout << "compiler: " << fmt::format(fmt::runtime(format), msg...) << '\n';
+    } 
+
 }
 
 constexpr auto MAX_ARGS = UINT8_MAX;
