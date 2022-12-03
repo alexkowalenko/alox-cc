@@ -39,7 +39,7 @@ class Compiler {
     Compiler(const Options &opt) : options(opt){};
     ~Compiler() = default;
 
-    ObjFunction *compile(const std::string &source);
+    ObjFunction *compile(Parser *source);
     void         markCompilerRoots();
 
     void and_(bool /*canAssign*/);
@@ -122,8 +122,7 @@ class Compiler {
     void synchronize();
 
     const Options &options;
-
-    std::unique_ptr<Parser> parser;
+    Parser        *parser{nullptr};
 
     Context      *current{nullptr};
     ClassContext *currentClass{nullptr};

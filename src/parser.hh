@@ -10,7 +10,7 @@
 
 class Parser {
   public:
-    Parser(std::unique_ptr<Scanner> &s) : scanner(s){};
+    Parser(Scanner &s) : scanner(s){};
 
     void errorAt(Token *token, std::string_view message);
 
@@ -33,5 +33,5 @@ class Parser {
     bool hadError{false};
 
   private:
-    std::unique_ptr<Scanner> &scanner;
+    Scanner &scanner;
 };

@@ -37,7 +37,7 @@ void Alox::repl() {
         if (result == nullptr) {
             break;
         }
-        vm.interpret(result);
+        runString(result);
         linenoiseHistoryAdd(result);
         free(result);
     }
@@ -60,7 +60,7 @@ int Alox::runFile(const std::string_view &path) {
     InterpretResult result{INTERPRET_OK};
     try {
         auto source = readFile(path);
-        result = vm.interpret(source);
+        result = runString(source);
     } catch (std::exception &e) {
         std::cerr << e.what() << '\n';
         return 74;
@@ -75,6 +75,17 @@ int Alox::runFile(const std::string_view &path) {
     return 0;
 };
 
-void Alox::runString(const std::string &s) {
-    InterpretResult result = vm.interpret(s);
+InterpretResult Alox::runString(const std::string &source) {
+
+    auto scanner = Scanner(source);
+    auto parser = Parser(scanner);
+
+    Compiler compiler(options);
+    gc.set_compiler(&compiler);
+    ObjFunction *function = compiler.compile(&parser);
+    if (function == nullptr) {
+        return INTERPRET_COMPILE_ERROR;
+    }
+    InterpretResult result = vm.run(function);
+    return result;
 }

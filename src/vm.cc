@@ -89,7 +89,7 @@ void VM::markRoots() {
     }
 
     this->globals.mark();
-    this->compiler->markCompilerRoots();
+   
     gc.markObject((Obj *)this->initString);
 }
 
@@ -580,12 +580,7 @@ InterpretResult VM::run() {
 #undef BINARY_OP
 }
 
-InterpretResult VM::interpret(const std::string &source) {
-    compiler = std::make_unique<Compiler>(options);
-    ObjFunction *function = compiler->compile(source);
-    if (function == nullptr) {
-        return INTERPRET_COMPILE_ERROR;
-    }
+InterpretResult VM::run(ObjFunction *function) {
 
     push(OBJ_VAL(function));
     ObjClosure *closure = newClosure(function);

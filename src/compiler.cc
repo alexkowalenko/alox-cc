@@ -23,9 +23,8 @@ inline constexpr auto debug_compile{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
     if constexpr (debug_compile) {
-         std::cout << "compiler: " << fmt::format(fmt::runtime(format), msg...) << '\n';
-    } 
-
+        std::cout << "compiler: " << fmt::format(fmt::runtime(format), msg...) << '\n';
+    }
 }
 
 constexpr auto MAX_ARGS = UINT8_MAX;
@@ -954,9 +953,8 @@ void Compiler::statement() {
     }
 }
 
-ObjFunction *Compiler::compile(const std::string &source) {
-    auto scanner = std::make_unique<Scanner>(source);
-    parser = std::make_unique<Parser>(scanner);
+ObjFunction *Compiler::compile(Parser *p) {
+    parser = p;
     Context compiler{};
     initCompiler(&compiler, TYPE_SCRIPT);
 

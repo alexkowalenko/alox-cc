@@ -17,8 +17,9 @@ class Alox {
     ~Alox();
 
     int  runFile(const std::string_view &path);
-    void runString(const std::string &s);
     void repl();
+
+    InterpretResult runString(const std::string &s);
 
   private:
     static std::string readFile(const std::string_view &path);

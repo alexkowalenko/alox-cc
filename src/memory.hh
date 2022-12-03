@@ -16,6 +16,7 @@ class GC {
     ~GC() = default;
 
     void init(VM *vm);
+    void set_compiler(Compiler *c) { compiler = c; }
 
     // New allocators
     template <typename T> T             *allocateObject(ObjType type);
@@ -46,7 +47,8 @@ class GC {
     void traceReferences();
     void sweep();
 
-    VM *vm{nullptr};
+    VM       *vm{nullptr};
+    Compiler *compiler{nullptr};
 
     size_t bytesAllocated{0};
     size_t nextGC{Base_GC_Size};

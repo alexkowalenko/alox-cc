@@ -33,7 +33,7 @@ Value clockNative(int /*argCount*/, Value * /*args*/) {
 
 Value getc(int /*argCount*/, Value * /*args*/) {
     auto ch = std::getc(stdin);
-    return numToValue(ch);
+    return NUMBER_VAL(ch);
 }
 
 Value chr(int /*argCount*/, Value *value) {
@@ -47,9 +47,9 @@ Value chr(int /*argCount*/, Value *value) {
 }
 
 Value ord(int /*argCount*/, Value *value) {
-    auto s = AS_STRING(*value);
+    auto *s = AS_STRING(*value);
     debug("ord: '{}'", s->str);
-    return numToValue(s->str[0]);
+    return NUMBER_VAL(s->str[0]);
 }
 
 Value print_error(int /*argCount*/, Value *value) {

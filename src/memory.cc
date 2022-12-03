@@ -173,6 +173,9 @@ void GC::freeObject(Obj *object) {
 
 // dependent on vm
 void GC::markRoots() {
+    if (compiler) {
+        compiler->markCompilerRoots();
+    }
     vm->markRoots();
 }
 

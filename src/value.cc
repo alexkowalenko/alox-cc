@@ -24,16 +24,16 @@ void printValue(std::ostream &os, Value value) {
 #else
     switch (value.type) {
     case VAL_BOOL:
-        std::cout << (AS_BOOL(value) ? "true" : "false");
+        os << (AS_BOOL(value) ? "true" : "false");
         break;
     case VAL_NIL:
-        std::cout << "nil";
+        os << "nil";
         break;
     case VAL_NUMBER:
-        fmt::print("{:g}", AS_NUMBER(value));
+        os << fmt::format("{:g}", AS_NUMBER(value));
         break;
     case VAL_OBJ:
-        printObject(value);
+        printObject(os, value);
         break;
     }
 #endif

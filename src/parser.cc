@@ -32,7 +32,7 @@ void Parser::advance() {
     previous = current;
 
     for (;;) {
-        current = scanner->scanToken();
+        current = scanner.scanToken();
         if (current.type != TokenType::ERROR) {
             break;
         }

@@ -33,7 +33,7 @@ class VM {
     void init();
     void free();
 
-    InterpretResult interpret(const std::string &source);
+    InterpretResult run(ObjFunction *function);
 
     void markRoots();
 
@@ -54,9 +54,9 @@ class VM {
 
     template <typename... T> void runtimeError(const char *format, const T &...msg);
 
-    void        def_stdlib();
-    void        defineNative(const std::string &name, NativeFn function);
-    
+    void def_stdlib();
+    void defineNative(const std::string &name, NativeFn function);
+
     bool        call(ObjClosure *closure, int argCount);
     bool        callValue(Value callee, int argCount);
     bool        invokeFromClass(ObjClass *klass, ObjString *name, int argCount);
@@ -86,5 +86,5 @@ class VM {
     ObjString  *initString{nullptr}; // name of LOX class constructor method.
     ObjUpvalue *openUpvalues;
 
-    std::unique_ptr<Compiler> compiler;
+    // std::unique_ptr<Compiler> compiler;
 };
