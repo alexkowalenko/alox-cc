@@ -84,6 +84,9 @@ InterpretResult Alox::runString(const std::string &source) {
     auto parser = Parser(scanner);
 
     auto ast = parser.parse();
+    if (parser.hadError) {
+        return INTERPRET_PARSE_ERROR;
+    }
 
     Compiler compiler(options);
     gc.set_compiler(&compiler);

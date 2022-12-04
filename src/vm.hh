@@ -22,7 +22,12 @@ struct CallFrame {
     Value      *slots;
 };
 
-enum InterpretResult { INTERPRET_OK, INTERPRET_COMPILE_ERROR, INTERPRET_RUNTIME_ERROR };
+enum InterpretResult {
+    INTERPRET_OK,
+    INTERPRET_PARSE_ERROR,
+    INTERPRET_COMPILE_ERROR,
+    INTERPRET_RUNTIME_ERROR
+};
 
 class VM {
   public:

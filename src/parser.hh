@@ -15,14 +15,18 @@ class Parser {
     Parser(Scanner &s) : scanner(s){};
 
     Declaration *parse();
-    Declaration *statement();
+    void         declaration(Declaration *);
+    Statement   *statement();
+    Expr        *expr();
+    Primary     *primary();
+    Number      *number();
 
-    void errorAt(Token *token, std::string_view message);
-
+    void           errorAt(Token *token, std::string_view message);
     constexpr void error(std::string_view message) { errorAt(&previous, message); }
     constexpr void errorAtCurrent(std::string_view message) {
         errorAt(&current, message);
     }
+    void synchronize();
 
     void                         advance();
     void                         consume(TokenType type, std::string_view message);
