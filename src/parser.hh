@@ -17,6 +17,8 @@ class Parser {
     Declaration *parse();
     void         declaration(Declaration *);
     Statement   *statement();
+    Print       *printStatement();
+    Expr        *exprStatement();
     Expr        *expr();
     Primary     *primary();
     Number      *number();

@@ -50,7 +50,7 @@ void Parser::declaration(Declaration *ast) {
 Statement *Parser::statement() {
     auto *ast = newStatement();
     if (match(TokenType::PRINT)) {
-        // printStatement();
+        ast->stat = OBJ_AST(printStatement());
     } else if (match(TokenType::FOR)) {
         // forStatement();
     } else if (match(TokenType::IF)) {
@@ -68,15 +68,27 @@ Statement *Parser::statement() {
         // block();
         // endScope();
     } else {
-        ast->stat = OBJ_AST(expr());
+        ast->stat = OBJ_AST(exprStatement());
     }
+    return ast;
+}
+
+Print *Parser::printStatement() {
+    auto *ast = newPrint();
+    ast->expr = expr();
+    consume(TokenType::SEMICOLON, "Expect ';' after value.");
+    return ast;
+}
+
+Expr *Parser::exprStatement() {
+    auto *ast = expr();
+    consume(TokenType::SEMICOLON, "Expect ';' after expression.");
     return ast;
 }
 
 Expr *Parser::expr() {
     auto *ast = newExpr();
     ast->expr = primary();
-    consume(TokenType::SEMICOLON, "Expect ';' after expression.");
     return ast;
 }
 

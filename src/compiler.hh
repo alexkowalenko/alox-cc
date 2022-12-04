@@ -47,6 +47,8 @@ class Compiler {
     // Compile the AST
     void declaration(Declaration *ast);
     void statement(Statement *ast);
+    void printStatement(Print *ast);
+    void exprStatement(Expr *ast);
     void expr(Expr *ast);
     void primary(Primary *ast);
     void number(Number *ast);
@@ -122,7 +124,6 @@ class Compiler {
     void varDeclaration();
     void forStatement();
     void ifStatement();
-    void printStatement();
     void returnStatement();
     void whileStatement();
     void breakStatement(TokenType t);

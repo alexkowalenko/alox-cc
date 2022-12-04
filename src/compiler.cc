@@ -13,6 +13,8 @@
 #include <fmt/core.h>
 
 #include "ast/expr.hh"
+#include "ast/print.hh"
+#include "ast_base.hh"
 #include "chunk.hh"
 #include "common.hh"
 #include "compiler.hh"
@@ -287,33 +289,42 @@ void Compiler::declaration(Declaration *ast) {
 
 void Compiler::statement(Statement *ast) {
     debug("statement");
-    // if (parser->match(TokenType::PRINT)) {
-    //     printStatement();
-    // } else if (parser->match(TokenType::FOR)) {
-    //     forStatement();
-    // } else if (parser->match(TokenType::IF)) {
-    //     ifStatement();
-    // } else if (parser->match(TokenType::RETURN)) {
-    //     returnStatement();
-    // } else if (parser->match(TokenType::WHILE)) {
-    //     whileStatement();
-    // } else if (parser->match(TokenType::BREAK)) {
-    //     breakStatement(TokenType::BREAK);
-    // } else if (parser->match(TokenType::CONTINUE)) {
-    //     breakStatement(TokenType::CONTINUE);
-    // } else if (parser->match(TokenType::LEFT_BRACE)) {
-    //     beginScope();
-    //     block();
-    //     endScope();
-    // } else {
-    expr(AS_Expr(ast->stat));
-    //}
+    if (IS_Print(ast->stat)) {
+        printStatement(AS_Print(ast->stat));
+        //} else if (parser->match(TokenType::FOR)) {
+        //     forStatement();
+        // } else if (parser->match(TokenType::IF)) {
+        //     ifStatement();
+        // } else if (parser->match(TokenType::RETURN)) {
+        //     returnStatement();
+        // } else if (parser->match(TokenType::WHILE)) {
+        //     whileStatement();
+        // } else if (parser->match(TokenType::BREAK)) {
+        //     breakStatement(TokenType::BREAK);
+        // } else if (parser->match(TokenType::CONTINUE)) {
+        //     breakStatement(TokenType::CONTINUE);
+        // } else if (parser->match(TokenType::LEFT_BRACE)) {
+        //     beginScope();
+        //     block();
+        //     endScope();
+    } else {
+        expr(AS_Expr(ast->stat));
+    }
+}
+
+void Compiler::printStatement(Print *ast) {
+    expr(ast->expr);
+    emitByte(OpCode::PRINT);
+}
+
+void Compiler::exprStatement(Expr *ast) {
+    expr(ast);
+    emitByte(OpCode::POP);
 }
 
 void Compiler::expr(Expr *ast) {
     debug("expr");
     primary(ast->expr);
-    emitByte(OpCode::POP);
 }
 
 void Compiler::primary(Primary *ast) {
@@ -605,7 +616,8 @@ inline const std::map<TokenType, ParseRule> rules{
     {TokenType::IDENTIFIER,
      {std::mem_fn(&Compiler::variable), nullptr, Precedence::NONE}},
     {TokenType::STRING, {std::mem_fn(&Compiler::string), nullptr, Precedence::NONE}},
-    //{TokenType::NUMBER, {std::mem_fn(&Compiler::number), nullptr, Precedence::NONE}},
+    //{TokenType::NUMBER, {std::mem_fn(&Compiler::number), nullptr,
+    // Precedence::NONE}},
     {TokenType::AND, {nullptr, std::mem_fn(&Compiler::and_), Precedence::AND}},
     {TokenType::CLASS, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::ELSE, {nullptr, nullptr, Precedence::NONE}},
@@ -862,12 +874,6 @@ void Compiler::ifStatement() {
         statement(nullptr);
     }
     patchJump(elseJump);
-}
-
-void Compiler::printStatement() {
-    expression();
-    parser->consume(TokenType::SEMICOLON, "Expect ';' after value.");
-    emitByte(OpCode::PRINT);
 }
 
 void Compiler::returnStatement() {
