@@ -40,7 +40,6 @@ class Compiler {
     void dot(bool canAssign);
     void number(bool);
     void literal(bool /*canAssign*/);
-    void grouping(bool /*canAssign*/);
     void or_(bool /*canAssign*/);
     void string(bool /*canAssign*/);
     void super_(bool /*canAssign*/);

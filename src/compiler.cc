@@ -493,11 +493,6 @@ void Compiler::literal(bool /*canAssign*/) {
     }
 }
 
-void Compiler::grouping(bool /*canAssign*/) {
-    expr(nullptr);
-    parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
-}
-
 void Compiler::or_(bool /*canAssign*/) {
     int elseJump = emitJump(OpCode::JUMP_IF_FALSE);
     int endJump = emitJump(OpCode::JUMP);

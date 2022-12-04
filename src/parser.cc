@@ -109,9 +109,9 @@ inline auto get_precedence(TokenType t) -> Precedence {
 }
 
 inline const std::map<TokenType, ParseRule> rules{
-    // {TokenType::LEFT_PAREN,
-    //  {std::mem_fn(&Compiler::grouping), std::mem_fn(&Compiler::call),
-    //  Precedence::CALL}},
+    {TokenType::LEFT_PAREN,
+     {std::mem_fn(&Parser::grouping), nullptr, // std::mem_fn(&Compiler::call),
+      Precedence::CALL}},
     {TokenType::RIGHT_PAREN, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::LEFT_BRACE, {nullptr, nullptr, Precedence::NONE}}, // [big]
     {TokenType::RIGHT_BRACE, {nullptr, nullptr, Precedence::NONE}},
@@ -215,6 +215,12 @@ Expr *Parser::binary(Expr *left, bool /*canAssign*/) {
     binary->right = parsePrecedence((Precedence)(int(precedence) + 1));
     auto *e = newExpr();
     e->expr = OBJ_AST(binary);
+    return e;
+}
+
+Expr *Parser::grouping(bool /*canAssign*/) {
+    auto *e = expr();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
     return e;
 }
 

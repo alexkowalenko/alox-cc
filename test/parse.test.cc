@@ -68,6 +68,17 @@ TEST(Parser, binary) { // NOLINT
     do_parse_tests(tests);
 }
 
+TEST(Parser, grouping) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"2 * (3 + 4);", "(2 * (3 + 4));", ""},
+        {"2 + 3 * 4;", "(2 + (3 * 4));", ""},
+        {"(2 + 3) * 4 / 5;", "(((2 + 3) * 4) / 5);", ""},
+
+        // Error
+    };
+    do_parse_tests(tests);
+}
+
 TEST(Parser, print) { // NOLINT
     std::vector<ParseTests> tests = {
         {"print 0;", "print 0;", ""},
