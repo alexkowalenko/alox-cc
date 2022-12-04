@@ -4,13 +4,18 @@
 
 #pragma once
 
-#include "scanner.hh"
 #include <memory>
 #include <string_view>
+
+#include "scanner.hh"
+#include <ast/declaration.hh>
 
 class Parser {
   public:
     Parser(Scanner &s) : scanner(s){};
+
+    Declaration *parse();
+    Declaration *statement();
 
     void errorAt(Token *token, std::string_view message);
 

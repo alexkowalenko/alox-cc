@@ -6,9 +6,16 @@
 
 #include <fmt/core.h>
 
+#include "ast/declaration.hh"
 #include "parser.hh"
 
-inline constexpr auto buf_len = 255;
+Declaration *Parser::parse() {
+    return statement();
+}
+
+Declaration *Parser::statement() {
+    return newDeclaration();
+}
 
 void Parser::errorAt(Token *token, std::string_view message) {
     if (panicMode) {

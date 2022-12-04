@@ -6,7 +6,6 @@
 
 #include <memory>
 
-#include "compiler.hh"
 #include "object.hh"
 #include "options.hh"
 #include "table.hh"

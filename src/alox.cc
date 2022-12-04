@@ -13,7 +13,10 @@
 #include <linenoise.h>
 
 #include "alox.hh"
+#include "compiler.hh"
 #include "memory.hh"
+#include "parser.hh"
+#include "scanner.hh"
 #include "vm.hh"
 
 constexpr auto history_file = "./alox-cc";
@@ -80,9 +83,11 @@ InterpretResult Alox::runString(const std::string &source) {
     auto scanner = Scanner(source);
     auto parser = Parser(scanner);
 
+    auto ast = parser.parse();
+
     Compiler compiler(options);
     gc.set_compiler(&compiler);
-    ObjFunction *function = compiler.compile(&parser);
+    ObjFunction *function = compiler.compile(ast, &parser);
     if (function == nullptr) {
         return INTERPRET_COMPILE_ERROR;
     }

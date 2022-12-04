@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "ast/declaration.hh"
 #include "chunk.hh"
 #include "context.hh"
 #include "object.hh"
@@ -39,8 +40,12 @@ class Compiler {
     Compiler(const Options &opt) : options(opt){};
     ~Compiler() = default;
 
-    ObjFunction *compile(Parser *source);
+    ObjFunction *compile(Declaration *ast, Parser *source);
     void         markCompilerRoots();
+
+    // Compile the AST
+    void declaration(Declaration *ast);
+    void statement(Declaration *ast);
 
     void and_(bool /*canAssign*/);
     void binary(bool /*canAssign*/);
@@ -83,9 +88,8 @@ class Compiler {
     void endScope();
     void adjust_locals(int depth);
 
-    void                    expression();
-    void                    statement();
-    void                    declaration();
+    void expression();
+
     static ParseRule const *getRule(TokenType type);
     void                    parsePrecedence(Precedence precedence);
 
