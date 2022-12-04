@@ -324,82 +324,22 @@ void Compiler::exprStatement(Expr *ast) {
 
 void Compiler::expr(Expr *ast) {
     debug("expr");
-    primary(ast->expr);
-}
-
-void Compiler::primary(Primary *ast) {
-    number(ast->value);
-}
-
-void Compiler::number(Number *ast) {
-    if (ast->value == 0) {
-        emitByte(OpCode::ZERO);
-        return;
+    if (IS_Expr(ast->expr)) {
+        expr(AS_Expr(ast->expr));
+    } else if (IS_Unary(ast->expr)) {
+        unary(AS_Unary(ast->expr));
+    } else if (IS_Binary(ast->expr)) {
+        binary(AS_Binary(ast->expr));
+    } else if (IS_Number(ast->expr)) {
+        number(AS_Number(ast->expr));
     }
-    if (ast->value == 1) {
-        emitByte(OpCode::ONE);
-        return;
-    }
-    emitConstant(NUMBER_VAL(ast->value));
 }
 
-const_index_t Compiler::parseVariable(const char *errorMessage) {
-    parser->consume(TokenType::IDENTIFIER, errorMessage);
+void Compiler::binary(Binary *ast) {
+    expr(ast->left);
+    expr(ast->right);
 
-    declareVariable();
-    if (current->scopeDepth > 0) {
-        return 0;
-    }
-
-    return identifierConstant(&parser->previous);
-}
-
-void Compiler::markInitialized() {
-    if (current->scopeDepth == 0) {
-        return;
-    }
-    current->locals[current->localCount - 1].depth = current->scopeDepth;
-}
-
-void Compiler::defineVariable(const_index_t global) {
-    if (current->scopeDepth > 0) {
-        markInitialized();
-        return;
-    }
-
-    emitByteConst(OpCode::DEFINE_GLOBAL, global);
-}
-
-uint8_t Compiler::argumentList() {
-    uint8_t argCount = 0;
-    if (!parser->check(TokenType::RIGHT_PAREN)) {
-        do {
-            expression();
-            if (argCount == MAX_ARGS) {
-                parser->error("Can't have more than 255 arguments.");
-            }
-            argCount++;
-        } while (parser->match(TokenType::COMMA));
-    }
-    parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after arguments.");
-    return argCount;
-}
-
-void Compiler::and_(bool /*canAssign*/) {
-    const int endJump = emitJump(OpCode::JUMP_IF_FALSE);
-
-    emitByte(OpCode::POP);
-    parsePrecedence(Precedence::AND);
-
-    patchJump(endJump);
-}
-
-void Compiler::binary(bool /*canAssign*/) {
-    const TokenType operatorType = parser->previous.type;
-    const auto     *rule = getRule(operatorType);
-    parsePrecedence((Precedence)(int(rule->precedence) + 1));
-
-    switch (operatorType) {
+    switch (ast->token) {
     case TokenType::BANG_EQUAL:
         emitByte(OpCode::NOT_EQUAL);
         break;
@@ -435,6 +375,87 @@ void Compiler::binary(bool /*canAssign*/) {
     }
 }
 
+void Compiler::unary(Unary *ast) {
+    expr(ast->expr);
+
+    // Emit the operator instruction.
+    switch (ast->token) {
+    case TokenType::BANG:
+        emitByte(OpCode::NOT);
+        break;
+    case TokenType::MINUS:
+        emitByte(OpCode::NEGATE);
+        break;
+    default:
+        return; // Unreachable.
+    }
+}
+
+void Compiler::number(Number *ast) {
+    if (ast->value == 0) {
+        emitByte(OpCode::ZERO);
+        return;
+    }
+    if (ast->value == 1) {
+        emitByte(OpCode::ONE);
+        return;
+    }
+    emitConstant(NUMBER_VAL(ast->value));
+}
+
+/////////////////////////////////////////////////////////////////////////
+
+const_index_t Compiler::parseVariable(const char *errorMessage) {
+    parser->consume(TokenType::IDENTIFIER, errorMessage);
+
+    declareVariable();
+    if (current->scopeDepth > 0) {
+        return 0;
+    }
+
+    return identifierConstant(&parser->previous);
+}
+
+void Compiler::markInitialized() {
+    if (current->scopeDepth == 0) {
+        return;
+    }
+    current->locals[current->localCount - 1].depth = current->scopeDepth;
+}
+
+void Compiler::defineVariable(const_index_t global) {
+    if (current->scopeDepth > 0) {
+        markInitialized();
+        return;
+    }
+
+    emitByteConst(OpCode::DEFINE_GLOBAL, global);
+}
+
+uint8_t Compiler::argumentList() {
+    uint8_t argCount = 0;
+    if (!parser->check(TokenType::RIGHT_PAREN)) {
+        do {
+            expr(nullptr);
+            if (argCount == MAX_ARGS) {
+                parser->error("Can't have more than 255 arguments.");
+            }
+            argCount++;
+        } while (parser->match(TokenType::COMMA));
+    }
+    parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after arguments.");
+    return argCount;
+}
+
+void Compiler::and_(bool /*canAssign*/) {
+    const int endJump = emitJump(OpCode::JUMP_IF_FALSE);
+
+    emitByte(OpCode::POP);
+    // parsePrecedence(Precedence::AND);
+
+    patchJump(endJump);
+}
+
 void Compiler::call(bool /*canAssign*/) {
     const uint8_t argCount = argumentList();
     emitBytes(OpCode::CALL, argCount);
@@ -445,7 +466,7 @@ void Compiler::dot(bool canAssign) {
     auto name = identifierConstant(&parser->previous);
 
     if (canAssign && parser->match(TokenType::EQUAL)) {
-        expression();
+        expr(nullptr);
         emitByteConst(OpCode::SET_PROPERTY, name);
     } else if (parser->match(TokenType::LEFT_PAREN)) {
         const uint8_t argCount = argumentList();
@@ -473,7 +494,7 @@ void Compiler::literal(bool /*canAssign*/) {
 }
 
 void Compiler::grouping(bool /*canAssign*/) {
-    expression();
+    expr(nullptr);
     parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
 }
 
@@ -484,7 +505,7 @@ void Compiler::or_(bool /*canAssign*/) {
     patchJump(elseJump);
     emitByte(OpCode::POP);
 
-    parsePrecedence(Precedence::OR);
+    // parsePrecedence(Precedence::OR);
     patchJump(endJump);
 }
 
@@ -510,7 +531,7 @@ void Compiler::namedVariable(Token name, bool canAssign) {
     }
 
     if (canAssign && parser->match(TokenType::EQUAL)) {
-        expression();
+        expr(nullptr);
         if (is_16) {
             emitByteConst(setOp, (const_index_t)arg);
         } else {
@@ -565,107 +586,6 @@ void Compiler::this_(bool /*canAssign*/) {
     }
 
     variable(false);
-} // [this]
-
-void Compiler::unary(bool /*canAssign*/) {
-    const TokenType operatorType = parser->previous.type;
-
-    // Compile the operand.
-    parsePrecedence(Precedence::UNARY);
-
-    // Emit the operator instruction.
-    switch (operatorType) {
-    case TokenType::BANG:
-        emitByte(OpCode::NOT);
-        break;
-    case TokenType::MINUS:
-        emitByte(OpCode::NEGATE);
-        break;
-    default:
-        return; // Unreachable.
-    }
-}
-
-inline const std::map<TokenType, ParseRule> rules{
-    {TokenType::LEFT_PAREN,
-     {std::mem_fn(&Compiler::grouping), std::mem_fn(&Compiler::call), Precedence::CALL}},
-    {TokenType::RIGHT_PAREN, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::LEFT_BRACE, {nullptr, nullptr, Precedence::NONE}}, // [big]
-    {TokenType::RIGHT_BRACE, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::COMMA, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::DOT, {nullptr, std::mem_fn(&Compiler::dot), Precedence::CALL}},
-    {TokenType::MINUS,
-     {std::mem_fn(&Compiler::unary), std::mem_fn(&Compiler::binary), Precedence::TERM}},
-    {TokenType::PLUS, {nullptr, std::mem_fn(&Compiler::binary), Precedence::TERM}},
-    {TokenType::SEMICOLON, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::SLASH, {nullptr, std::mem_fn(&Compiler::binary), Precedence::FACTOR}},
-    {TokenType::ASTÉRIX, {nullptr, std::mem_fn(&Compiler::binary), Precedence::FACTOR}},
-    {TokenType::BANG, {std::mem_fn(&Compiler::unary), nullptr, Precedence::NONE}},
-    {TokenType::BANG_EQUAL,
-     {nullptr, std::mem_fn(&Compiler::binary), Precedence::EQUALITY}},
-    {TokenType::EQUAL, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::EQUAL_EQUAL,
-     {nullptr, std::mem_fn(&Compiler::binary), Precedence::EQUALITY}},
-    {TokenType::GREATER,
-     {nullptr, std::mem_fn(&Compiler::binary), Precedence::COMPARISON}},
-    {TokenType::GREATER_EQUAL,
-     {nullptr, std::mem_fn(&Compiler::binary), Precedence::COMPARISON}},
-    {TokenType::LESS, {nullptr, std::mem_fn(&Compiler::binary), Precedence::COMPARISON}},
-    {TokenType::LESS_EQUAL,
-     {nullptr, std::mem_fn(&Compiler::binary), Precedence::COMPARISON}},
-    {TokenType::IDENTIFIER,
-     {std::mem_fn(&Compiler::variable), nullptr, Precedence::NONE}},
-    {TokenType::STRING, {std::mem_fn(&Compiler::string), nullptr, Precedence::NONE}},
-    //{TokenType::NUMBER, {std::mem_fn(&Compiler::number), nullptr,
-    // Precedence::NONE}},
-    {TokenType::AND, {nullptr, std::mem_fn(&Compiler::and_), Precedence::AND}},
-    {TokenType::CLASS, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::ELSE, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::FALSE, {std::mem_fn(&Compiler::literal), nullptr, Precedence::NONE}},
-    {TokenType::FOR, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::FUN, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::IF, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::NIL, {std::mem_fn(&Compiler::literal), nullptr, Precedence::NONE}},
-    {TokenType::OR, {nullptr, std::mem_fn(&Compiler::or_), Precedence::OR}},
-    {TokenType::PRINT, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::RETURN, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::SUPER, {std::mem_fn(&Compiler::super_), nullptr, Precedence::NONE}},
-    {TokenType::THIS, {std::mem_fn(&Compiler::this_), nullptr, Precedence::NONE}},
-    {TokenType::TRUE, {std::mem_fn(&Compiler::literal), nullptr, Precedence::NONE}},
-    {TokenType::VAR, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::WHILE, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::ERROR, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::EOFS, {nullptr, nullptr, Precedence::NONE}},
-};
-
-void Compiler::parsePrecedence(Precedence precedence) {
-    parser->advance();
-    auto prefixRule = getRule(parser->previous.type)->prefix;
-    if (prefixRule == nullptr) {
-        parser->error("Expect expression.");
-        return;
-    }
-
-    bool canAssign = precedence <= Precedence::ASSIGNMENT;
-    prefixRule(this, canAssign);
-
-    while (precedence <= getRule(parser->current.type)->precedence) {
-        parser->advance();
-        const ParseFn infixRule = getRule(parser->previous.type)->infix;
-        infixRule(this, canAssign);
-    }
-
-    if (canAssign && parser->match(TokenType::EQUAL)) {
-        parser->error("Invalid assignment target.");
-    }
-}
-
-ParseRule const *Compiler::getRule(TokenType type) {
-    return &rules.find(type)->second;
-}
-
-void Compiler::expression() {
-    parsePrecedence(Precedence::ASSIGNMENT);
 }
 
 void Compiler::block() {
@@ -777,7 +697,7 @@ void Compiler::varDeclaration() {
     const uint8_t global = parseVariable("Expect variable name.");
 
     if (parser->match(TokenType::EQUAL)) {
-        expression();
+        expr(nullptr);
     } else {
         emitByte(OpCode::NIL);
     }
@@ -812,7 +732,7 @@ void Compiler::forStatement() {
     debug("forStatement condition: {}", currentChunk()->get_count());
     int exitJump = -1;
     if (!parser->match(TokenType::SEMICOLON)) {
-        expression();
+        expr(nullptr);
         parser->consume(TokenType::SEMICOLON, "Expect ';' after loop condition.");
 
         // Jump out of the loop if the condition is false.
@@ -826,7 +746,7 @@ void Compiler::forStatement() {
         const auto bodyJump = emitJump(OpCode::JUMP);
         const auto incrementStart = currentChunk()->get_count();
         current->last_continue = currentChunk()->get_count();
-        expression();
+        expr(nullptr);
         emitByte(OpCode::POP);
         parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.");
 
@@ -857,7 +777,7 @@ void Compiler::forStatement() {
 
 void Compiler::ifStatement() {
     parser->consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.");
-    expression();
+    expr(nullptr);
     parser->consume(TokenType::RIGHT_PAREN,
                     "Expect ')' after condition."); // [paren]
 
@@ -888,7 +808,7 @@ void Compiler::returnStatement() {
             parser->error("Can't return a value from an initializer.");
         }
 
-        expression();
+        expr(nullptr);
         parser->consume(TokenType::SEMICOLON, "Expect ';' after return value.");
         emitByte(OpCode::RETURN);
     }
@@ -903,7 +823,7 @@ void Compiler::whileStatement() {
     current->last_continue = loopStart;
 
     parser->consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.");
-    expression();
+    expr(nullptr);
     parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
 
     const auto exitJump = emitJump(OpCode::JUMP_IF_FALSE);

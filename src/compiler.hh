@@ -4,7 +4,9 @@
 
 #pragma once
 
+#include "ast/binary.hh"
 #include "ast/includes.hh"
+#include "ast/unary.hh"
 #include "ast_base.hh"
 #include "chunk.hh"
 #include "context.hh"
@@ -12,29 +14,6 @@
 #include "options.hh"
 #include "parser.hh"
 #include "scanner.hh"
-
-enum class Precedence {
-    NONE,
-    ASSIGNMENT, // =
-    OR,         // or
-    AND,        // and
-    EQUALITY,   // == !=
-    COMPARISON, // < > <= >=
-    TERM,       // + -
-    FACTOR,     // * /
-    UNARY,      // ! -
-    CALL,       // . ()
-    PRIMARY
-};
-
-class Compiler;
-using ParseFn = std::function<void(Compiler *, bool)>;
-
-struct ParseRule {
-    ParseFn    prefix;
-    ParseFn    infix;
-    Precedence precedence;
-};
 
 class Compiler {
   public:
@@ -49,12 +28,14 @@ class Compiler {
     void statement(Statement *ast);
     void printStatement(Print *ast);
     void exprStatement(Expr *ast);
+
     void expr(Expr *ast);
-    void primary(Primary *ast);
+    void binary(Binary *ast);
+    void unary(Unary *ast);
     void number(Number *ast);
 
     void and_(bool /*canAssign*/);
-    void binary(bool /*canAssign*/);
+
     void call(bool /*canAssign*/);
     void dot(bool canAssign);
     void number(bool);
@@ -64,7 +45,6 @@ class Compiler {
     void string(bool /*canAssign*/);
     void super_(bool /*canAssign*/);
     void this_(bool /*canAssign*/);
-    void unary(bool /*canAssign*/);
     void variable(bool canAssign);
 
   private:
@@ -93,11 +73,6 @@ class Compiler {
     void beginScope();
     void endScope();
     void adjust_locals(int depth);
-
-    void expression();
-
-    static ParseRule const *getRule(TokenType type);
-    void                    parsePrecedence(Precedence precedence);
 
     const_index_t identifierConstant(Token *name);
     static bool   identifiersEqual(Token *a, Token *b);

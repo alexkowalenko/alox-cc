@@ -10,6 +10,30 @@
 #include "scanner.hh"
 #include <ast/declaration.hh>
 
+enum class Precedence {
+    NONE,
+    ASSIGNMENT, // =
+    OR,         // or
+    AND,        // and
+    EQUALITY,   // == !=
+    COMPARISON, // < > <= >=
+    TERM,       // + -
+    FACTOR,     // * /
+    UNARY,      // ! -
+    CALL,       // . ()
+    PRIMARY
+};
+
+class Parser;
+using ParseFn = std::function<Expr *(Parser *, bool)>;
+using ParseFnBin = std::function<Expr *(Parser *, Expr *, bool)>;
+
+struct ParseRule {
+    ParseFn    prefix;
+    ParseFnBin infix;
+    Precedence precedence;
+};
+
 class Parser {
   public:
     Parser(Scanner &s) : scanner(s){};
@@ -19,9 +43,15 @@ class Parser {
     Statement   *statement();
     Print       *printStatement();
     Expr        *exprStatement();
-    Expr        *expr();
-    Primary     *primary();
-    Number      *number();
+
+    Expr *expr();
+    Expr *parsePrecedence(Precedence precedence);
+
+    Expr *binary(Expr *left, bool /*canAssign*/);
+    Expr *unary(bool /*canAssign*/);
+    Expr *number(bool /*canAssign*/);
+
+    static ParseRule const *getRule(TokenType type);
 
     void           errorAt(Token *token, std::string_view message);
     constexpr void error(std::string_view message) { errorAt(&previous, message); }

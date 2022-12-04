@@ -5,11 +5,10 @@
 #include <iostream>
 
 #include <fmt/core.h>
+#include <map>
 
-#include "ast/expr.hh"
 #include "ast/includes.hh"
-#include "ast/number.hh"
-#include "ast/primary.hh"
+#include "ast_base.hh"
 #include "parser.hh"
 #include "scanner.hh"
 
@@ -86,25 +85,147 @@ Expr *Parser::exprStatement() {
     return ast;
 }
 
+inline const std::map<TokenType, Precedence> precedence_map{
+    {TokenType::OR, Precedence::OR},
+    {TokenType::AND, Precedence::AND},
+    {TokenType::EQUAL_EQUAL, Precedence::EQUALITY},
+    {TokenType::BANG_EQUAL, Precedence::EQUALITY},
+    {TokenType::LESS, Precedence::COMPARISON},
+    {TokenType::LESS_EQUAL, Precedence::COMPARISON},
+    {TokenType::GREATER, Precedence::COMPARISON},
+    {TokenType::GREATER_EQUAL, Precedence::COMPARISON},
+    {TokenType::PLUS, Precedence::TERM},
+    {TokenType::MINUS, Precedence::TERM},
+    {TokenType::SLASH, Precedence::FACTOR},
+    {TokenType::ASTÉRIX, Precedence::FACTOR},
+    {TokenType::LEFT_PAREN, Precedence::CALL},
+    {TokenType::DOT, Precedence::CALL}};
+
+inline auto get_precedence(TokenType t) -> Precedence {
+    if (precedence_map.contains(t)) {
+        return precedence_map.at(t);
+    }
+    return Precedence::NONE;
+}
+
+inline const std::map<TokenType, ParseRule> rules{
+    // {TokenType::LEFT_PAREN,
+    //  {std::mem_fn(&Compiler::grouping), std::mem_fn(&Compiler::call),
+    //  Precedence::CALL}},
+    {TokenType::RIGHT_PAREN, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::LEFT_BRACE, {nullptr, nullptr, Precedence::NONE}}, // [big]
+    {TokenType::RIGHT_BRACE, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::COMMA, {nullptr, nullptr, Precedence::NONE}},
+    // {TokenType::DOT, {nullptr, std::mem_fn(&Compiler::dot), Precedence::CALL}},
+    {TokenType::MINUS,
+     {std::mem_fn(&Parser::unary), std::mem_fn(&Parser::binary), Precedence::TERM}},
+    {TokenType::PLUS, {nullptr, std::mem_fn(&Parser::binary), Precedence::TERM}},
+    {TokenType::SEMICOLON, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::SLASH, {nullptr, std::mem_fn(&Parser::binary), Precedence::FACTOR}},
+    {TokenType::ASTÉRIX, {nullptr, std::mem_fn(&Parser::binary), Precedence::FACTOR}},
+    // {TokenType::BANG, {std::mem_fn(&Compiler::unary), nullptr,
+    // Precedence::NONE}}, {TokenType::BANG_EQUAL,
+    //  {nullptr, std::mem_fn(&Compiler::binary), Precedence::EQUALITY}},
+    // {TokenType::EQUAL, {nullptr, nullptr, Precedence::NONE}},
+    // {TokenType::EQUAL_EQUAL,
+    //  {nullptr, std::mem_fn(&Compiler::binary), Precedence::EQUALITY}},
+    // {TokenType::GREATER,
+    //  {nullptr, std::mem_fn(&Compiler::binary), Precedence::COMPARISON}},
+    // {TokenType::GREATER_EQUAL,
+    //  {nullptr, std::mem_fn(&Compiler::binary), Precedence::COMPARISON}},
+    // {TokenType::LESS, {nullptr, std::mem_fn(&Compiler::binary),
+    // Precedence::COMPARISON}},
+    // {TokenType::LESS_EQUAL,
+    //  {nullptr, std::mem_fn(&Compiler::binary), Precedence::COMPARISON}},
+    // {TokenType::IDENTIFIER,
+    //  {std::mem_fn(&Compiler::variable), nullptr, Precedence::NONE}},
+    // {TokenType::STRING, {std::mem_fn(&Compiler::string), nullptr,
+    // Precedence::NONE}},
+    {TokenType::NUMBER, {std::mem_fn(&Parser::number), nullptr}},
+    // {TokenType::AND, {nullptr, std::mem_fn(&Compiler::and_),
+    // Precedence::AND}},
+    {TokenType::CLASS, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::ELSE, {nullptr, nullptr, Precedence::NONE}},
+    // {TokenType::FALSE, {std::mem_fn(&Compiler::literal), nullptr,
+    // Precedence::NONE}},
+    {TokenType::FOR, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::FUN, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::IF, {nullptr, nullptr, Precedence::NONE}},
+    // {TokenType::NIL, {std::mem_fn(&Compiler::literal), nullptr,
+    // Precedence::NONE}}, {TokenType::OR, {nullptr,
+    // std::mem_fn(&Compiler::or_), Precedence::OR}},
+    {TokenType::PRINT, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::RETURN, {nullptr, nullptr, Precedence::NONE}},
+    // {TokenType::SUPER, {std::mem_fn(&Compiler::super_), nullptr,
+    // Precedence::NONE}}, {TokenType::THIS, {std::mem_fn(&Compiler::this_),
+    // nullptr, Precedence::NONE}}, {TokenType::TRUE,
+    // {std::mem_fn(&Compiler::literal), nullptr, Precedence::NONE}},
+    {TokenType::VAR, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::WHILE, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::ERROR, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::EOFS, {nullptr, nullptr, Precedence::NONE}},
+};
+
+ParseRule const *Parser::getRule(TokenType type) {
+    return &rules.find(type)->second;
+}
+
 Expr *Parser::expr() {
-    auto *ast = newExpr();
-    ast->expr = primary();
-    return ast;
+    return parsePrecedence(Precedence::ASSIGNMENT);
 }
 
-Primary *Parser::primary() {
-    auto *ast = newPrimary();
-    ast->value = number();
-    return ast;
+Expr *Parser::parsePrecedence(Precedence precedence) {
+    auto *left = newExpr();
+    advance();
+    auto prefixRule = getRule(previous.type)->prefix;
+    if (prefixRule == nullptr) {
+        error("Expect expression.");
+        return left;
+    }
+
+    bool canAssign = precedence <= Precedence::ASSIGNMENT;
+    left->expr = OBJ_AST(prefixRule(this, canAssign));
+
+    while (precedence <= getRule(current.type)->precedence) {
+        advance();
+        auto infixRule = getRule(previous.type)->infix;
+        left = infixRule(this, left, canAssign);
+    }
+
+    if (canAssign && match(TokenType::EQUAL)) {
+        error("Invalid assignment target.");
+    }
+    return left;
 }
 
-Number *Parser::number() {
-    auto *ast = newNumber();
-    consume(TokenType::NUMBER, "expecting number");
+Expr *Parser::unary(bool /*canAssign*/) {
+    auto *ast = newUnary();
+    ast->token = previous.type;
+    ast->expr = parsePrecedence(Precedence::UNARY);
+    auto *e = newExpr();
+    e->expr = OBJ_AST(ast);
+    return e;
+}
+
+Expr *Parser::binary(Expr *left, bool /*canAssign*/) {
+    auto *binary = newBinary();
+    binary->left = left;
+    binary->token = previous.type;
+    const auto precedence = get_precedence(previous.type);
+    binary->right = parsePrecedence((Precedence)(int(precedence) + 1));
+    auto *e = newExpr();
+    e->expr = OBJ_AST(binary);
+    return e;
+}
+
+Expr *Parser::number(bool /*canAssign*/) {
+    auto  *ast = newNumber();
     double value = strtod(previous.text.data(), nullptr);
     debug("number {}", value);
     ast->value = value;
-    return ast;
+    auto *e = newExpr();
+    e->expr = OBJ_AST(ast);
+    return e;
 }
 
 void Parser::errorAt(Token *token, std::string_view message) {
