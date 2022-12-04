@@ -12,7 +12,7 @@
 
 class AST_Printer {
   public:
-    AST_Printer(std::ostream &os) : os(os){};
+    explicit AST_Printer(std::ostream &os, char nl = '\n') : os(os), NL(nl){};
 
     void print(Declaration *);
 
@@ -27,4 +27,5 @@ class AST_Printer {
     void number(Number *num);
 
     std::ostream &os;
+    const char    NL{};
 };

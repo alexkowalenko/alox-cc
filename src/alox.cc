@@ -83,7 +83,7 @@ int Alox::runFile(const std::string_view &path) {
 InterpretResult Alox::runString(const std::string &source) {
 
     auto scanner = Scanner(source);
-    auto parser = Parser(scanner);
+    auto parser = Parser(scanner, std::cerr);
 
     auto ast = parser.parse();
     if (parser.hadError) {

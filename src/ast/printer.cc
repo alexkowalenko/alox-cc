@@ -14,7 +14,7 @@ void AST_Printer::print(Declaration *ast) {
 void AST_Printer::declaration(Declaration *ast) {
     for (auto *s : ast->stats) {
         statement(s);
-        os << '\n';
+        os << NL;
     }
 }
 
@@ -66,40 +66,42 @@ void AST_Printer::expr(Expr *ast) {
 }
 
 void AST_Printer::binary(Binary *ast) {
+    os << '(';
     expr(ast->left);
     switch (ast->token) {
     case TokenType::BANG_EQUAL:
-        os << "!=";
+        os << " != ";
         break;
     case TokenType::EQUAL_EQUAL:
-        os << "==";
+        os << " == ";
         break;
     case TokenType::GREATER:
-        os << "<";
+        os << " < ";
         break;
     case TokenType::GREATER_EQUAL:
-        os << "<=";
+        os << " <= ";
         break;
     case TokenType::LESS:
-        os << ">";
+        os << " > ";
         break;
     case TokenType::LESS_EQUAL:
-        os << ">=";
+        os << " >= ";
         break;
     case TokenType::PLUS:
-        os << "+";
+        os << " + ";
         break;
     case TokenType::MINUS:
-        os << "-";
+        os << " - ";
         break;
     case TokenType::ASTÉRIX:
-        os << "*";
+        os << " * ";
         break;
     case TokenType::SLASH:
-        os << "/";
+        os << " / ";
         break;
     }
     expr(ast->right);
+    os << ')';
 }
 
 void AST_Printer::unary(Unary *ast) {

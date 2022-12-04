@@ -5,6 +5,7 @@
 #pragma once
 
 #include <memory>
+#include <ostream>
 #include <string_view>
 
 #include "scanner.hh"
@@ -36,7 +37,7 @@ struct ParseRule {
 
 class Parser {
   public:
-    Parser(Scanner &s) : scanner(s){};
+    Parser(Scanner &s, std::ostream &err) : scanner(s), err(err){};
 
     Declaration *parse();
     void         declaration(Declaration *);
@@ -74,5 +75,6 @@ class Parser {
     bool hadError{false};
 
   private:
-    Scanner &scanner;
+    Scanner      &scanner;
+    std::ostream &err;
 };

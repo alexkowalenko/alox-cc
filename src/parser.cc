@@ -233,16 +233,16 @@ void Parser::errorAt(Token *token, std::string_view message) {
         return;
     }
     panicMode = true;
-    std::cerr << fmt::format("[line {}] Error", token->line);
+    err << fmt::format("[line {}] Error", token->line);
 
     if (token->type == TokenType::EOFS) {
-        std::cerr << " at end";
+        err << " at end";
     } else if (token->type == TokenType::ERROR) {
         // Nothing.
     } else {
-        std::cerr << fmt::format(" at '{:s}'", token->text);
+        err << fmt::format(" at '{:s}'", token->text);
     }
-    std::cerr << fmt::format(": {}\n", message);
+    err << fmt::format(": {}\n", message);
     hadError = true;
 }
 
