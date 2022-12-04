@@ -37,7 +37,7 @@ struct ObjFunction {
     ObjString *name;
 };
 
-using NativeFn = Value (*)(int, Value *);
+using NativeFn = Value (*)(int, Value const *);
 
 struct ObjNative {
     Obj      obj;
@@ -157,4 +157,4 @@ ObjInstance    *newInstance(ObjClass *klass);
 ObjNative      *newNative(NativeFn function);
 ObjString      *newString(std::string const &s);
 ObjUpvalue     *newUpvalue(Value *slot);
-void            printObject(std::ostream & os, Value value);
+void            printObject(std::ostream &os, Value value);

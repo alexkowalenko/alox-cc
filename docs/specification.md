@@ -116,3 +116,11 @@ IDENTIFIER     → ALPHA ( ALPHA | DIGIT )* ;
 ALPHA          → "a" ... "z" | "A" ... "Z" | "_" ;
 DIGIT          → "0" ... "9" ;
 ```
+
+## Standard Library
+
+* `char(n)` : returns the integer `n`  as a string.
+* `ord(c)` : returns the integer representation of the char.
+* `exit(n)` : exit with code `n`.
+* `print_error(s)` : prints `s` on `stderr`.
+* `getc()` : read a character from `stderr` and covert it to an integer.

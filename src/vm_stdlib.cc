@@ -22,21 +22,21 @@ static void debug(const S &format, const Args &...msg) {
 
 // Native functions must return a value or there will be a crash.
 
-[[noreturn]] Value lox_exit(int /*argCount*/, Value *value) {
+[[noreturn]] Value lox_exit(int /*argCount*/, Value const *value) {
     auto sig = AS_NUMBER(*value);
     exit(int(sig));
 }
 
-Value clockNative(int /*argCount*/, Value * /*args*/) {
+Value clockNative(int /*argCount*/, Value const * /*args*/) {
     return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
 
-Value getc(int /*argCount*/, Value * /*args*/) {
+Value getc(int /*argCount*/, Value const * /*args*/) {
     auto ch = std::getc(stdin);
     return NUMBER_VAL(ch);
 }
 
-Value chr(int /*argCount*/, Value *value) {
+Value chr(int /*argCount*/, Value const *value) {
     auto ch = char(AS_NUMBER(*value));
     // weird to get one char string (not 0 terminated)
     std::string s{1, ch};
@@ -46,13 +46,13 @@ Value chr(int /*argCount*/, Value *value) {
     return OBJ_VAL(newString(s));
 }
 
-Value ord(int /*argCount*/, Value *value) {
+Value ord(int /*argCount*/, Value const *value) {
     auto *s = AS_STRING(*value);
     debug("ord: '{}'", s->str);
     return NUMBER_VAL(s->str[0]);
 }
 
-Value print_error(int /*argCount*/, Value *value) {
+Value print_error(int /*argCount*/, Value const *value) {
     printValue(std::cerr, *value);
     return NIL_VAL;
 }
@@ -72,4 +72,8 @@ void VM::def_stdlib() {
     defineNative("chr", chr);
     defineNative("ord", ord);
     defineNative("print_error", print_error);
+
+    // Define generic empty class Object
+    auto *obj_class = newClass(newString("Object"));
+    globals.set(obj_class->name, OBJ_VAL(obj_class));
 }
