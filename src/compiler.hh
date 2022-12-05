@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ast/binary.hh"
+#include "ast/boolean.hh"
 #include "ast/includes.hh"
 #include "ast/unary.hh"
 #include "ast_base.hh"
@@ -31,16 +32,14 @@ class Compiler {
 
     void expr(Expr *ast);
     void binary(Binary *ast);
+    void and_(Binary *ast);
+    void or_(Binary *ast);
     void unary(Unary *ast);
     void number(Number *ast);
-
-    void and_(bool /*canAssign*/);
+    void boolean(Boolean *ast);
 
     void call(bool /*canAssign*/);
     void dot(bool canAssign);
-    void number(bool);
-    void literal(bool /*canAssign*/);
-    void or_(bool /*canAssign*/);
     void string(bool /*canAssign*/);
     void super_(bool /*canAssign*/);
     void this_(bool /*canAssign*/);

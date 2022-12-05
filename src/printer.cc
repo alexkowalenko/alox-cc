@@ -62,6 +62,10 @@ void AST_Printer::expr(Expr *ast) {
         binary(AS_Binary(ast->expr));
     } else if (IS_Number(ast->expr)) {
         number(AS_Number(ast->expr));
+    } else if (IS_Boolean(ast->expr)) {
+        boolean(AS_Boolean(ast->expr));
+    } else if (IS_Nil(ast->expr)) {
+        os << "nil";
     }
 }
 
@@ -76,16 +80,16 @@ void AST_Printer::binary(Binary *ast) {
         os << " == ";
         break;
     case TokenType::GREATER:
-        os << " < ";
-        break;
-    case TokenType::GREATER_EQUAL:
-        os << " <= ";
-        break;
-    case TokenType::LESS:
         os << " > ";
         break;
-    case TokenType::LESS_EQUAL:
+    case TokenType::GREATER_EQUAL:
         os << " >= ";
+        break;
+    case TokenType::LESS:
+        os << " < ";
+        break;
+    case TokenType::LESS_EQUAL:
+        os << " <= ";
         break;
     case TokenType::PLUS:
         os << " + ";
@@ -98,6 +102,12 @@ void AST_Printer::binary(Binary *ast) {
         break;
     case TokenType::SLASH:
         os << " / ";
+        break;
+    case TokenType::AND:
+        os << " and ";
+        break;
+    case TokenType::OR:
+        os << " or ";
         break;
     }
     expr(ast->right);
@@ -116,6 +126,14 @@ void AST_Printer::unary(Unary *ast) {
         return; // Unreachable.
     }
     expr(ast->expr);
+}
+
+void AST_Printer::boolean(Boolean *expr) {
+    if (expr->value) {
+        os << "true";
+    } else {
+        os << "false";
+    }
 }
 
 void AST_Printer::number(Number *num) {

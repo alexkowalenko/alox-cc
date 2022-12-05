@@ -23,9 +23,9 @@ auto do_parse_tests(std::vector<ParseTests> &tests) -> void;
 
 TEST(Parser, Basic) { // NOLINT
     std::vector<ParseTests> tests = {
-        {"0;", "0;", ""}, {"123456;", "123456;", ""},
-        // {"true;", "true;", ""},   {"false;", "false;", ""},
-        // {"nil;", "nil;", ""},     {R"("a";)", R"("a";)", ""},
+        {"0;", "0;", ""},         {"123456;", "123456;", ""}, {"true;", "true;", ""},
+        {"false;", "false;", ""}, {"nil;", "nil;", ""},
+        //{R"("a";)", R"("a";)", ""},
         // {R"("";)", R"("";)", ""},
 
     };
@@ -34,9 +34,10 @@ TEST(Parser, Basic) { // NOLINT
 
 TEST(Parser, unary) { // NOLINT
     std::vector<ParseTests> tests = {
-        {"-2;", "-2;", ""}, {"--2;", "--2;", ""},
-        //{"-!-2;", "-!-2;", ""},
-        //{"!true;", "!true;", ""},
+        {"-2;", "-2;", ""},
+        {"--2;", "--2;", ""},
+        {"-!-2;", "-!-2;", ""},
+        {"!true;", "!true;", ""},
 
         // errors
         //{"+true", "", "unexpected +"},
@@ -51,15 +52,15 @@ TEST(Parser, binary) { // NOLINT
         {"2 + 3 * 4;", "(2 + (3 * 4));", ""},
         {"2 + 3 * 4 / 5;", "(2 + ((3 * 4) / 5));", ""},
 
-        // {"1 and 2;", "(1 and 2);", ""},
-        // {"1 and 2 or 3;", "((1 and 2) or 3);", ""},
-        // {"1 or 2 and 3;", "(1 or (2 and 3));", ""},
-        // {"1 and ! 3;", "(1 and !3);", ""},
+        {"1 and 2;", "(1 and 2);", ""},
+        {"1 and 2 or 3;", "((1 and 2) or 3);", ""},
+        {"1 or 2 and 3;", "(1 or (2 and 3));", ""},
+        {"1 and ! 3;", "(1 and !3);", ""},
 
-        // {"1 < 2;", "(1 < 2);", ""},
-        // {"1 < 2 <= 3;", "((1 < 2) <= 3);", ""},
-        // {"1 > 2 >= 3;", "((1 > 2) >= 3);", ""},
-        // {"1 == 2 != 3;", "((1 == 2) != 3);", ""},
+        {"1 < 2;", "(1 < 2);", ""},
+        {"1 < 2 <= 3;", "((1 < 2) <= 3);", ""},
+        {"1 > 2 >= 3;", "((1 > 2) >= 3);", ""},
+        {"1 == 2 != 3;", "((1 == 2) != 3);", ""},
 
         // Error
         // {"2 +", "", "unexpected <eof>"},
@@ -82,12 +83,12 @@ TEST(Parser, grouping) { // NOLINT
 TEST(Parser, print) { // NOLINT
     std::vector<ParseTests> tests = {
         {"print 0;", "print 0;", ""},
-        // {"print true;", "print true;", ""},
-        // {"print false;", "print false;", ""},
-        // {"print nil;", "print nil;", ""},
+        {"print true;", "print true;", ""},
+        {"print false;", "print false;", ""},
+        {"print nil;", "print nil;", ""},
         // {R"(print "a";)", R"(print "a";)", ""},
         // {R"(print "";)", R"(print "";)", ""},
-        // {"print 12345678;", "print 12345678;", ""},
+        {"print 123456;", "print 123456;", ""},
 
         // // Error
         // {"print ;", "", "unexpected ;"},

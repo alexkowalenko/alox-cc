@@ -12,6 +12,7 @@
 
 #include <fmt/core.h>
 
+#include "ast/boolean.hh"
 #include "ast/expr.hh"
 #include "ast/print.hh"
 #include "ast_base.hh"
@@ -332,10 +333,22 @@ void Compiler::expr(Expr *ast) {
         binary(AS_Binary(ast->expr));
     } else if (IS_Number(ast->expr)) {
         number(AS_Number(ast->expr));
+    } else if (IS_Boolean(ast->expr)) {
+        boolean(AS_Boolean(ast->expr));
+    } else if (IS_Nil(ast->expr)) {
+        emitByte(OpCode::NIL);
     }
 }
 
 void Compiler::binary(Binary *ast) {
+    if (ast->token == TokenType::AND) {
+        and_(ast);
+        return;
+    }
+    if (ast->token == TokenType::OR) {
+        or_(ast);
+        return;
+    }
     expr(ast->left);
     expr(ast->right);
 
@@ -375,6 +388,27 @@ void Compiler::binary(Binary *ast) {
     }
 }
 
+void Compiler::and_(Binary *ast) {
+    expr(ast->left);
+    const int endJump = emitJump(OpCode::JUMP_IF_FALSE);
+    emitByte(OpCode::POP);
+
+    expr(ast->right);
+    patchJump(endJump);
+}
+
+void Compiler::or_(Binary *ast) {
+    expr(ast->left);
+    int elseJump = emitJump(OpCode::JUMP_IF_FALSE);
+    int endJump = emitJump(OpCode::JUMP);
+
+    patchJump(elseJump);
+    emitByte(OpCode::POP);
+
+    expr(ast->right);
+    patchJump(endJump);
+}
+
 void Compiler::unary(Unary *ast) {
     expr(ast->expr);
 
@@ -401,6 +435,14 @@ void Compiler::number(Number *ast) {
         return;
     }
     emitConstant(NUMBER_VAL(ast->value));
+}
+
+void Compiler::boolean(Boolean *ast) {
+    if (ast->value) {
+        emitByte(OpCode::TRUE);
+    } else {
+        emitByte(OpCode::FALSE);
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -447,15 +489,6 @@ uint8_t Compiler::argumentList() {
     return argCount;
 }
 
-void Compiler::and_(bool /*canAssign*/) {
-    const int endJump = emitJump(OpCode::JUMP_IF_FALSE);
-
-    emitByte(OpCode::POP);
-    // parsePrecedence(Precedence::AND);
-
-    patchJump(endJump);
-}
-
 void Compiler::call(bool /*canAssign*/) {
     const uint8_t argCount = argumentList();
     emitBytes(OpCode::CALL, argCount);
@@ -475,33 +508,6 @@ void Compiler::dot(bool canAssign) {
     } else {
         emitByteConst(OpCode::GET_PROPERTY, name);
     }
-}
-
-void Compiler::literal(bool /*canAssign*/) {
-    switch (parser->previous.type) {
-    case TokenType::FALSE:
-        emitByte(OpCode::FALSE);
-        break;
-    case TokenType::NIL:
-        emitByte(OpCode::NIL);
-        break;
-    case TokenType::TRUE:
-        emitByte(OpCode::TRUE);
-        break;
-    default:
-        return; // Unreachable.
-    }
-}
-
-void Compiler::or_(bool /*canAssign*/) {
-    int elseJump = emitJump(OpCode::JUMP_IF_FALSE);
-    int endJump = emitJump(OpCode::JUMP);
-
-    patchJump(elseJump);
-    emitByte(OpCode::POP);
-
-    // parsePrecedence(Precedence::OR);
-    patchJump(endJump);
 }
 
 void Compiler::string(bool /*canAssign*/) {

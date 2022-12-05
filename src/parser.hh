@@ -51,6 +51,7 @@ class Parser {
     Expr *binary(Expr *left, bool /*canAssign*/);
     Expr *grouping(bool /*canAssign*/);
     Expr *unary(bool /*canAssign*/);
+    Expr *primary(bool /*canAssign*/);
     Expr *number(bool /*canAssign*/);
 
     static ParseRule const *getRule(TokenType type);

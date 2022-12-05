@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "ast/boolean.hh"
 #include "ast/includes.hh"
 #include "ast_base.hh"
 #include <ostream>
@@ -24,6 +25,7 @@ class AST_Printer {
     void expr(Expr *expr);
     void binary(Binary *ast);
     void unary(Unary *ast);
+    void boolean(Boolean *expr);
     void number(Number *num);
 
     std::ostream &os;

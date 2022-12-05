@@ -7,6 +7,7 @@
 #include <fmt/core.h>
 #include <map>
 
+#include "ast/boolean.hh"
 #include "ast/includes.hh"
 #include "ast_base.hh"
 #include "parser.hh"
@@ -123,43 +124,38 @@ inline const std::map<TokenType, ParseRule> rules{
     {TokenType::SEMICOLON, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::SLASH, {nullptr, std::mem_fn(&Parser::binary), Precedence::FACTOR}},
     {TokenType::ASTÉRIX, {nullptr, std::mem_fn(&Parser::binary), Precedence::FACTOR}},
-    // {TokenType::BANG, {std::mem_fn(&Compiler::unary), nullptr,
-    // Precedence::NONE}}, {TokenType::BANG_EQUAL,
-    //  {nullptr, std::mem_fn(&Compiler::binary), Precedence::EQUALITY}},
+    {TokenType::BANG, {std::mem_fn(&Parser::unary), nullptr, Precedence::NONE}},
+    {TokenType::BANG_EQUAL,
+     {nullptr, std::mem_fn(&Parser::binary), Precedence::EQUALITY}},
     // {TokenType::EQUAL, {nullptr, nullptr, Precedence::NONE}},
-    // {TokenType::EQUAL_EQUAL,
-    //  {nullptr, std::mem_fn(&Compiler::binary), Precedence::EQUALITY}},
-    // {TokenType::GREATER,
-    //  {nullptr, std::mem_fn(&Compiler::binary), Precedence::COMPARISON}},
-    // {TokenType::GREATER_EQUAL,
-    //  {nullptr, std::mem_fn(&Compiler::binary), Precedence::COMPARISON}},
-    // {TokenType::LESS, {nullptr, std::mem_fn(&Compiler::binary),
-    // Precedence::COMPARISON}},
-    // {TokenType::LESS_EQUAL,
-    //  {nullptr, std::mem_fn(&Compiler::binary), Precedence::COMPARISON}},
+    {TokenType::EQUAL_EQUAL,
+     {nullptr, std::mem_fn(&Parser::binary), Precedence::EQUALITY}},
+    {TokenType::GREATER, {nullptr, std::mem_fn(&Parser::binary), Precedence::COMPARISON}},
+    {TokenType::GREATER_EQUAL,
+     {nullptr, std::mem_fn(&Parser::binary), Precedence::COMPARISON}},
+    {TokenType::LESS, {nullptr, std::mem_fn(&Parser::binary), Precedence::COMPARISON}},
+    {TokenType::LESS_EQUAL,
+     {nullptr, std::mem_fn(&Parser::binary), Precedence::COMPARISON}},
     // {TokenType::IDENTIFIER,
     //  {std::mem_fn(&Compiler::variable), nullptr, Precedence::NONE}},
     // {TokenType::STRING, {std::mem_fn(&Compiler::string), nullptr,
     // Precedence::NONE}},
     {TokenType::NUMBER, {std::mem_fn(&Parser::number), nullptr}},
-    // {TokenType::AND, {nullptr, std::mem_fn(&Compiler::and_),
-    // Precedence::AND}},
+    {TokenType::AND, {nullptr, std::mem_fn(&Parser::binary), Precedence::AND}},
     {TokenType::CLASS, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::ELSE, {nullptr, nullptr, Precedence::NONE}},
-    // {TokenType::FALSE, {std::mem_fn(&Compiler::literal), nullptr,
-    // Precedence::NONE}},
+    {TokenType::FALSE, {std::mem_fn(&Parser::primary), nullptr, Precedence::NONE}},
     {TokenType::FOR, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::FUN, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::IF, {nullptr, nullptr, Precedence::NONE}},
-    // {TokenType::NIL, {std::mem_fn(&Compiler::literal), nullptr,
-    // Precedence::NONE}}, {TokenType::OR, {nullptr,
-    // std::mem_fn(&Compiler::or_), Precedence::OR}},
+    {TokenType::NIL, {std::mem_fn(&Parser::primary), nullptr, Precedence::NONE}},
+    {TokenType::OR, {nullptr, std::mem_fn(&Parser::binary), Precedence::OR}},
     {TokenType::PRINT, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::RETURN, {nullptr, nullptr, Precedence::NONE}},
     // {TokenType::SUPER, {std::mem_fn(&Compiler::super_), nullptr,
     // Precedence::NONE}}, {TokenType::THIS, {std::mem_fn(&Compiler::this_),
-    // nullptr, Precedence::NONE}}, {TokenType::TRUE,
-    // {std::mem_fn(&Compiler::literal), nullptr, Precedence::NONE}},
+    // nullptr, Precedence::NONE}},
+    {TokenType::TRUE, {std::mem_fn(&Parser::primary), nullptr, Precedence::NONE}},
     {TokenType::VAR, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::WHILE, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::ERROR, {nullptr, nullptr, Precedence::NONE}},
@@ -232,6 +228,31 @@ Expr *Parser::number(bool /*canAssign*/) {
     auto *e = newExpr();
     e->expr = OBJ_AST(ast);
     return e;
+}
+
+Expr *Parser::primary(bool /*canAssign*/) {
+    auto *e = newExpr();
+    switch (previous.type) {
+    case TokenType::FALSE: {
+        auto b = newBoolean();
+        b->value = false;
+        e->expr = OBJ_AST(b);
+        return e;
+    }
+    case TokenType::NIL: {
+        auto b = newNil();
+        e->expr = OBJ_AST(b);
+        return e;
+    }
+    case TokenType::TRUE: {
+        auto b = newBoolean();
+        b->value = true;
+        e->expr = OBJ_AST(b);
+        return e;
+    }
+    default:
+        return nullptr; // Unreachable.
+    }
 }
 
 void Parser::errorAt(Token *token, std::string_view message) {
