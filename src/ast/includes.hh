@@ -1,7 +1,0 @@
-#include "binary.hh"
-#include "declaration.hh"
-#include "expr.hh"
-#include "number.hh"
-#include "print.hh"
-#include "statement.hh"
-#include "unary.hh"

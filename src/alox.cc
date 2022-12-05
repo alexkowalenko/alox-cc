@@ -14,10 +14,10 @@
 #include <sstream>
 
 #include "alox.hh"
-#include "ast/printer.hh"
 #include "compiler.hh"
 #include "memory.hh"
 #include "parser.hh"
+#include "printer.hh"
 #include "scanner.hh"
 #include "vm.hh"
 

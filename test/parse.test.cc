@@ -10,8 +10,8 @@
 #include <fmt/core.h>
 #include <gtest/gtest.h>
 
-#include "ast/printer.hh"
 #include "parser.hh"
+#include "printer.hh"
 
 struct ParseTests {
     std::string input;

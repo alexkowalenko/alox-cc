@@ -8,8 +8,8 @@
 #include <ostream>
 #include <string_view>
 
+#include "ast/includes.hh"
 #include "scanner.hh"
-#include <ast/declaration.hh>
 
 enum class Precedence {
     NONE,

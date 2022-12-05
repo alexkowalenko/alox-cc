@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include "ast/includes.hh"
 #include "ast_base.hh"
-#include "includes.hh"
 #include <ostream>
 
 class AST_Printer {
