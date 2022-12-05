@@ -6,6 +6,7 @@
 
 #include "printer.hh"
 #include "ast/expr.hh"
+#include "value.hh"
 
 void AST_Printer::print(Declaration *ast) {
     declaration(ast);
@@ -62,6 +63,8 @@ void AST_Printer::expr(Expr *ast) {
         binary(AS_Binary(ast->expr));
     } else if (IS_Number(ast->expr)) {
         number(AS_Number(ast->expr));
+    } else if (IS_String(ast->expr)) {
+        string(AS_String(ast->expr));
     } else if (IS_Boolean(ast->expr)) {
         boolean(AS_Boolean(ast->expr));
     } else if (IS_Nil(ast->expr)) {
@@ -138,4 +141,10 @@ void AST_Printer::boolean(Boolean *expr) {
 
 void AST_Printer::number(Number *num) {
     os << num->value;
+}
+
+void AST_Printer::string(String *str) {
+    os << '"';
+    printObject(os, OBJ_VAL(str->value));
+    os << '"';
 }

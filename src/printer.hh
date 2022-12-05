@@ -27,6 +27,7 @@ class AST_Printer {
     void unary(Unary *ast);
     void boolean(Boolean *expr);
     void number(Number *num);
+    void string(String *num);
 
     std::ostream &os;
     const char    NL{};

@@ -333,6 +333,8 @@ void Compiler::expr(Expr *ast) {
         binary(AS_Binary(ast->expr));
     } else if (IS_Number(ast->expr)) {
         number(AS_Number(ast->expr));
+    } else if (IS_String(ast->expr)) {
+        string(AS_String(ast->expr));
     } else if (IS_Boolean(ast->expr)) {
         boolean(AS_Boolean(ast->expr));
     } else if (IS_Nil(ast->expr)) {
@@ -437,6 +439,10 @@ void Compiler::number(Number *ast) {
     emitConstant(NUMBER_VAL(ast->value));
 }
 
+void Compiler::string(String *ast) {
+    emitConstant(OBJ_VAL(ast->value));
+}
+
 void Compiler::boolean(Boolean *ast) {
     if (ast->value) {
         emitByte(OpCode::TRUE);
@@ -508,10 +514,6 @@ void Compiler::dot(bool canAssign) {
     } else {
         emitByteConst(OpCode::GET_PROPERTY, name);
     }
-}
-
-void Compiler::string(bool /*canAssign*/) {
-    emitConstant(OBJ_VAL(newString(parser->previous.text)));
 }
 
 void Compiler::namedVariable(Token name, bool canAssign) {

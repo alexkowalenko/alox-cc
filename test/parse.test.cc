@@ -24,9 +24,8 @@ auto do_parse_tests(std::vector<ParseTests> &tests) -> void;
 TEST(Parser, Basic) { // NOLINT
     std::vector<ParseTests> tests = {
         {"0;", "0;", ""},         {"123456;", "123456;", ""}, {"true;", "true;", ""},
-        {"false;", "false;", ""}, {"nil;", "nil;", ""},
-        //{R"("a";)", R"("a";)", ""},
-        // {R"("";)", R"("";)", ""},
+        {"false;", "false;", ""}, {"nil;", "nil;", ""},       {R"("a";)", R"("a";)", ""},
+        {R"("";)", R"("";)", ""},
 
     };
     do_parse_tests(tests);
@@ -62,6 +61,8 @@ TEST(Parser, binary) { // NOLINT
         {"1 > 2 >= 3;", "((1 > 2) >= 3);", ""},
         {"1 == 2 != 3;", "((1 == 2) != 3);", ""},
 
+        {R"("a" + "b";)", R"(("a" + "b");)", ""},
+
         // Error
         // {"2 +", "", "unexpected <eof>"},
         // {"* 3", "", "unexpected *"},
@@ -82,12 +83,9 @@ TEST(Parser, grouping) { // NOLINT
 
 TEST(Parser, print) { // NOLINT
     std::vector<ParseTests> tests = {
-        {"print 0;", "print 0;", ""},
-        {"print true;", "print true;", ""},
-        {"print false;", "print false;", ""},
-        {"print nil;", "print nil;", ""},
-        // {R"(print "a";)", R"(print "a";)", ""},
-        // {R"(print "";)", R"(print "";)", ""},
+        {"print 0;", "print 0;", ""},           {"print true;", "print true;", ""},
+        {"print false;", "print false;", ""},   {"print nil;", "print nil;", ""},
+        {R"(print "a";)", R"(print "a";)", ""}, {R"(print "";)", R"(print "";)", ""},
         {"print 123456;", "print 123456;", ""},
 
         // // Error

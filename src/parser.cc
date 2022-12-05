@@ -86,6 +86,7 @@ Expr *Parser::exprStatement() {
     return ast;
 }
 
+
 inline const std::map<TokenType, Precedence> precedence_map{
     {TokenType::OR, Precedence::OR},
     {TokenType::AND, Precedence::AND},
@@ -111,55 +112,50 @@ inline auto get_precedence(TokenType t) -> Precedence {
 
 inline const std::map<TokenType, ParseRule> rules{
     {TokenType::LEFT_PAREN,
-     {std::mem_fn(&Parser::grouping), nullptr, // std::mem_fn(&Compiler::call),
-      Precedence::CALL}},
-    {TokenType::RIGHT_PAREN, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::LEFT_BRACE, {nullptr, nullptr, Precedence::NONE}}, // [big]
-    {TokenType::RIGHT_BRACE, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::COMMA, {nullptr, nullptr, Precedence::NONE}},
-    // {TokenType::DOT, {nullptr, std::mem_fn(&Compiler::dot), Precedence::CALL}},
-    {TokenType::MINUS,
-     {std::mem_fn(&Parser::unary), std::mem_fn(&Parser::binary), Precedence::TERM}},
-    {TokenType::PLUS, {nullptr, std::mem_fn(&Parser::binary), Precedence::TERM}},
-    {TokenType::SEMICOLON, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::SLASH, {nullptr, std::mem_fn(&Parser::binary), Precedence::FACTOR}},
-    {TokenType::ASTÉRIX, {nullptr, std::mem_fn(&Parser::binary), Precedence::FACTOR}},
-    {TokenType::BANG, {std::mem_fn(&Parser::unary), nullptr, Precedence::NONE}},
-    {TokenType::BANG_EQUAL,
-     {nullptr, std::mem_fn(&Parser::binary), Precedence::EQUALITY}},
-    // {TokenType::EQUAL, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::EQUAL_EQUAL,
-     {nullptr, std::mem_fn(&Parser::binary), Precedence::EQUALITY}},
-    {TokenType::GREATER, {nullptr, std::mem_fn(&Parser::binary), Precedence::COMPARISON}},
-    {TokenType::GREATER_EQUAL,
-     {nullptr, std::mem_fn(&Parser::binary), Precedence::COMPARISON}},
-    {TokenType::LESS, {nullptr, std::mem_fn(&Parser::binary), Precedence::COMPARISON}},
-    {TokenType::LESS_EQUAL,
-     {nullptr, std::mem_fn(&Parser::binary), Precedence::COMPARISON}},
+     {
+         std::mem_fn(&Parser::grouping), nullptr // std::mem_fn(&Compiler::call),
+     }},
+    {TokenType::RIGHT_PAREN, {nullptr, nullptr}},
+    {TokenType::LEFT_BRACE, {nullptr, nullptr}}, // [big]
+    {TokenType::RIGHT_BRACE, {nullptr, nullptr}},
+    {TokenType::COMMA, {nullptr, nullptr}},
+    // {TokenType::DOT, {nullptr, std::mem_fn(&Compiler::dot)}},
+    {TokenType::MINUS, {std::mem_fn(&Parser::unary), std::mem_fn(&Parser::binary)}},
+    {TokenType::PLUS, {nullptr, std::mem_fn(&Parser::binary)}},
+    {TokenType::SEMICOLON, {nullptr, nullptr}},
+    {TokenType::SLASH, {nullptr, std::mem_fn(&Parser::binary)}},
+    {TokenType::ASTÉRIX, {nullptr, std::mem_fn(&Parser::binary)}},
+    {TokenType::BANG, {std::mem_fn(&Parser::unary), nullptr}},
+    {TokenType::BANG_EQUAL, {nullptr, std::mem_fn(&Parser::binary)}},
+    // // {TokenType::EQUAL, {nullptr, nullptr}},
+    {TokenType::EQUAL_EQUAL, {nullptr, std::mem_fn(&Parser::binary)}},
+    {TokenType::GREATER, {nullptr, std::mem_fn(&Parser::binary)}},
+    {TokenType::GREATER_EQUAL, {nullptr, std::mem_fn(&Parser::binary)}},
+    {TokenType::LESS, {nullptr, std::mem_fn(&Parser::binary)}},
+    {TokenType::LESS_EQUAL, {nullptr, std::mem_fn(&Parser::binary)}},
     // {TokenType::IDENTIFIER,
-    //  {std::mem_fn(&Compiler::variable), nullptr, Precedence::NONE}},
-    // {TokenType::STRING, {std::mem_fn(&Compiler::string), nullptr,
-    // Precedence::NONE}},
+    //  {std::mem_fn(&Compiler::variable), nullptr}},
+    {TokenType::STRING, {std::mem_fn(&Parser::string), nullptr}},
     {TokenType::NUMBER, {std::mem_fn(&Parser::number), nullptr}},
-    {TokenType::AND, {nullptr, std::mem_fn(&Parser::binary), Precedence::AND}},
-    {TokenType::CLASS, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::ELSE, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::FALSE, {std::mem_fn(&Parser::primary), nullptr, Precedence::NONE}},
-    {TokenType::FOR, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::FUN, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::IF, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::NIL, {std::mem_fn(&Parser::primary), nullptr, Precedence::NONE}},
-    {TokenType::OR, {nullptr, std::mem_fn(&Parser::binary), Precedence::OR}},
-    {TokenType::PRINT, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::RETURN, {nullptr, nullptr, Precedence::NONE}},
+    {TokenType::AND, {nullptr, std::mem_fn(&Parser::binary)}},
+    {TokenType::CLASS, {nullptr, nullptr}},
+    {TokenType::ELSE, {nullptr, nullptr}},
+    {TokenType::FALSE, {std::mem_fn(&Parser::primary), nullptr}},
+    {TokenType::FOR, {nullptr, nullptr}},
+    {TokenType::FUN, {nullptr, nullptr}},
+    {TokenType::IF, {nullptr, nullptr}},
+    {TokenType::NIL, {std::mem_fn(&Parser::primary), nullptr}},
+    {TokenType::OR, {nullptr, std::mem_fn(&Parser::binary)}},
+    {TokenType::PRINT, {nullptr, nullptr}},
+    {TokenType::RETURN, {nullptr, nullptr}},
     // {TokenType::SUPER, {std::mem_fn(&Compiler::super_), nullptr,
     // Precedence::NONE}}, {TokenType::THIS, {std::mem_fn(&Compiler::this_),
-    // nullptr, Precedence::NONE}},
-    {TokenType::TRUE, {std::mem_fn(&Parser::primary), nullptr, Precedence::NONE}},
-    {TokenType::VAR, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::WHILE, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::ERROR, {nullptr, nullptr, Precedence::NONE}},
-    {TokenType::EOFS, {nullptr, nullptr, Precedence::NONE}},
+    // nullptr}},
+    {TokenType::TRUE, {std::mem_fn(&Parser::primary), nullptr}},
+    {TokenType::VAR, {nullptr, nullptr}},
+    {TokenType::WHILE, {nullptr, nullptr}},
+    {TokenType::ERROR, {nullptr, nullptr}},
+    {TokenType::EOFS, {nullptr, nullptr}},
 };
 
 ParseRule const *Parser::getRule(TokenType type) {
@@ -182,7 +178,7 @@ Expr *Parser::parsePrecedence(Precedence precedence) {
     bool canAssign = precedence <= Precedence::ASSIGNMENT;
     left->expr = OBJ_AST(prefixRule(this, canAssign));
 
-    while (precedence <= getRule(current.type)->precedence) {
+    while (precedence <= get_precedence(current.type)) {
         advance();
         auto infixRule = getRule(previous.type)->infix;
         left = infixRule(this, left, canAssign);
@@ -225,6 +221,14 @@ Expr *Parser::number(bool /*canAssign*/) {
     double value = strtod(previous.text.data(), nullptr);
     debug("number {}", value);
     ast->value = value;
+    auto *e = newExpr();
+    e->expr = OBJ_AST(ast);
+    return e;
+}
+
+Expr *Parser::string(bool /*canAssign*/) {
+    auto *ast = newString();
+    ast->value = newString(previous.text);
     auto *e = newExpr();
     e->expr = OBJ_AST(ast);
     return e;

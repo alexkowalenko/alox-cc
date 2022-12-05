@@ -57,6 +57,10 @@ let classes: Array<Class> = [
         instances: [{ name: "value", type: "double" }]
     },
     {
+        name: "String",
+        instances: [{ name: "value", type: "ObjString *" }]
+    },
+    {
         name: "Boolean",
         instances: [{ name: "value", type: "bool" }]
     },
@@ -88,7 +92,9 @@ function render_include(classes: Array<Class>) {
 
 (function main() {
 
-    fs.mkdirSync(dest_dir);
+    if (!fs.existsSync(dest_dir)) {
+        fs.mkdirSync(dest_dir);
+    }
 
     // Do classes
     var index = 100;

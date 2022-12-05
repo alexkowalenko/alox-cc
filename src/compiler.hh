@@ -36,11 +36,12 @@ class Compiler {
     void or_(Binary *ast);
     void unary(Unary *ast);
     void number(Number *ast);
+    void string(String *ast);
     void boolean(Boolean *ast);
 
     void call(bool /*canAssign*/);
     void dot(bool canAssign);
-    void string(bool /*canAssign*/);
+
     void super_(bool /*canAssign*/);
     void this_(bool /*canAssign*/);
     void variable(bool canAssign);

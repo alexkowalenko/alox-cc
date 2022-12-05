@@ -32,7 +32,6 @@ using ParseFnBin = std::function<Expr *(Parser *, Expr *, bool)>;
 struct ParseRule {
     ParseFn    prefix;
     ParseFnBin infix;
-    Precedence precedence;
 };
 
 class Parser {
@@ -52,6 +51,7 @@ class Parser {
     Expr *grouping(bool /*canAssign*/);
     Expr *unary(bool /*canAssign*/);
     Expr *primary(bool /*canAssign*/);
+    Expr *string(bool /*canAssign*/);
     Expr *number(bool /*canAssign*/);
 
     static ParseRule const *getRule(TokenType type);
