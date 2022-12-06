@@ -9,6 +9,7 @@
 #include <string>
 
 struct Options {
+    bool parse{false};
     bool debug_code{false};
     bool trace{false};
     bool silent{false};

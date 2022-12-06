@@ -40,9 +40,11 @@ class Parser {
 
     Declaration *parse();
     void         declaration(Declaration *);
-    Statement   *statement();
-    Print       *printStatement();
-    Expr        *exprStatement();
+    VarDec      *varDeclaration();
+
+    Statement *statement();
+    Print     *printStatement();
+    Expr      *exprStatement();
 
     Expr *expr();
     Expr *parsePrecedence(Precedence precedence);
@@ -50,9 +52,12 @@ class Parser {
     Expr *binary(Expr *left, bool /*canAssign*/);
     Expr *grouping(bool /*canAssign*/);
     Expr *unary(bool /*canAssign*/);
+    Expr *identifier(bool /*canAssign*/);
     Expr *primary(bool /*canAssign*/);
     Expr *string(bool /*canAssign*/);
     Expr *number(bool /*canAssign*/);
+
+    Identifier *ident();
 
     static ParseRule const *getRule(TokenType type);
 

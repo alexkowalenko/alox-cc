@@ -8,8 +8,11 @@
 #include <map>
 
 #include "ast/boolean.hh"
+#include "ast/identifier.hh"
 #include "ast/includes.hh"
+#include "ast/vardec.hh"
 #include "ast_base.hh"
+#include "object.hh"
 #include "parser.hh"
 #include "scanner.hh"
 
@@ -37,14 +40,28 @@ void Parser::declaration(Declaration *ast) {
     } else if (match(TokenType::FUN)) {
         // funDeclaration();
     } else if (match(TokenType::VAR)) {
-        // varDeclaration();
+        ast->stats.push_back(OBJ_AST(varDeclaration()));
     } else {
-        ast->stats.push_back(statement());
+        ast->stats.push_back(OBJ_AST(statement()));
     }
 
     if (panicMode) {
         synchronize();
     }
+}
+
+VarDec *Parser::varDeclaration() {
+    auto *ast = newVarDec();
+    consume(TokenType::IDENTIFIER, "Expect variable name.");
+    ast->var = ident();
+
+    if (match(TokenType::EQUAL)) {
+        ast->expr = expr();
+    } else {
+        ast->expr = nullptr;
+    }
+    consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
+    return ast;
 }
 
 Statement *Parser::statement() {
@@ -85,7 +102,6 @@ Expr *Parser::exprStatement() {
     consume(TokenType::SEMICOLON, "Expect ';' after expression.");
     return ast;
 }
-
 
 inline const std::map<TokenType, Precedence> precedence_map{
     {TokenType::OR, Precedence::OR},
@@ -133,8 +149,7 @@ inline const std::map<TokenType, ParseRule> rules{
     {TokenType::GREATER_EQUAL, {nullptr, std::mem_fn(&Parser::binary)}},
     {TokenType::LESS, {nullptr, std::mem_fn(&Parser::binary)}},
     {TokenType::LESS_EQUAL, {nullptr, std::mem_fn(&Parser::binary)}},
-    // {TokenType::IDENTIFIER,
-    //  {std::mem_fn(&Compiler::variable), nullptr}},
+    {TokenType::IDENTIFIER, {std::mem_fn(&Parser::identifier), nullptr}},
     {TokenType::STRING, {std::mem_fn(&Parser::string), nullptr}},
     {TokenType::NUMBER, {std::mem_fn(&Parser::number), nullptr}},
     {TokenType::AND, {nullptr, std::mem_fn(&Parser::binary)}},
@@ -216,6 +231,12 @@ Expr *Parser::grouping(bool /*canAssign*/) {
     return e;
 }
 
+Expr *Parser::identifier(bool /*canAssign*/) {
+    auto *e = newExpr();
+    e->expr = OBJ_AST(ident());
+    return e;
+}
+
 Expr *Parser::number(bool /*canAssign*/) {
     auto  *ast = newNumber();
     double value = strtod(previous.text.data(), nullptr);
@@ -257,6 +278,12 @@ Expr *Parser::primary(bool /*canAssign*/) {
     default:
         return nullptr; // Unreachable.
     }
+}
+
+Identifier *Parser::ident() {
+    auto *id = newIdentifier();
+    id->name = newString(previous.text);
+    return id;
 }
 
 void Parser::errorAt(Token *token, std::string_view message) {

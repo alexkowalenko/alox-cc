@@ -26,7 +26,7 @@ type Class = {
 let classes: Array<Class> = [
     {
         name: "Declaration",
-        instances: [{ type: "std::vector<Statement *>", name: "stats" }]
+        instances: [{ type: "std::vector<Obj *>", name: "stats" }]
     },
     {
         name: "Statement",
@@ -71,6 +71,14 @@ let classes: Array<Class> = [
     {
         name: "Print",
         instances: [{ name: "expr", type: "Expr*" }]
+    },
+    {
+        name: "VarDec",
+        instances: [{ name: "var", type: "Identifier*" }, { type: "Expr*", name: "expr" }]
+    },
+    {
+        name: "Identifier",
+        instances: [{ type: "ObjString*", name: "name" }]
     },
 ];
 

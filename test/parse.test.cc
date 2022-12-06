@@ -39,7 +39,7 @@ TEST(Parser, unary) { // NOLINT
         {"!true;", "!true;", ""},
 
         // errors
-        //{"+true", "", "unexpected +"},
+        {"+true", "", "[line 1] Error at '+': Expect expression."},
     };
     do_parse_tests(tests);
 }
@@ -64,8 +64,8 @@ TEST(Parser, binary) { // NOLINT
         {R"("a" + "b";)", R"(("a" + "b");)", ""},
 
         // Error
-        // {"2 +", "", "unexpected <eof>"},
-        // {"* 3", "", "unexpected *"},
+        {"2 +", "", "[line 1] Error at end: Expect expression."},
+        {"* 3", "", "unexpected *"},
     };
     do_parse_tests(tests);
 }
@@ -77,19 +77,35 @@ TEST(Parser, grouping) { // NOLINT
         {"(2 + 3) * 4 / 5;", "(((2 + 3) * 4) / 5);", ""},
 
         // Error
+        {"(3 + 4;", "", "[line 1] Error at ';': Expect ')' after expression."},
     };
     do_parse_tests(tests);
 }
 
 TEST(Parser, print) { // NOLINT
     std::vector<ParseTests> tests = {
-        {"print 0;", "print 0;", ""},           {"print true;", "print true;", ""},
-        {"print false;", "print false;", ""},   {"print nil;", "print nil;", ""},
-        {R"(print "a";)", R"(print "a";)", ""}, {R"(print "";)", R"(print "";)", ""},
+        {"print 0;", "print 0;", ""},
+        {"print true;", "print true;", ""},
+        {"print false;", "print false;", ""},
+        {"print nil;", "print nil;", ""},
+        {R"(print "a";)", R"(print "a";)", ""},
+        {R"(print "";)", R"(print "";)", ""},
         {"print 123456;", "print 123456;", ""},
 
         // // Error
-        // {"print ;", "", "unexpected ;"},
+        {"print ;", "", "[line 1] Error at ';': Expect expression."},
+    };
+    do_parse_tests(tests);
+}
+
+TEST(Parser, var) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"var x = 1;", "var x = 1;", ""},
+        {"var x;", "var x;", ""},
+
+        // Error
+        {"var ;", "", "[line 1] Error at ';': Expect variable name."},
+        {"var = ;", "", "unexpected = expecting <ident>"},
     };
     do_parse_tests(tests);
 }
@@ -112,7 +128,7 @@ void do_parse_tests(std::vector<ParseTests> &tests) {
 
             auto ast = parser.parse();
             if (parser.hadError) {
-                EXPECT_EQ(rtrim(err.str()), t.output);
+                EXPECT_EQ(rtrim(err.str()), t.error);
                 return; // INTERPRET_PARSE_ERROR;
             }
             std::stringstream os;

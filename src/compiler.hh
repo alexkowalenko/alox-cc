@@ -8,6 +8,7 @@
 #include "ast/boolean.hh"
 #include "ast/includes.hh"
 #include "ast/unary.hh"
+#include "ast/vardec.hh"
 #include "ast_base.hh"
 #include "chunk.hh"
 #include "context.hh"
@@ -15,6 +16,7 @@
 #include "options.hh"
 #include "parser.hh"
 #include "scanner.hh"
+#include <string_view>
 
 class Compiler {
   public:
@@ -26,6 +28,8 @@ class Compiler {
 
     // Compile the AST
     void declaration(Declaration *ast);
+    void varDeclaration(VarDec *ast);
+
     void statement(Statement *ast);
     void printStatement(Print *ast);
     void exprStatement(Expr *ast);
@@ -35,6 +39,7 @@ class Compiler {
     void and_(Binary *ast);
     void or_(Binary *ast);
     void unary(Unary *ast);
+    void variable(Identifier *ast, bool canAssign);
     void number(Number *ast);
     void string(String *ast);
     void boolean(Boolean *ast);
@@ -44,7 +49,6 @@ class Compiler {
 
     void super_(bool /*canAssign*/);
     void this_(bool /*canAssign*/);
-    void variable(bool canAssign);
 
   private:
     Chunk *currentChunk() { return &current->function->chunk; }
@@ -69,38 +73,37 @@ class Compiler {
     void         initCompiler(Context *compiler, FunctionType type);
     ObjFunction *endCompiler();
 
+    const_index_t parseVariable(const std::string &var);
+    void          declareVariable(const std::string &name);
+    void          addLocal(const std::string &name);
+    const_index_t identifierConstant(const std::string &name);
+    void          defineVariable(const_index_t global);
+    void          markInitialized();
+
     void beginScope();
     void endScope();
     void adjust_locals(int depth);
 
-    const_index_t identifierConstant(Token *name);
-    static bool   identifiersEqual(Token *a, Token *b);
-    int           resolveLocal(Context *compiler, Token *name);
-    int           addUpvalue(Context *compiler, uint8_t index, bool isLocal);
-    int           resolveUpvalue(Context *compiler, Token *name);
-    void          addLocal(Token name);
-    void          declareVariable();
-    const_index_t parseVariable(const char *errorMessage);
-    void          markInitialized();
-    void          defineVariable(const_index_t global);
+    int resolveLocal(Context *compiler, const std::string &name);
+    int addUpvalue(Context *compiler, uint8_t index, bool isLocal);
+    int resolveUpvalue(Context *compiler, const std::string &name);
 
     uint8_t argumentList();
 
-    void namedVariable(Token name, bool canAssign);
-
-    static Token syntheticToken(const char *text);
+    void namedVariable(const std::string &name, bool canAssign);
 
     void block();
     void function(FunctionType type);
     void method();
     void classDeclaration();
     void funDeclaration();
-    void varDeclaration();
     void forStatement();
     void ifStatement();
     void returnStatement();
     void whileStatement();
     void breakStatement(TokenType t);
+
+    void error(const std::string_view &);
 
     const Options &options;
     Parser        *parser{nullptr};

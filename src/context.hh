@@ -8,9 +8,9 @@
 #include "scanner.hh"
 
 struct Local {
-    Token name;
-    int   depth{};
-    bool  isCaptured{false};
+    std::string name;
+    int         depth{};
+    bool        isCaptured{false};
 };
 
 struct Upvalue {

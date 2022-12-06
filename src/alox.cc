@@ -89,10 +89,12 @@ InterpretResult Alox::runString(const std::string &source) {
     if (parser.hadError) {
         return INTERPRET_PARSE_ERROR;
     }
-    std::stringstream os;
-    AST_Printer       printer(os);
-    printer.print(ast);
-    std::cout << os.str();
+    if (options.parse) {
+        std::stringstream os;
+        AST_Printer       printer(os);
+        printer.print(ast);
+        std::cout << os.str();
+    }
 
     Compiler compiler(options);
     gc.set_compiler(&compiler);

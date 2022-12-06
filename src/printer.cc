@@ -6,6 +6,8 @@
 
 #include "printer.hh"
 #include "ast/expr.hh"
+#include "ast/vardec.hh"
+#include "ast_base.hh"
 #include "value.hh"
 
 void AST_Printer::print(Declaration *ast) {
@@ -14,9 +16,23 @@ void AST_Printer::print(Declaration *ast) {
 
 void AST_Printer::declaration(Declaration *ast) {
     for (auto *s : ast->stats) {
-        statement(s);
+        if (IS_VarDec(s)) {
+            varDec(AS_VarDec(s));
+        } else {
+            statement(AS_Statement(s));
+        }
         os << NL;
     }
+}
+
+void AST_Printer::varDec(VarDec *ast) {
+    os << "var ";
+    identifier(ast->var);
+    if (ast->expr) {
+        os << " = ";
+        expr(ast->expr);
+    }
+    os << ';';
 }
 
 void AST_Printer::statement(Statement *s) {
@@ -61,6 +77,8 @@ void AST_Printer::expr(Expr *ast) {
         unary(AS_Unary(ast->expr));
     } else if (IS_Binary(ast->expr)) {
         binary(AS_Binary(ast->expr));
+    } else if (IS_Identifier(ast->expr)) {
+        identifier(AS_Identifier(ast->expr));
     } else if (IS_Number(ast->expr)) {
         number(AS_Number(ast->expr));
     } else if (IS_String(ast->expr)) {
@@ -129,6 +147,10 @@ void AST_Printer::unary(Unary *ast) {
         return; // Unreachable.
     }
     expr(ast->expr);
+}
+
+void AST_Printer::identifier(Identifier *ast) {
+    printObject(os, OBJ_VAL(ast->name));
 }
 
 void AST_Printer::boolean(Boolean *expr) {

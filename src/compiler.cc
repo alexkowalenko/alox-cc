@@ -14,7 +14,9 @@
 
 #include "ast/boolean.hh"
 #include "ast/expr.hh"
+#include "ast/identifier.hh"
 #include "ast/print.hh"
+#include "ast/vardec.hh"
 #include "ast_base.hh"
 #include "chunk.hh"
 #include "common.hh"
@@ -33,6 +35,9 @@ static void debug(const S &format, const Args &...msg) {
 
 constexpr auto MAX_ARGS = UINT8_MAX;
 constexpr auto MAX_CONSTANTS = UINT16_MAX;
+
+constexpr auto sym_this = "this";
+constexpr auto sym_super = "super";
 
 // Code emission
 
@@ -118,9 +123,9 @@ void Compiler::initCompiler(Context *compiler, FunctionType type) {
     local->depth = 0;
     local->isCaptured = false;
     if (type != TYPE_FUNCTION) {
-        local->name.text = "this";
+        local->name = "this";
     } else {
-        local->name.text = "";
+        local->name = "";
     }
 }
 
@@ -163,28 +168,16 @@ void Compiler::adjust_locals(int depth) {
     }
 }
 
-const_index_t Compiler::identifierConstant(Token *name) {
-    return makeConstant(OBJ_VAL(newString(name->text)));
-}
-
-bool Compiler::identifiersEqual(Token *a, Token *b) {
-    if (a->text.size() != b->text.size()) {
-        return false;
-    }
-    return memcmp(a->text.data(), b->text.data(), a->text.size()) == 0;
-}
-
-int Compiler::resolveLocal(Context *compiler, Token *name) {
+int Compiler::resolveLocal(Context *compiler, const std::string &name) {
     for (int i = compiler->localCount - 1; i >= 0; i--) {
         Local *local = &compiler->locals[i];
-        if (identifiersEqual(name, &local->name)) {
+        if (name == local->name) {
             if (local->depth == -1) {
                 parser->error("Can't read local variable in its own initializer.");
             }
             return i;
         }
     }
-
     return -1;
 }
 
@@ -208,7 +201,7 @@ int Compiler::addUpvalue(Context *compiler, uint8_t index, bool isLocal) {
     return compiler->function->upvalueCount++;
 }
 
-int Compiler::resolveUpvalue(Context *compiler, Token *name) {
+int Compiler::resolveUpvalue(Context *compiler, const std::string &name) {
     if (compiler->enclosing == nullptr) {
         return -1;
     }
@@ -227,7 +220,7 @@ int Compiler::resolveUpvalue(Context *compiler, Token *name) {
     return -1;
 }
 
-void Compiler::addLocal(Token name) {
+void Compiler::addLocal(const std::string &name) {
     if (current->localCount == UINT8_COUNT) {
         parser->error("Too many local variables in function.");
         return;
@@ -239,24 +232,49 @@ void Compiler::addLocal(Token name) {
     local->isCaptured = false;
 }
 
-void Compiler::declareVariable() {
+void Compiler::declareVariable(const std::string &name) {
     if (current->scopeDepth == 0) {
         return;
     }
 
-    Token *name = &parser->previous;
     for (int i = current->localCount - 1; i >= 0; i--) {
         Local *local = &current->locals[i];
         if (local->depth != -1 && local->depth < current->scopeDepth) {
             break; // [negative]
         }
 
-        if (identifiersEqual(name, &local->name)) {
-            parser->error("Already a variable with this name in this scope.");
+        if (name == local->name) {
+            error("Already a variable with this name in this scope.");
         }
     }
+    addLocal(name);
+}
 
-    addLocal(*name);
+void Compiler::markInitialized() {
+    if (current->scopeDepth == 0) {
+        return;
+    }
+    current->locals[current->localCount - 1].depth = current->scopeDepth;
+}
+
+void Compiler::defineVariable(const_index_t global) {
+    if (current->scopeDepth > 0) {
+        markInitialized();
+        return;
+    }
+    emitByteConst(OpCode::DEFINE_GLOBAL, global);
+}
+
+const_index_t Compiler::parseVariable(const std::string &var) {
+    declareVariable(var);
+    if (current->scopeDepth > 0) {
+        return 0;
+    }
+    return identifierConstant(var);
+}
+
+const_index_t Compiler::identifierConstant(const std::string &name) {
+    return makeConstant(OBJ_VAL(newString(name)));
 }
 
 // Compiler functions
@@ -275,17 +293,27 @@ ObjFunction *Compiler::compile(Declaration *ast, Parser *p) {
 void Compiler::declaration(Declaration *ast) {
     debug("declaration");
 
-    for (auto d : ast->stats) {
-        // if (parser->match(TokenType::CLASS)) {
-        //     classDeclaration();
-        // } else if (parser->match(TokenType::FUN)) {
-        //     funDeclaration();
-        // } else if (parser->match(TokenType::VAR)) {
-        //     varDeclaration();
-        // } else {
-        statement(d);
-        // }
+    for (auto *d : ast->stats) {
+        if (parser->match(TokenType::CLASS)) {
+            //     classDeclaration();
+        } else if (parser->match(TokenType::FUN)) {
+            //     funDeclaration();
+        } else if (IS_VarDec(d)) {
+            varDeclaration(AS_VarDec(d));
+        } else {
+            statement(AS_Statement(d));
+        }
     }
+}
+
+void Compiler::varDeclaration(VarDec *ast) {
+    const uint8_t global = parseVariable(ast->var->name->str);
+    if (ast->expr) {
+        expr(ast->expr);
+    } else {
+        emitByte(OpCode::NIL);
+    }
+    defineVariable(global);
 }
 
 void Compiler::statement(Statement *ast) {
@@ -333,6 +361,8 @@ void Compiler::expr(Expr *ast) {
         binary(AS_Binary(ast->expr));
     } else if (IS_Number(ast->expr)) {
         number(AS_Number(ast->expr));
+    } else if (IS_Identifier(ast->expr)) {
+        variable(AS_Identifier(ast->expr), false);
     } else if (IS_String(ast->expr)) {
         string(AS_String(ast->expr));
     } else if (IS_Boolean(ast->expr)) {
@@ -427,6 +457,10 @@ void Compiler::unary(Unary *ast) {
     }
 }
 
+void Compiler::variable(Identifier *ast, bool canAssign) {
+    namedVariable(ast->name->str, canAssign);
+}
+
 void Compiler::number(Number *ast) {
     if (ast->value == 0) {
         emitByte(OpCode::ZERO);
@@ -453,33 +487,6 @@ void Compiler::boolean(Boolean *ast) {
 
 /////////////////////////////////////////////////////////////////////////
 
-const_index_t Compiler::parseVariable(const char *errorMessage) {
-    parser->consume(TokenType::IDENTIFIER, errorMessage);
-
-    declareVariable();
-    if (current->scopeDepth > 0) {
-        return 0;
-    }
-
-    return identifierConstant(&parser->previous);
-}
-
-void Compiler::markInitialized() {
-    if (current->scopeDepth == 0) {
-        return;
-    }
-    current->locals[current->localCount - 1].depth = current->scopeDepth;
-}
-
-void Compiler::defineVariable(const_index_t global) {
-    if (current->scopeDepth > 0) {
-        markInitialized();
-        return;
-    }
-
-    emitByteConst(OpCode::DEFINE_GLOBAL, global);
-}
-
 uint8_t Compiler::argumentList() {
     uint8_t argCount = 0;
     if (!parser->check(TokenType::RIGHT_PAREN)) {
@@ -502,7 +509,7 @@ void Compiler::call(bool /*canAssign*/) {
 
 void Compiler::dot(bool canAssign) {
     parser->consume(TokenType::IDENTIFIER, "Expect property name after '.'.");
-    auto name = identifierConstant(&parser->previous);
+    auto name = identifierConstant(parser->previous.text);
 
     if (canAssign && parser->match(TokenType::EQUAL)) {
         expr(nullptr);
@@ -516,18 +523,18 @@ void Compiler::dot(bool canAssign) {
     }
 }
 
-void Compiler::namedVariable(Token name, bool canAssign) {
+void Compiler::namedVariable(const std::string &name, bool canAssign) {
     OpCode getOp, setOp;
     bool   is_16{false};
-    int    arg = resolveLocal(current, &name);
+    int    arg = resolveLocal(current, name);
     if (arg != -1) {
         getOp = OpCode::GET_LOCAL;
         setOp = OpCode::SET_LOCAL;
-    } else if ((arg = resolveUpvalue(current, &name)) != -1) {
+    } else if ((arg = resolveUpvalue(current, name)) != -1) {
         getOp = OpCode::GET_UPVALUE;
         setOp = OpCode::SET_UPVALUE;
     } else {
-        arg = identifierConstant(&name);
+        arg = identifierConstant(name);
         getOp = OpCode::GET_GLOBAL;
         setOp = OpCode::SET_GLOBAL;
         is_16 = true;
@@ -549,16 +556,6 @@ void Compiler::namedVariable(Token name, bool canAssign) {
     }
 }
 
-void Compiler::variable(bool canAssign) {
-    namedVariable(parser->previous, canAssign);
-}
-
-Token Compiler::syntheticToken(const char *text) {
-    Token token{};
-    token.text = {text, static_cast<size_t>((int)strlen(text))};
-    return token;
-}
-
 void Compiler::super_(bool /*canAssign*/) {
     if (currentClass == nullptr) {
         parser->error("Can't use 'super' outside of a class.");
@@ -568,16 +565,16 @@ void Compiler::super_(bool /*canAssign*/) {
 
     parser->consume(TokenType::DOT, "Expect '.' after 'super'.");
     parser->consume(TokenType::IDENTIFIER, "Expect superclass method name.");
-    auto name = identifierConstant(&parser->previous);
+    auto name = identifierConstant(parser->previous.text);
 
-    namedVariable(syntheticToken("this"), false);
+    namedVariable(sym_this, false);
     if (parser->match(TokenType::LEFT_PAREN)) {
         const uint8_t argCount = argumentList();
-        namedVariable(syntheticToken("super"), false);
+        namedVariable(sym_super, false);
         emitByteConst(OpCode::SUPER_INVOKE, name);
         emitByte(argCount);
     } else {
-        namedVariable(syntheticToken("super"), false);
+        namedVariable(sym_super, false);
         emitByteConst(OpCode::GET_SUPER, name);
     }
 }
@@ -588,7 +585,7 @@ void Compiler::this_(bool /*canAssign*/) {
         return;
     }
 
-    variable(false);
+    variable(nullptr, false);
 }
 
 void Compiler::block() {
@@ -612,7 +609,7 @@ void Compiler::function(FunctionType type) {
                 parser->errorAtCurrent(
                     fmt::format("Can't have more than {} parameters.", MAX_ARGS));
             }
-            const uint8_t constant = parseVariable("Expect parameter name.");
+            const uint8_t constant = parseVariable("name"); // replace
             defineVariable(constant);
         } while (parser->match(TokenType::COMMA));
     }
@@ -631,7 +628,7 @@ void Compiler::function(FunctionType type) {
 
 void Compiler::method() {
     parser->consume(TokenType::IDENTIFIER, "Expect method name.");
-    auto constant = identifierConstant(&parser->previous);
+    auto constant = identifierConstant(parser->previous.text);
 
     FunctionType type = TYPE_METHOD;
     if (parser->previous.text.size() == 4 &&
@@ -646,8 +643,8 @@ void Compiler::method() {
 void Compiler::classDeclaration() {
     parser->consume(TokenType::IDENTIFIER, "Expect class name.");
     Token className = parser->previous;
-    auto  nameConstant = identifierConstant(&parser->previous);
-    declareVariable();
+    auto  nameConstant = identifierConstant(parser->previous.text);
+    declareVariable("name"); // replace
 
     emitByteConst(OpCode::CLASS, nameConstant);
     defineVariable(nameConstant);
@@ -659,22 +656,22 @@ void Compiler::classDeclaration() {
 
     if (parser->match(TokenType::LESS)) {
         parser->consume(TokenType::IDENTIFIER, "Expect superclass name.");
-        variable(false);
+        variable(nullptr, false);
 
-        if (identifiersEqual(&className, &parser->previous)) {
+        if (className.text == parser->previous.text) {
             parser->error("A class can't inherit from itself.");
         }
 
         beginScope();
-        addLocal(syntheticToken("super"));
+        addLocal(sym_super);
         defineVariable(0);
 
-        namedVariable(className, false);
+        namedVariable(className.text, false);
         emitByte(OpCode::INHERIT);
         classCompiler.hasSuperclass = true;
     }
 
-    namedVariable(className, false);
+    namedVariable(className.text, false);
     parser->consume(TokenType::LEFT_BRACE, "Expect '{' before class body.");
     while (!parser->check(TokenType::RIGHT_BRACE) && !parser->check(TokenType::EOFS)) {
         method();
@@ -690,22 +687,9 @@ void Compiler::classDeclaration() {
 }
 
 void Compiler::funDeclaration() {
-    const uint8_t global = parseVariable("Expect function name.");
+    const uint8_t global = parseVariable("name"); // replace
     markInitialized();
     function(TYPE_FUNCTION);
-    defineVariable(global);
-}
-
-void Compiler::varDeclaration() {
-    const uint8_t global = parseVariable("Expect variable name.");
-
-    if (parser->match(TokenType::EQUAL)) {
-        expr(nullptr);
-    } else {
-        emitByte(OpCode::NIL);
-    }
-    parser->consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
-
     defineVariable(global);
 }
 
@@ -724,7 +708,7 @@ void Compiler::forStatement() {
     if (parser->match(TokenType::SEMICOLON)) {
         // No initializer.
     } else if (parser->match(TokenType::VAR)) {
-        varDeclaration();
+        varDeclaration(nullptr); // replace
     } else {
         expr(nullptr);
     }
@@ -882,4 +866,8 @@ void Compiler::markCompilerRoots() {
         gc.markObject((Obj *)compiler->function);
         compiler = compiler->enclosing;
     }
+}
+
+void Compiler::error(const std::string_view &message) {
+    parser->error(message);
 }
