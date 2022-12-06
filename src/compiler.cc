@@ -61,7 +61,7 @@ void Compiler::emitLoop(int loopStart) {
 
     auto offset = currentChunk()->get_count() - loopStart + 2;
     if (offset > UINT16_MAX) {
-        parser->error("Loop body too large.");
+        err.errorAt(currentChunk()->line_last(), "Loop body too large.");
     }
 
     emitByte((offset >> UINT8_WIDTH) & 0xff);
@@ -88,7 +88,7 @@ void Compiler::emitReturn() {
 const_index_t Compiler::makeConstant(Value value) {
     auto constant = currentChunk()->add_constant(value);
     if (constant > MAX_CONSTANTS) {
-        parser->error("Too many constants in one chunk.");
+        err.errorAt(currentChunk()->line_last(), "Too many constants in one chunk.");
         return 0;
     }
     return constant;
@@ -103,7 +103,7 @@ void Compiler::patchJump(int offset) {
     auto jump = currentChunk()->get_count() - offset - 2;
 
     if (jump > UINT16_MAX) {
-        parser->error("Too much code to jump over.");
+        err.errorAt(currentChunk()->line_last(), "Too much code to jump over.");
     }
 
     currentChunk()->get_code(offset) = (jump >> UINT8_WIDTH) & 0xff;
@@ -134,7 +134,7 @@ ObjFunction *Compiler::endCompiler() {
     ObjFunction *function = current->function;
 
     if (options.debug_code) {
-        if (!parser->hadError) {
+        if (!err.hadError) {
             disassembleChunk(currentChunk(), function->name != nullptr
                                                  ? function->name->str
                                                  : "<script>");
@@ -173,7 +173,8 @@ int Compiler::resolveLocal(Context *compiler, const std::string &name) {
         Local *local = &compiler->locals[i];
         if (name == local->name) {
             if (local->depth == -1) {
-                parser->error("Can't read local variable in its own initializer.");
+                err.errorAt(currentChunk()->line_last(),
+                            "Can't read local variable in its own initializer.");
             }
             return i;
         }
@@ -192,7 +193,8 @@ int Compiler::addUpvalue(Context *compiler, uint8_t index, bool isLocal) {
     }
 
     if (upvalueCount == UINT8_COUNT) {
-        parser->error("Too many closure variables in function.");
+        err.errorAt(currentChunk()->line_last(),
+                    "Too many closure variables in function.");
         return 0;
     }
 
@@ -222,7 +224,7 @@ int Compiler::resolveUpvalue(Context *compiler, const std::string &name) {
 
 void Compiler::addLocal(const std::string &name) {
     if (current->localCount == UINT8_COUNT) {
-        parser->error("Too many local variables in function.");
+        err.errorAt(currentChunk()->line_last(), "Too many local variables in function.");
         return;
     }
 
@@ -244,7 +246,8 @@ void Compiler::declareVariable(const std::string &name) {
         }
 
         if (name == local->name) {
-            error("Already a variable with this name in this scope.");
+            err.errorAt(currentChunk()->line_last(),
+                        "Already a variable with this name in this scope.");
         }
     }
     addLocal(name);
@@ -868,6 +871,6 @@ void Compiler::markCompilerRoots() {
     }
 }
 
-void Compiler::error(const std::string_view &message) {
-    parser->error(message);
+void Compiler::error(int line, const std::string_view &message) {
+    err.errorAt(line, message);
 }

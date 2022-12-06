@@ -20,7 +20,7 @@
 
 class Compiler {
   public:
-    Compiler(const Options &opt) : options(opt){};
+    Compiler(const Options &opt, Error &err) : options(opt), err(err){};
     ~Compiler() = default;
 
     ObjFunction *compile(Declaration *ast, Parser *source);
@@ -103,9 +103,10 @@ class Compiler {
     void whileStatement();
     void breakStatement(TokenType t);
 
-    void error(const std::string_view &);
+    void error(int line, const std::string_view &);
 
     const Options &options;
+    Error         &err;
     Parser        *parser{nullptr};
 
     Context      *current{nullptr};

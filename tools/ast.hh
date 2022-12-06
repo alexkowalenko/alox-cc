@@ -15,14 +15,16 @@ constexpr ObjType AST_{{name}} = {{index}};
 class {{name}} {
   public:
     Obj obj;
+    int line{0};
 
     {{#instances}}
     {{{type}}}     {{name}};
     {{/instances}}
 };
 
-inline  {{name}} *new{{name}}() {
+inline  {{name}} *new{{name}}(int l) {
     auto *ast = gc.allocateObject< {{name}}>(AST_{{name}});
+    ast->line = l;
     return ast;
 }
 

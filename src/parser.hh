@@ -9,6 +9,7 @@
 #include <string_view>
 
 #include "ast/includes.hh"
+#include "error.hh"
 #include "scanner.hh"
 
 enum class Precedence {
@@ -36,7 +37,7 @@ struct ParseRule {
 
 class Parser {
   public:
-    Parser(Scanner &s, std::ostream &err) : scanner(s), err(err){};
+    Parser(Scanner &s, Error &err) : scanner(s), err(err){};
 
     Declaration *parse();
     void         declaration(Declaration *);
@@ -61,10 +62,9 @@ class Parser {
 
     static ParseRule const *getRule(TokenType type);
 
-    void           errorAt(Token *token, std::string_view message);
-    constexpr void error(std::string_view message) { errorAt(&previous, message); }
+    constexpr void error(std::string_view message) { err.errorAt(&previous, message); }
     constexpr void errorAtCurrent(std::string_view message) {
-        errorAt(&current, message);
+        err.errorAt(&current, message);
     }
     void synchronize();
 
@@ -78,10 +78,7 @@ class Parser {
     Token current;
     Token previous;
 
-    bool panicMode{false};
-    bool hadError{false};
-
   private:
-    Scanner      &scanner;
-    std::ostream &err;
+    Scanner &scanner;
+    Error   &err;
 };

@@ -122,12 +122,13 @@ void do_parse_tests(std::vector<ParseTests> &tests) {
     for (auto const &t : tests) {
         try {
             std::cout << t.input << std::endl;
-            auto              scanner = Scanner(t.input);
-            std::stringstream err;
-            auto              parser = Parser(scanner, err);
+            Scanner            scanner(t.input);
+            std::ostringstream err;
+            Error              errors(err);
+            Parser             parser(scanner, errors);
 
             auto ast = parser.parse();
-            if (parser.hadError) {
+            if (errors.hadError) {
                 EXPECT_EQ(rtrim(err.str()), t.error);
                 return; // INTERPRET_PARSE_ERROR;
             }

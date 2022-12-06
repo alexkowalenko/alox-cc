@@ -33,4 +33,5 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 package_add_test(scanner.test scanner.test.cc)
 package_add_test(string.test string.test.cc)
 package_add_test(parse.test parse.test.cc)
+package_add_test(eval.test eval.test.cc)
 

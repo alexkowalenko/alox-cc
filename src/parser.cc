@@ -25,9 +25,9 @@ static void debug(const S &format, const Args &...msg) {
 }
 
 Declaration *Parser::parse() {
-    auto *ast = newDeclaration();
-
     advance();
+    auto *ast = newDeclaration(current.line);
+
     while (!match(TokenType::EOFS)) {
         declaration(ast);
     }
@@ -45,13 +45,13 @@ void Parser::declaration(Declaration *ast) {
         ast->stats.push_back(OBJ_AST(statement()));
     }
 
-    if (panicMode) {
+    if (err.panicMode) {
         synchronize();
     }
 }
 
 VarDec *Parser::varDeclaration() {
-    auto *ast = newVarDec();
+    auto *ast = newVarDec(current.line);
     consume(TokenType::IDENTIFIER, "Expect variable name.");
     ast->var = ident();
 
@@ -65,7 +65,7 @@ VarDec *Parser::varDeclaration() {
 }
 
 Statement *Parser::statement() {
-    auto *ast = newStatement();
+    auto *ast = newStatement(current.line);
     if (match(TokenType::PRINT)) {
         ast->stat = OBJ_AST(printStatement());
     } else if (match(TokenType::FOR)) {
@@ -91,7 +91,7 @@ Statement *Parser::statement() {
 }
 
 Print *Parser::printStatement() {
-    auto *ast = newPrint();
+    auto *ast = newPrint(current.line);
     ast->expr = expr();
     consume(TokenType::SEMICOLON, "Expect ';' after value.");
     return ast;
@@ -182,7 +182,7 @@ Expr *Parser::expr() {
 }
 
 Expr *Parser::parsePrecedence(Precedence precedence) {
-    auto *left = newExpr();
+    auto *left = newExpr(current.line);
     advance();
     auto prefixRule = getRule(previous.type)->prefix;
     if (prefixRule == nullptr) {
@@ -206,21 +206,21 @@ Expr *Parser::parsePrecedence(Precedence precedence) {
 }
 
 Expr *Parser::unary(bool /*canAssign*/) {
-    auto *ast = newUnary();
+    auto *ast = newUnary(current.line);
     ast->token = previous.type;
     ast->expr = parsePrecedence(Precedence::UNARY);
-    auto *e = newExpr();
+    auto *e = newExpr(current.line);
     e->expr = OBJ_AST(ast);
     return e;
 }
 
 Expr *Parser::binary(Expr *left, bool /*canAssign*/) {
-    auto *binary = newBinary();
+    auto *binary = newBinary(current.line);
     binary->left = left;
     binary->token = previous.type;
     const auto precedence = get_precedence(previous.type);
     binary->right = parsePrecedence((Precedence)(int(precedence) + 1));
-    auto *e = newExpr();
+    auto *e = newExpr(current.line);
     e->expr = OBJ_AST(binary);
     return e;
 }
@@ -232,45 +232,45 @@ Expr *Parser::grouping(bool /*canAssign*/) {
 }
 
 Expr *Parser::identifier(bool /*canAssign*/) {
-    auto *e = newExpr();
+    auto *e = newExpr(current.line);
     e->expr = OBJ_AST(ident());
     return e;
 }
 
 Expr *Parser::number(bool /*canAssign*/) {
-    auto  *ast = newNumber();
+    auto  *ast = newNumber(current.line);
     double value = strtod(previous.text.data(), nullptr);
     debug("number {}", value);
     ast->value = value;
-    auto *e = newExpr();
+    auto *e = newExpr(current.line);
     e->expr = OBJ_AST(ast);
     return e;
 }
 
 Expr *Parser::string(bool /*canAssign*/) {
-    auto *ast = newString();
+    auto *ast = newString(current.line);
     ast->value = newString(previous.text);
-    auto *e = newExpr();
+    auto *e = newExpr(current.line);
     e->expr = OBJ_AST(ast);
     return e;
 }
 
 Expr *Parser::primary(bool /*canAssign*/) {
-    auto *e = newExpr();
+    auto *e = newExpr(current.line);
     switch (previous.type) {
     case TokenType::FALSE: {
-        auto b = newBoolean();
+        auto b = newBoolean(current.line);
         b->value = false;
         e->expr = OBJ_AST(b);
         return e;
     }
     case TokenType::NIL: {
-        auto b = newNil();
+        auto b = newNil(current.line);
         e->expr = OBJ_AST(b);
         return e;
     }
     case TokenType::TRUE: {
-        auto b = newBoolean();
+        auto b = newBoolean(current.line);
         b->value = true;
         e->expr = OBJ_AST(b);
         return e;
@@ -281,31 +281,13 @@ Expr *Parser::primary(bool /*canAssign*/) {
 }
 
 Identifier *Parser::ident() {
-    auto *id = newIdentifier();
+    auto *id = newIdentifier(current.line);
     id->name = newString(previous.text);
     return id;
 }
 
-void Parser::errorAt(Token *token, std::string_view message) {
-    if (panicMode) {
-        return;
-    }
-    panicMode = true;
-    err << fmt::format("[line {}] Error", token->line);
-
-    if (token->type == TokenType::EOFS) {
-        err << " at end";
-    } else if (token->type == TokenType::ERROR) {
-        // Nothing.
-    } else {
-        err << fmt::format(" at '{:s}'", token->text);
-    }
-    err << fmt::format(": {}\n", message);
-    hadError = true;
-}
-
 void Parser::synchronize() {
-    panicMode = false;
+    err.panicMode = false;
 
     while (current.type != TokenType::EOFS) {
         if (previous.type == TokenType::SEMICOLON) {

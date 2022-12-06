@@ -36,23 +36,26 @@ void VM::resetStack() {
 }
 
 template <typename... T> void VM::runtimeError(const char *format, const T &...msg) {
-    std::cerr << fmt::format(fmt::runtime(format), msg...); // NOLINT
-    std::cerr << '\n';
+    options.err << fmt::format(fmt::runtime(format), msg...); // NOLINT
+    options.err << '\n';
 
     for (int i = frameCount - 1; i >= 0; i--) {
         CallFrame   *frame = &frames[i];
         ObjFunction *function = frame->closure->function;
         const size_t instruction = frame->ip - function->chunk.get_code() - 1;
-        std::cerr << fmt::format("[line {:d}] in ", // [minus]
-                                 function->chunk.get_line(instruction));
+        options.err << fmt::format("[line {:d}] in ", // [minus]
+                                   function->chunk.get_line(instruction));
         if (function->name == nullptr) {
-            std::cerr << "script\n";
+            options.err << "script\n";
         } else {
-            std::cerr << fmt::format("{}()\n", function->name->str);
+            options.err << fmt::format("{}()\n", function->name->str);
         }
     }
 
     resetStack();
+    if (errors) {
+        errors->hadError = true;
+    }
 }
 
 // Not necessarily fast with optimised code
@@ -89,7 +92,7 @@ void VM::markRoots() {
     }
 
     this->globals.mark();
-   
+
     gc.markObject((Obj *)this->initString);
 }
 
@@ -460,7 +463,7 @@ InterpretResult VM::run() {
             push(NUMBER_VAL(-AS_NUMBER(pop())));
             break;
         case OpCode::PRINT: {
-            printValue(std::cout, pop());
+            printValue(options.out, pop());
             std::cout << "\n";
             break;
         }
