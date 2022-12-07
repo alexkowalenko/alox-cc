@@ -151,6 +151,7 @@ TEST(Parser, if) { // NOLINT
 TEST(Parser, while) { // NOLINT
     std::vector<ParseTests> tests = {
         {"while (true) print 1;", "while (true) print 1;", ""},
+        {"while (true) {print 1;}", "while (true) { print 1; }", ""},
         {"while (true) { print 1; print 2;}", "while (true) { print 1; print 2; }", ""},
         {"while (a == b) {} ", "while ((a == b)) { }", ""},
 

@@ -111,6 +111,23 @@ TEST(Eval, if) { // NOLINT
     do_eval_tests(tests);
 }
 
+TEST(Eval, while) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"while (false) print 1;", "", ""},
+        {"while (false) {print 1;}", "", ""},
+        {"var x = 2; while (x == 2) {x=3;} print x;", "3", ""},
+    };
+    do_eval_tests(tests);
+}
+
+TEST(Eval, for) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"for (var x = 1; x > 2; ) print 2; print 3;", "3", ""},
+        {"for (var x = 1; x > 2; ) {print 2; print 3;}", "", ""},
+    };
+    do_eval_tests(tests);
+}
+
 inline std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); })
                 .base(),
