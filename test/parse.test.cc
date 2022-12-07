@@ -110,6 +110,18 @@ TEST(Parser, var) { // NOLINT
     do_parse_tests(tests);
 }
 
+TEST(Parser, assign) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"x = 1;", "x = 1;", ""},
+        {"jones = 2 + x;", "jones = (2 + x);", ""},
+
+        // Error
+        {"x = ;", "", "[line 1] Error at ';': Expect expression."},
+        {"= 2 ;", "", "[line 1] Error at '=': Expect expression."},
+    };
+    do_parse_tests(tests);
+}
+
 TEST(Parser, block) { // NOLINT
     std::vector<ParseTests> tests = {
         {"{var x = 1;}", "{ var x = 1; }", ""},
@@ -157,8 +169,8 @@ TEST(Parser, for) { // NOLINT
         {"for (; true ;) {}", "for (;true;) { }", ""},
         {"for (; ;true) {}", "for (;;true) { }", ""},
         {"for (true; true ; true) { true;}", "for (true;true;true) { true; }", ""},
-        // {"for (var x= 1; x < 10 ; x = x + 1) { true;}",
-        //  "for (var x = 1;(x < 10); x = (x + 1)) { true; }", ""},
+        {"for (var x= 1; x < 10 ; x = x + 1) { true;}",
+         "for (var x = 1;(x < 10);x = (x + 1)) { true; }", ""},
 
         // Error
         {"for true; true ; true) { true;}", "",

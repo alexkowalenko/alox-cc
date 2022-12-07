@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "ast/assign.hh"
 #include "ast/binary.hh"
 #include "ast/block.hh"
 #include "ast/boolean.hh"
@@ -41,11 +42,12 @@ class Compiler {
     void block(Block *);
     void exprStatement(Expr *ast);
 
-    void expr(Expr *ast);
-    void binary(Binary *ast);
-    void and_(Binary *ast);
-    void or_(Binary *ast);
-    void unary(Unary *ast);
+    void expr(Expr *ast, bool canAssign = false);
+    void binary(Binary *ast, bool canAssign);
+    void assign(Assign *ast);
+    void and_(Binary *ast, bool canAssign);
+    void or_(Binary *ast, bool canAssign);
+    void unary(Unary *ast, bool canAssign);
     void variable(Identifier *ast, bool canAssign);
     void number(Number *ast);
     void string(String *ast);
@@ -86,6 +88,7 @@ class Compiler {
     void          markInitialized();
     void          beginScope();
     void          endScope();
+    void          namedVariable(const std::string &name, bool canAssign);
 
     void adjust_locals(int depth);
 
@@ -94,8 +97,6 @@ class Compiler {
     int resolveUpvalue(Context *compiler, const std::string &name);
 
     uint8_t argumentList();
-
-    void namedVariable(const std::string &name, bool canAssign);
 
     void function(FunctionType type);
     void method();

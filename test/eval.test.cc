@@ -80,6 +80,14 @@ TEST(Eval, var) { // NOLINT
     do_eval_tests(tests);
 }
 
+TEST(Eval, assign) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"var x = 1; x = 2; print x;", "2", ""},
+        {"var x = 3; x = x + 2; print x;", "5", ""},
+    };
+    do_eval_tests(tests);
+}
+
 TEST(Eval, block) { // NOLINT
     std::vector<ParseTests> tests = {
         {"{var x = 1; print x;}", "1", ""},

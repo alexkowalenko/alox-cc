@@ -282,6 +282,38 @@ const_index_t Compiler::identifierConstant(const std::string &name) {
     return makeConstant(OBJ_VAL(newString(name)));
 }
 
+void Compiler::namedVariable(const std::string &name, bool canAssign) {
+    OpCode getOp, setOp;
+    bool   is_16{false};
+    int    arg = resolveLocal(current, name);
+    if (arg != -1) {
+        getOp = OpCode::GET_LOCAL;
+        setOp = OpCode::SET_LOCAL;
+    } else if ((arg = resolveUpvalue(current, name)) != -1) {
+        getOp = OpCode::GET_UPVALUE;
+        setOp = OpCode::SET_UPVALUE;
+    } else {
+        arg = identifierConstant(name);
+        getOp = OpCode::GET_GLOBAL;
+        setOp = OpCode::SET_GLOBAL;
+        is_16 = true;
+    }
+
+    if (canAssign) {
+        if (is_16) {
+            emitByteConst(setOp, (const_index_t)arg);
+        } else {
+            emitBytes(setOp, (uint8_t)arg);
+        }
+    } else {
+        if (is_16) {
+            emitByteConst(getOp, (const_index_t)arg);
+        } else {
+            emitBytes(getOp, (uint8_t)arg);
+        }
+    }
+}
+
 // Compiler functions
 
 ObjFunction *Compiler::compile(Declaration *ast, Parser *p) {
@@ -475,18 +507,20 @@ void Compiler::exprStatement(Expr *ast) {
     emitByte(OpCode::POP);
 }
 
-void Compiler::expr(Expr *ast) {
+void Compiler::expr(Expr *ast, bool canAssign) {
     debug("expr");
     if (IS_Expr(ast->expr)) {
-        expr(AS_Expr(ast->expr));
+        expr(AS_Expr(ast->expr), canAssign);
+    } else if (IS_Assign(ast->expr)) {
+        assign(AS_Assign(ast->expr));
     } else if (IS_Unary(ast->expr)) {
-        unary(AS_Unary(ast->expr));
+        unary(AS_Unary(ast->expr), canAssign);
     } else if (IS_Binary(ast->expr)) {
-        binary(AS_Binary(ast->expr));
+        binary(AS_Binary(ast->expr), canAssign);
     } else if (IS_Number(ast->expr)) {
         number(AS_Number(ast->expr));
     } else if (IS_Identifier(ast->expr)) {
-        variable(AS_Identifier(ast->expr), false);
+        variable(AS_Identifier(ast->expr), canAssign);
     } else if (IS_String(ast->expr)) {
         string(AS_String(ast->expr));
     } else if (IS_Boolean(ast->expr)) {
@@ -496,17 +530,22 @@ void Compiler::expr(Expr *ast) {
     }
 }
 
-void Compiler::binary(Binary *ast) {
+void Compiler::assign(Assign *ast) {
+    expr(ast->right, false);
+    expr(ast->left, true);
+}
+
+void Compiler::binary(Binary *ast, bool canAssign) {
     if (ast->token == TokenType::AND) {
-        and_(ast);
+        and_(ast, canAssign);
         return;
     }
     if (ast->token == TokenType::OR) {
-        or_(ast);
+        or_(ast, canAssign);
         return;
     }
-    expr(ast->left);
-    expr(ast->right);
+    expr(ast->left, canAssign);
+    expr(ast->right, canAssign);
 
     switch (ast->token) {
     case TokenType::BANG_EQUAL:
@@ -544,29 +583,29 @@ void Compiler::binary(Binary *ast) {
     }
 }
 
-void Compiler::and_(Binary *ast) {
-    expr(ast->left);
+void Compiler::and_(Binary *ast, bool canAssign) {
+    expr(ast->left, canAssign);
     const int endJump = emitJump(OpCode::JUMP_IF_FALSE);
     emitByte(OpCode::POP);
 
-    expr(ast->right);
+    expr(ast->right, canAssign);
     patchJump(endJump);
 }
 
-void Compiler::or_(Binary *ast) {
-    expr(ast->left);
+void Compiler::or_(Binary *ast, bool canAssign) {
+    expr(ast->left, canAssign);
     int elseJump = emitJump(OpCode::JUMP_IF_FALSE);
     int endJump = emitJump(OpCode::JUMP);
 
     patchJump(elseJump);
     emitByte(OpCode::POP);
 
-    expr(ast->right);
+    expr(ast->right, canAssign);
     patchJump(endJump);
 }
 
-void Compiler::unary(Unary *ast) {
-    expr(ast->expr);
+void Compiler::unary(Unary *ast, bool canAssign) {
+    expr(ast->expr, canAssign);
 
     // Emit the operator instruction.
     switch (ast->token) {
@@ -644,39 +683,6 @@ void Compiler::dot(bool canAssign) {
         emitByte(argCount);
     } else {
         emitByteConst(OpCode::GET_PROPERTY, name);
-    }
-}
-
-void Compiler::namedVariable(const std::string &name, bool canAssign) {
-    OpCode getOp, setOp;
-    bool   is_16{false};
-    int    arg = resolveLocal(current, name);
-    if (arg != -1) {
-        getOp = OpCode::GET_LOCAL;
-        setOp = OpCode::SET_LOCAL;
-    } else if ((arg = resolveUpvalue(current, name)) != -1) {
-        getOp = OpCode::GET_UPVALUE;
-        setOp = OpCode::SET_UPVALUE;
-    } else {
-        arg = identifierConstant(name);
-        getOp = OpCode::GET_GLOBAL;
-        setOp = OpCode::SET_GLOBAL;
-        is_16 = true;
-    }
-
-    if (canAssign && parser->match(TokenType::EQUAL)) {
-        expr(nullptr);
-        if (is_16) {
-            emitByteConst(setOp, (const_index_t)arg);
-        } else {
-            emitBytes(setOp, (uint8_t)arg);
-        }
-    } else {
-        if (is_16) {
-            emitByteConst(getOp, (const_index_t)arg);
-        } else {
-            emitBytes(getOp, (uint8_t)arg);
-        }
     }
 }
 

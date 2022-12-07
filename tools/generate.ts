@@ -81,6 +81,10 @@ let classes: Array<Class> = [
         instances: [{ type: "ObjString*", name: "name" }]
     },
     {
+        name: "Assign",
+        instances: [{ type: "Expr *", name: "left" }, { type: "Expr *", name: "right" },]
+    },
+    {
         name: "Block",
         instances: [{ type: "std::vector<Obj *>", name: "stats" }]
     },

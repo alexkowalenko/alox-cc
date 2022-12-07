@@ -184,6 +184,7 @@ Expr *Parser::exprStatement() {
 }
 
 inline const std::map<TokenType, Precedence> precedence_map{
+    {TokenType::EQUAL, Precedence::ASSIGNMENT},
     {TokenType::OR, Precedence::OR},
     {TokenType::AND, Precedence::AND},
     {TokenType::EQUAL_EQUAL, Precedence::EQUALITY},
@@ -223,7 +224,7 @@ inline const std::map<TokenType, ParseRule> rules{
     {TokenType::ASTÉRIX, {nullptr, std::mem_fn(&Parser::binary)}},
     {TokenType::BANG, {std::mem_fn(&Parser::unary), nullptr}},
     {TokenType::BANG_EQUAL, {nullptr, std::mem_fn(&Parser::binary)}},
-    // // {TokenType::EQUAL, {nullptr, nullptr}},
+    {TokenType::EQUAL, {nullptr, std::mem_fn(&Parser::assign)}},
     {TokenType::EQUAL_EQUAL, {nullptr, std::mem_fn(&Parser::binary)}},
     {TokenType::GREATER, {nullptr, std::mem_fn(&Parser::binary)}},
     {TokenType::GREATER_EQUAL, {nullptr, std::mem_fn(&Parser::binary)}},
@@ -302,6 +303,16 @@ Expr *Parser::binary(Expr *left, bool /*canAssign*/) {
     binary->right = parsePrecedence((Precedence)(int(precedence) + 1));
     auto *e = newExpr(current.line);
     e->expr = OBJ_AST(binary);
+    return e;
+}
+
+Expr *Parser::assign(Expr *left, bool /*canAssign*/) {
+    debug("assign");
+    auto *a = newAssign(current.line);
+    a->left = left;
+    a->right = parsePrecedence(Precedence::ASSIGNMENT);
+    auto *e = newExpr(current.line);
+    e->expr = OBJ_AST(a);
     return e;
 }
 

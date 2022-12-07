@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "ast/assign.hh"
 #include "ast/block.hh"
 #include "ast/boolean.hh"
 #include "ast/identifier.hh"
@@ -35,6 +36,7 @@ class AST_Printer {
     void exprStatement(Expr *s);
     void expr(Expr *expr);
     void binary(Binary *ast);
+    void assign(Assign *ast);
     void unary(Unary *ast);
     void identifier(Identifier *ast);
     void boolean(Boolean *expr);

@@ -5,6 +5,7 @@
 //
 
 #include "printer.hh"
+#include "ast/assign.hh"
 #include "ast/block.hh"
 #include "ast/declaration.hh"
 #include "ast/expr.hh"
@@ -138,6 +139,8 @@ void AST_Printer::expr(Expr *ast) {
         string(AS_String(ast->expr));
     } else if (IS_Boolean(ast->expr)) {
         boolean(AS_Boolean(ast->expr));
+    } else if (IS_Assign(ast->expr)) {
+        assign(AS_Assign(ast->expr));
     } else if (IS_Nil(ast->expr)) {
         os << "nil";
     }
@@ -186,6 +189,12 @@ void AST_Printer::binary(Binary *ast) {
     }
     expr(ast->right);
     os << ')';
+}
+
+void AST_Printer::assign(Assign *ast) {
+    expr(ast->left);
+    os << " = ";
+    expr(ast->right);
 }
 
 void AST_Printer::unary(Unary *ast) {

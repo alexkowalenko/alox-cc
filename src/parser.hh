@@ -55,6 +55,8 @@ class Parser {
     Expr *parsePrecedence(Precedence precedence);
 
     Expr *binary(Expr *left, bool /*canAssign*/);
+    Expr *assign(Expr *left, bool /*canAssign*/);
+    
     Expr *grouping(bool /*canAssign*/);
     Expr *unary(bool /*canAssign*/);
     Expr *identifier(bool /*canAssign*/);
