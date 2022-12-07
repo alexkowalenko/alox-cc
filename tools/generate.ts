@@ -84,6 +84,26 @@ let classes: Array<Class> = [
         name: "Block",
         instances: [{ type: "std::vector<Obj *>", name: "stats" }]
     },
+    {
+        name: "If",
+        instances: [{ type: "Expr *", name: "cond" }, { type: "Statement *", name: "then_stat" }, { type: "Statement *", name: "else_stat" }]
+    },
+    {
+        name: "While",
+        instances: [{ type: "Expr *", name: "cond" }, { type: "Statement *", name: "body" }]
+    },
+    {
+        name: "For",
+        instances: [{ type: "Expr *", name: "cond" }, { type: "Statement *", name: "body" }]
+    },
+    {
+        name: "While",
+        instances: [{ type: "Declaration *", name: "init" }, { type: "Expr *", name: "cond" }, { type: "Expr *", name: "iter" }, { type: "Statement *", name: "body" }]
+    },
+    {
+        name: "Break",
+        instances: [{ type: "TokenType", name: "tok" }]
+    },
 ];
 
 function render(descript: Class, i: number) {

@@ -41,10 +41,11 @@ class Parser {
 
     Declaration *parse();
 
-    Obj *    declaration();
+    Obj    *declaration();
     VarDec *varDeclaration();
 
     Statement *statement();
+    If        *if_stat();
     Print     *printStatement();
     Expr      *exprStatement();
 

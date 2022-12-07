@@ -27,6 +27,7 @@ class AST_Printer {
     void decs_statement(Obj *);
     void varDec(VarDec *ast);
     void statement(Statement *s);
+    void if_stat(If *s);
     void printStatement(Print *s);
     void block(Block *s);
     void exprStatement(Expr *s);

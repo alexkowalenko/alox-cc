@@ -16,6 +16,7 @@
 #include "ast/boolean.hh"
 #include "ast/expr.hh"
 #include "ast/identifier.hh"
+#include "ast/if.hh"
 #include "ast/print.hh"
 #include "ast/vardec.hh"
 #include "ast_base.hh"
@@ -330,8 +331,8 @@ void Compiler::statement(Statement *ast) {
         printStatement(AS_Print(ast->stat));
         //} else if (parser->match(TokenType::FOR)) {
         //     forStatement();
-        // } else if (parser->match(TokenType::IF)) {
-        //     ifStatement();
+    } else if (IS_If(ast->stat)) {
+        ifStatement(AS_If(ast->stat));
         // } else if (parser->match(TokenType::RETURN)) {
         //     returnStatement();
         // } else if (parser->match(TokenType::WHILE)) {
@@ -347,6 +348,22 @@ void Compiler::statement(Statement *ast) {
     } else {
         expr(AS_Expr(ast->stat));
     }
+}
+
+void Compiler::ifStatement(If *ast) {
+    expr(ast->cond);
+    int thenJump = emitJump(OpCode::JUMP_IF_FALSE);
+    emitByte(OpCode::POP);
+    statement(ast->then_stat);
+
+    int elseJump = emitJump(OpCode::JUMP);
+    patchJump(thenJump);
+    emitByte(OpCode::POP);
+
+    if (ast->else_stat) {
+        statement(ast->else_stat);
+    }
+    patchJump(elseJump);
 }
 
 void Compiler::block(Block *ast) {
@@ -766,27 +783,6 @@ void Compiler::forStatement() {
     current->restore_break_context(context);
 
     endScope();
-}
-
-void Compiler::ifStatement() {
-    parser->consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.");
-    expr(nullptr);
-    parser->consume(TokenType::RIGHT_PAREN,
-                    "Expect ')' after condition."); // [paren]
-
-    int thenJump = emitJump(OpCode::JUMP_IF_FALSE);
-    emitByte(OpCode::POP);
-    statement(nullptr);
-
-    int elseJump = emitJump(OpCode::JUMP);
-
-    patchJump(thenJump);
-    emitByte(OpCode::POP);
-
-    if (parser->match(TokenType::ELSE)) {
-        statement(nullptr);
-    }
-    patchJump(elseJump);
 }
 
 void Compiler::returnStatement() {

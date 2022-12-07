@@ -10,6 +10,7 @@
 #include "ast/block.hh"
 #include "ast/boolean.hh"
 #include "ast/identifier.hh"
+#include "ast/if.hh"
 #include "ast/includes.hh"
 #include "ast/vardec.hh"
 #include "ast_base.hh"
@@ -73,7 +74,7 @@ Statement *Parser::statement() {
     } else if (match(TokenType::FOR)) {
         // forStatement();
     } else if (match(TokenType::IF)) {
-        // ifStatement();
+        ast->stat = OBJ_AST(if_stat());
     } else if (match(TokenType::RETURN)) {
         // returnStatement();
     } else if (match(TokenType::WHILE)) {
@@ -88,6 +89,20 @@ Statement *Parser::statement() {
         // endScope();
     } else {
         ast->stat = OBJ_AST(exprStatement());
+    }
+    return ast;
+}
+
+If *Parser::if_stat() {
+    auto *ast = newIf(current.line);
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.");
+    ast->cond = expr();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+    ast->then_stat = statement();
+    if (match(TokenType::ELSE)) {
+        ast->else_stat = statement();
+    } else {
+        ast->else_stat = nullptr;
     }
     return ast;
 }

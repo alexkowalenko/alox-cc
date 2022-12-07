@@ -8,6 +8,7 @@
 #include "ast/block.hh"
 #include "ast/declaration.hh"
 #include "ast/expr.hh"
+#include "ast/if.hh"
 #include "ast/vardec.hh"
 #include "ast_base.hh"
 #include "value.hh"
@@ -46,8 +47,8 @@ void AST_Printer::statement(Statement *s) {
         printStatement(AS_Print(s->stat));
         //} else if (parser->match(TokenType::FOR)) {
         //     forStatement();
-        // } else if (parser->match(TokenType::IF)) {
-        //     ifStatement();
+    } else if (IS_If(s->stat)) {
+        if_stat(AS_If(s->stat));
         // } else if (parser->match(TokenType::RETURN)) {
         //     returnStatement();
         // } else if (parser->match(TokenType::WHILE)) {
@@ -70,6 +71,17 @@ void AST_Printer::block(Block *s) {
         decs_statement(s);
     }
     os << '}';
+}
+
+void AST_Printer::if_stat(If *s) {
+    os << "if (";
+    expr(s->cond);
+    os << ')' << NL;
+    statement(s->then_stat);
+    if (s->else_stat) {
+        os << NL << "else ";
+        statement(s->else_stat);
+    }
 }
 
 void AST_Printer::printStatement(Print *s) {

@@ -123,6 +123,19 @@ TEST(Parser, block) { // NOLINT
     do_parse_tests(tests);
 }
 
+TEST(Parser, if) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"if (true) print 1;", "if (true) print 1;", ""},
+        {"if (true) print 1; else print 2;", "if (true) print 1; else print 2;", ""},
+        {"if (true) {} else {print 1;}", "if (true) { } else { print 1; }", ""},
+        {"if (true) if (true) {} else {}", "if (true) if (true) { } else { }", ""},
+
+        // Error
+        {"if true) print 1;", "", "[line 1] Error at 'true': Expect '(' after 'if'."},
+    };
+    do_parse_tests(tests);
+}
+
 std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); })
                 .base(),

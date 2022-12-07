@@ -34,6 +34,7 @@ class Compiler {
     void varDeclaration(VarDec *ast);
 
     void statement(Statement *ast);
+    void ifStatement(If *ast);
     void printStatement(Print *ast);
     void block(Block *);
     void exprStatement(Expr *ast);
@@ -99,7 +100,6 @@ class Compiler {
     void classDeclaration();
     void funDeclaration();
     void forStatement();
-    void ifStatement();
     void returnStatement();
     void whileStatement();
     void breakStatement(TokenType t);

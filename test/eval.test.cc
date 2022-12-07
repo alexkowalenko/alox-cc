@@ -89,6 +89,20 @@ TEST(Eval, block) { // NOLINT
     do_eval_tests(tests);
 }
 
+TEST(Eval, if) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"if (true) print 1;", "1", ""},
+        {"if (false) print 1;", "", ""},
+        {"if (true) print 1; else print 2;", "1", ""},
+        {"if (false) print 1; else print 2;", "2", ""},
+        {"if (true) {} else {print 1;}", "", ""},
+        {"if (false) {} else {print 1;}", "1", ""},
+        {"if (true) if (true) {print 2;} else {print 3;}", "2", ""},
+        {"if (true) if (false) {print 2;} else {print 3;}", "3", ""},
+    };
+    do_eval_tests(tests);
+}
+
 inline std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); })
                 .base(),
