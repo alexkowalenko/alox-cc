@@ -8,7 +8,9 @@
 #include "ast/binary.hh"
 #include "ast/block.hh"
 #include "ast/boolean.hh"
+#include "ast/break.hh"
 #include "ast/includes.hh"
+#include "ast/return.hh"
 #include "ast/unary.hh"
 #include "ast/vardec.hh"
 #include "ast_base.hh"
@@ -39,6 +41,8 @@ class Compiler {
     void forStatement(For *ast);
     void whileStatement(While *ast);
     void printStatement(Print *ast);
+    void returnStatement(Return *ast);
+    void breakStatement(Break *ast);
     void block(Block *);
     void exprStatement(Expr *ast);
 
@@ -89,12 +93,10 @@ class Compiler {
     void          beginScope();
     void          endScope();
     void          namedVariable(const std::string &name, bool canAssign);
-
-    void adjust_locals(int depth);
-
-    int resolveLocal(Context *compiler, const std::string &name);
-    int addUpvalue(Context *compiler, uint8_t index, bool isLocal);
-    int resolveUpvalue(Context *compiler, const std::string &name);
+    void          adjust_locals(int depth);
+    int           resolveLocal(Context *compiler, const std::string &name);
+    int           addUpvalue(Context *compiler, uint8_t index, bool isLocal);
+    int           resolveUpvalue(Context *compiler, const std::string &name);
 
     uint8_t argumentList();
 
@@ -102,11 +104,8 @@ class Compiler {
     void method();
     void classDeclaration();
     void funDeclaration();
-    void returnStatement();
 
-    void breakStatement(TokenType t);
-
-    void error(int line, const std::string_view &);
+    void error(size_t line, const std::string_view &);
 
     const Options &options;
     Error         &err;

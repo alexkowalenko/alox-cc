@@ -9,6 +9,7 @@
 
 #include "ast/block.hh"
 #include "ast/boolean.hh"
+#include "ast/break.hh"
 #include "ast/identifier.hh"
 #include "ast/if.hh"
 #include "ast/includes.hh"
@@ -44,7 +45,7 @@ Obj *Parser::declaration() {
     } else if (match(TokenType::FUN)) {
         // funDeclaration();
     } else if (match(TokenType::VAR)) {
-        auto v = varDeclaration();
+        auto *v = varDeclaration();
         consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
         return OBJ_AST(v);
     } else {
@@ -78,17 +79,15 @@ Statement *Parser::statement() {
     } else if (match(TokenType::IF)) {
         ast->stat = OBJ_AST(if_stat());
     } else if (match(TokenType::RETURN)) {
-        // returnStatement();
+        ast->stat = OBJ_AST(return_stat());
     } else if (match(TokenType::WHILE)) {
         ast->stat = OBJ_AST(while_stat());
     } else if (match(TokenType::BREAK)) {
-        // breakStatement(TokenType::BREAK);
+        ast->stat = OBJ_AST(break_stat(TokenType::BREAK));
     } else if (match(TokenType::CONTINUE)) {
-        // breakStatement(TokenType::CONTINUE);
+        ast->stat = OBJ_AST(break_stat(TokenType::CONTINUE));
     } else if (match(TokenType::LEFT_BRACE)) {
-        // beginScope();
         ast->stat = OBJ_AST(block());
-        // endScope();
     } else {
         ast->stat = OBJ_AST(exprStatement());
     }
@@ -156,6 +155,28 @@ For *Parser::for_stat() {
     // statement
     debug("for: statement");
     ast->body = statement();
+    return ast;
+}
+
+Return *Parser::return_stat() {
+    auto *ast = newReturn(current.line);
+    if (!match(TokenType::SEMICOLON)) {
+        ast->expr = expr();
+        consume(TokenType::SEMICOLON, "Expect ';' after value.");
+    } else {
+        ast->expr = nullptr;
+    }
+    return ast;
+}
+
+Break *Parser::break_stat(TokenType t) {
+    auto *ast = newBreak(current.line);
+    auto  name = "break";
+    if (t == TokenType::CONTINUE) {
+        name = "break";
+    }
+    consume(TokenType::SEMICOLON, fmt::format("Expect ';' after {}.", name));
+    ast->tok = t;
     return ast;
 }
 

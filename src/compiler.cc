@@ -14,10 +14,12 @@
 
 #include "ast/block.hh"
 #include "ast/boolean.hh"
+#include "ast/break.hh"
 #include "ast/expr.hh"
 #include "ast/identifier.hh"
 #include "ast/if.hh"
 #include "ast/print.hh"
+#include "ast/return.hh"
 #include "ast/vardec.hh"
 #include "ast_base.hh"
 #include "chunk.hh"
@@ -365,14 +367,12 @@ void Compiler::statement(Statement *ast) {
         forStatement(AS_For(ast->stat));
     } else if (IS_If(ast->stat)) {
         ifStatement(AS_If(ast->stat));
-        // } else if (parser->match(TokenType::RETURN)) {
-        //     returnStatement();
+    } else if (IS_Return(ast->stat)) {
+        returnStatement(AS_Return(ast->stat));
     } else if (IS_While(ast->stat)) {
         whileStatement(AS_While(ast->stat));
-        // } else if (parser->match(TokenType::BREAK)) {
-        //     breakStatement(TokenType::BREAK);
-        // } else if (parser->match(TokenType::CONTINUE)) {
-        //     breakStatement(TokenType::CONTINUE);
+    } else if (IS_Break(ast->stat)) {
+        breakStatement(AS_Break(ast->stat));
     } else if (IS_Block(ast->stat)) {
         beginScope();
         block(AS_Block(ast->stat));
@@ -491,8 +491,53 @@ void Compiler::forStatement(For *ast) {
     endScope();
 }
 
+void Compiler::returnStatement(Return *ast) {
+    if (current->type == TYPE_SCRIPT) {
+        error(currentChunk()->line_last(), "Can't return from top-level code.");
+    }
+    if (!ast->expr) {
+        emitReturn();
+    } else {
+        if (current->type == TYPE_INITIALIZER) {
+            error(currentChunk()->line_last(),
+                  "Can't return a value from an initializer.");
+        }
+        expr(ast->expr);
+        emitByte(OpCode::RETURN);
+    }
+}
+
+void Compiler::breakStatement(Break *ast) {
+    debug("breakStatement");
+    const auto *name = ast->tok == TokenType::BREAK ? "break" : "continue";
+    if (current->enclosing_loop == 0) {
+        error(currentChunk()->line_last(),
+              fmt::format("{} must be used in a loop.", name));
+    }
+
+    // take off local variables
+    if (ast->tok == TokenType::BREAK) {
+        // take off local variables
+        debug("last scope depth {} current {}", current->last_scope_depth,
+              current->scopeDepth);
+        adjust_locals(current->scopeDepth);
+        current->last_break = emitJump(OpCode::JUMP);
+        return;
+    }
+    // continue
+    if (current->last_continue) {
+        // take off local variables
+        debug("last scope depth {} current {}", current->last_scope_depth,
+              current->scopeDepth);
+        adjust_locals(current->last_scope_depth);
+
+        emitLoop(current->last_continue);
+        current->last_continue = 0;
+    }
+}
+
 void Compiler::block(Block *ast) {
-    for (auto s : ast->stats) {
+    for (auto *s : ast->stats) {
         decs_statement(s);
     }
 }
@@ -815,53 +860,6 @@ void Compiler::funDeclaration() {
     defineVariable(global);
 }
 
-void Compiler::returnStatement() {
-    if (current->type == TYPE_SCRIPT) {
-        parser->error("Can't return from top-level code.");
-    }
-
-    if (parser->match(TokenType::SEMICOLON)) {
-        emitReturn();
-    } else {
-        if (current->type == TYPE_INITIALIZER) {
-            parser->error("Can't return a value from an initializer.");
-        }
-
-        expr(nullptr);
-        parser->consume(TokenType::SEMICOLON, "Expect ';' after return value.");
-        emitByte(OpCode::RETURN);
-    }
-}
-
-void Compiler::breakStatement(TokenType t) {
-    debug("breakStatement");
-    const auto *name = t == TokenType::BREAK ? "break" : "continue";
-    if (current->enclosing_loop == 0) {
-        parser->error(fmt::format("{} must be used in a loop.", name));
-    }
-    parser->consume(TokenType::SEMICOLON, fmt::format("Expect ';' after {}.", name));
-
-    // take off local variables
-    if (t == TokenType::BREAK) {
-        // take off local variables
-        debug("last scope depth {} current {}", current->last_scope_depth,
-              current->scopeDepth);
-        adjust_locals(current->scopeDepth);
-        current->last_break = emitJump(OpCode::JUMP);
-        return;
-    }
-    // continue
-    if (current->last_continue) {
-        // take off local variables
-        debug("last scope depth {} current {}", current->last_scope_depth,
-              current->scopeDepth);
-        adjust_locals(current->last_scope_depth);
-
-        emitLoop(current->last_continue);
-        current->last_continue = 0;
-    }
-}
-
 void Compiler::markCompilerRoots() {
     Context *compiler = current;
     while (compiler != nullptr) {
@@ -870,6 +868,6 @@ void Compiler::markCompilerRoots() {
     }
 }
 
-void Compiler::error(int line, const std::string_view &message) {
+void Compiler::error(size_t line, const std::string_view &message) {
     err.errorAt(line, message);
 }

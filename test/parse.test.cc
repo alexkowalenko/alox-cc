@@ -182,6 +182,27 @@ TEST(Parser, for) { // NOLINT
     do_parse_tests(tests);
 }
 
+TEST(Parser, break) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"while(true) {break;}", "while (true) { break; }", ""},
+        {"for(;;) {continue;}", "for (;;) { continue; }", ""},
+    };
+    do_parse_tests(tests);
+}
+
+TEST(Parser, return) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"return;", "return;", ""},
+        {"return 2;", "return 2;", ""},
+        {"return 2 * 8;", "return (2 * 8);", ""},
+
+        // Errors
+        {"return", "", "[line 1] Error at end: Expect expression."},
+        {"return 2 2;", "", "[line 1] Error at '2': Expect ';' after value."},
+    };
+    do_parse_tests(tests);
+}
+
 std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); })
                 .base(),

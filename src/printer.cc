@@ -7,11 +7,14 @@
 #include "printer.hh"
 #include "ast/assign.hh"
 #include "ast/block.hh"
+#include "ast/break.hh"
 #include "ast/declaration.hh"
 #include "ast/expr.hh"
 #include "ast/if.hh"
+#include "ast/return.hh"
 #include "ast/vardec.hh"
 #include "ast_base.hh"
+#include "scanner.hh"
 #include "value.hh"
 
 void AST_Printer::print(Declaration *ast) {
@@ -50,14 +53,12 @@ void AST_Printer::statement(Statement *s) {
         for_stat(AS_For(s->stat));
     } else if (IS_If(s->stat)) {
         if_stat(AS_If(s->stat));
-        // } else if (parser->match(TokenType::RETURN)) {
-        //     returnStatement();
+    } else if (IS_Return(s->stat)) {
+        return_stat(AS_Return(s->stat));
     } else if (IS_While(s->stat)) {
         while_stat(AS_While(s->stat));
-        // } else if (parser->match(TokenType::BREAK)) {
-        //     breakStatement(TokenType::BREAK);
-        // } else if (parser->match(TokenType::CONTINUE)) {
-        //     breakStatement(TokenType::CONTINUE);
+    } else if (IS_Break(s->stat)) {
+        break_stat(AS_Break(s->stat));
     } else if (IS_Block(s->stat)) {
         block(AS_Block(s->stat));
     } else {
@@ -111,6 +112,23 @@ void AST_Printer::while_stat(While *s) {
     expr(s->cond);
     os << ')' << NL;
     statement(s->body);
+}
+
+void AST_Printer::return_stat(Return *s) {
+    os << "return";
+    if (s->expr) {
+        os << ' ';
+        expr(s->expr);
+    }
+    os << ';';
+}
+
+void AST_Printer::break_stat(Break *s) {
+    if (s->tok == TokenType::BREAK) {
+        os << "break;";
+        return;
+    }
+    os << "continue;";
 }
 
 void AST_Printer::printStatement(Print *s) {

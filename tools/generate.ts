@@ -104,6 +104,10 @@ let classes: Array<Class> = [
         name: "Break",
         instances: [{ type: "TokenType", name: "tok" }]
     },
+    {
+        name: "Return",
+        instances: [{ type: "Expr *", name: "expr" }]
+    },
 ];
 
 function render(descript: Class, i: number) {

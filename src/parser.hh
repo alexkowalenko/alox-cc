@@ -49,6 +49,8 @@ class Parser {
     While     *while_stat();
     For       *for_stat();
     Print     *printStatement();
+    Return    *return_stat();
+    Break     *break_stat(TokenType t);
     Expr      *exprStatement();
 
     Expr *expr();

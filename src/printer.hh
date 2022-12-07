@@ -31,6 +31,8 @@ class AST_Printer {
     void if_stat(If *s);
     void while_stat(While *);
     void for_stat(For *);
+    void return_stat(Return *);
+    void break_stat(Break *);
     void printStatement(Print *s);
     void block(Block *s);
     void exprStatement(Expr *s);
