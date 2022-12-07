@@ -329,14 +329,14 @@ void Compiler::statement(Statement *ast) {
     debug("statement");
     if (IS_Print(ast->stat)) {
         printStatement(AS_Print(ast->stat));
-        //} else if (parser->match(TokenType::FOR)) {
-        //     forStatement();
+    } else if (IS_For(ast->stat)) {
+        forStatement(AS_For(ast->stat));
     } else if (IS_If(ast->stat)) {
         ifStatement(AS_If(ast->stat));
         // } else if (parser->match(TokenType::RETURN)) {
         //     returnStatement();
-        // } else if (parser->match(TokenType::WHILE)) {
-        //     whileStatement();
+    } else if (IS_While(ast->stat)) {
+        whileStatement(AS_While(ast->stat));
         // } else if (parser->match(TokenType::BREAK)) {
         //     breakStatement(TokenType::BREAK);
         // } else if (parser->match(TokenType::CONTINUE)) {
@@ -364,6 +364,99 @@ void Compiler::ifStatement(If *ast) {
         statement(ast->else_stat);
     }
     patchJump(elseJump);
+}
+
+void Compiler::whileStatement(While *ast) {
+    debug("whileStatement");
+
+    auto context = current->save_break_context();
+
+    const auto loopStart = currentChunk()->get_count();
+    current->last_continue = loopStart;
+
+    expr(ast->cond);
+
+    const auto exitJump = emitJump(OpCode::JUMP_IF_FALSE);
+    emitByte(OpCode::POP);
+    current->enclosing_loop++;
+    statement(ast->body);
+    current->enclosing_loop--;
+    emitLoop(loopStart);
+
+    patchJump(exitJump);
+    // handle break
+    if (current->last_break) {
+        patchJump(current->last_break);
+        current->last_break = 0;
+    }
+    emitByte(OpCode::POP);
+
+    current->restore_break_context(context);
+}
+
+/**
+ * @brief forStatement - this is out of order, as originally there was no AST.
+ *
+ */
+void Compiler::forStatement(For *ast) {
+    debug("forStatement");
+    beginScope();
+
+    //  initialiser expression
+    debug("forStatement init: {}", currentChunk()->get_count());
+    auto context = current->save_break_context();
+    if (ast->init) {
+        // No initializer.
+        if (IS_VarDec(ast->init)) {
+            varDeclaration(AS_VarDec(ast->init));
+        } else {
+            expr(AS_Expr(ast->init));
+        }
+    }
+
+    // condition
+    auto loopStart = currentChunk()->get_count();
+    debug("forStatement condition: {}", currentChunk()->get_count());
+    int exitJump = -1;
+    if (ast->cond) {
+        expr(ast->cond);
+
+        // Jump out of the loop if the condition is false.
+        exitJump = emitJump(OpCode::JUMP_IF_FALSE);
+        emitByte(OpCode::POP); // Condition.
+    }
+
+    // increment
+    debug("forStatement increment: {}", currentChunk()->get_count());
+    if (ast->iter) {
+        const auto bodyJump = emitJump(OpCode::JUMP);
+        const auto incrementStart = currentChunk()->get_count();
+        current->last_continue = currentChunk()->get_count();
+        expr(ast->iter);
+        emitByte(OpCode::POP);
+
+        emitLoop(loopStart);
+        loopStart = incrementStart;
+        patchJump(bodyJump);
+    }
+
+    // statement
+    current->enclosing_loop++;
+    statement(ast->body);
+    current->enclosing_loop--;
+    emitLoop(loopStart);
+
+    if (exitJump != -1) {
+        patchJump(exitJump);
+        if (current->last_break) {
+            patchJump(current->last_break);
+            current->last_break = 0;
+        }
+        emitByte(OpCode::POP); // Condition.
+    }
+
+    current->restore_break_context(context);
+    endScope();
 }
 
 void Compiler::block(Block *ast) {
@@ -716,75 +809,6 @@ void Compiler::funDeclaration() {
     defineVariable(global);
 }
 
-/**
- * @brief forStatement - this is out of order, as there is no AST.
- *
- */
-void Compiler::forStatement() {
-    debug("forStatement");
-    beginScope();
-
-    //  initialiser expression
-    debug("forStatement init: {}", currentChunk()->get_count());
-    auto context = current->save_break_context();
-    parser->consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.");
-    if (parser->match(TokenType::SEMICOLON)) {
-        // No initializer.
-    } else if (parser->match(TokenType::VAR)) {
-        varDeclaration(nullptr); // replace
-    } else {
-        expr(nullptr);
-    }
-
-    // condition
-
-    auto loopStart = currentChunk()->get_count();
-    debug("forStatement condition: {}", currentChunk()->get_count());
-    int exitJump = -1;
-    if (!parser->match(TokenType::SEMICOLON)) {
-        expr(nullptr);
-        parser->consume(TokenType::SEMICOLON, "Expect ';' after loop condition.");
-
-        // Jump out of the loop if the condition is false.
-        exitJump = emitJump(OpCode::JUMP_IF_FALSE);
-        emitByte(OpCode::POP); // Condition.
-    }
-
-    // increment
-    debug("forStatement increment: {}", currentChunk()->get_count());
-    if (!parser->match(TokenType::RIGHT_PAREN)) {
-        const auto bodyJump = emitJump(OpCode::JUMP);
-        const auto incrementStart = currentChunk()->get_count();
-        current->last_continue = currentChunk()->get_count();
-        expr(nullptr);
-        emitByte(OpCode::POP);
-        parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.");
-
-        emitLoop(loopStart);
-        loopStart = incrementStart;
-        patchJump(bodyJump);
-    }
-
-    // statement
-    current->enclosing_loop++;
-    statement(nullptr);
-    current->enclosing_loop--;
-    emitLoop(loopStart);
-
-    if (exitJump != -1) {
-        patchJump(exitJump);
-        if (current->last_break) {
-            patchJump(current->last_break);
-            current->last_break = 0;
-        }
-        emitByte(OpCode::POP); // Condition.
-    }
-
-    current->restore_break_context(context);
-
-    endScope();
-}
-
 void Compiler::returnStatement() {
     if (current->type == TYPE_SCRIPT) {
         parser->error("Can't return from top-level code.");
@@ -801,36 +825,6 @@ void Compiler::returnStatement() {
         parser->consume(TokenType::SEMICOLON, "Expect ';' after return value.");
         emitByte(OpCode::RETURN);
     }
-}
-
-void Compiler::whileStatement() {
-    debug("whileStatement");
-
-    auto context = current->save_break_context();
-
-    const auto loopStart = currentChunk()->get_count();
-    current->last_continue = loopStart;
-
-    parser->consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.");
-    expr(nullptr);
-    parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
-
-    const auto exitJump = emitJump(OpCode::JUMP_IF_FALSE);
-    emitByte(OpCode::POP);
-    current->enclosing_loop++;
-    statement(nullptr);
-    current->enclosing_loop--;
-    emitLoop(loopStart);
-
-    patchJump(exitJump);
-    // handle break
-    if (current->last_break) {
-        patchJump(current->last_break);
-        current->last_break = 0;
-    }
-    emitByte(OpCode::POP);
-
-    current->restore_break_context(context);
 }
 
 void Compiler::breakStatement(TokenType t) {

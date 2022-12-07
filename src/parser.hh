@@ -46,6 +46,8 @@ class Parser {
 
     Statement *statement();
     If        *if_stat();
+    While     *while_stat();
+    For       *for_stat();
     Print     *printStatement();
     Expr      *exprStatement();
 

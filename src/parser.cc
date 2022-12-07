@@ -13,6 +13,7 @@
 #include "ast/if.hh"
 #include "ast/includes.hh"
 #include "ast/vardec.hh"
+#include "ast/while.hh"
 #include "ast_base.hh"
 #include "object.hh"
 #include "parser.hh"
@@ -43,7 +44,9 @@ Obj *Parser::declaration() {
     } else if (match(TokenType::FUN)) {
         // funDeclaration();
     } else if (match(TokenType::VAR)) {
-        return OBJ_AST(varDeclaration());
+        auto v = varDeclaration();
+        consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
+        return OBJ_AST(v);
     } else {
         return OBJ_AST(statement());
     }
@@ -63,7 +66,6 @@ VarDec *Parser::varDeclaration() {
     } else {
         ast->expr = nullptr;
     }
-    consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
     return ast;
 }
 
@@ -72,13 +74,13 @@ Statement *Parser::statement() {
     if (match(TokenType::PRINT)) {
         ast->stat = OBJ_AST(printStatement());
     } else if (match(TokenType::FOR)) {
-        // forStatement();
+        ast->stat = OBJ_AST(for_stat());
     } else if (match(TokenType::IF)) {
         ast->stat = OBJ_AST(if_stat());
     } else if (match(TokenType::RETURN)) {
         // returnStatement();
     } else if (match(TokenType::WHILE)) {
-        // whileStatement();
+        ast->stat = OBJ_AST(while_stat());
     } else if (match(TokenType::BREAK)) {
         // breakStatement(TokenType::BREAK);
     } else if (match(TokenType::CONTINUE)) {
@@ -104,6 +106,56 @@ If *Parser::if_stat() {
     } else {
         ast->else_stat = nullptr;
     }
+    return ast;
+}
+
+While *Parser::while_stat() {
+    auto *ast = newWhile(current.line);
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.");
+    ast->cond = expr();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+    ast->body = statement();
+    return ast;
+}
+
+For *Parser::for_stat() {
+    debug("for");
+    auto *ast = newFor(current.line);
+
+    //  initialiser expression
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.");
+    if (match(TokenType::SEMICOLON)) {
+        // No initializer.
+        ast->init = nullptr;
+    } else if (match(TokenType::VAR)) {
+        ast->init = OBJ_AST(varDeclaration());
+        consume(TokenType::SEMICOLON, "Expect ';' after loop initialiser.");
+    } else {
+        ast->init = OBJ_AST(expr());
+        consume(TokenType::SEMICOLON, "Expect ';' after loop initialiser.");
+    }
+
+    // condition
+    debug("for: cond");
+    if (!match(TokenType::SEMICOLON)) {
+        ast->cond = expr();
+        consume(TokenType::SEMICOLON, "Expect ';' after loop condition.");
+    } else {
+        ast->cond = nullptr;
+    }
+
+    // iterate
+    debug("for: iter");
+    if (!match(TokenType::RIGHT_PAREN)) {
+        ast->iter = expr();
+        consume(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.");
+    } else {
+        ast->iter = nullptr;
+    }
+
+    // statement
+    debug("for: statement");
+    ast->body = statement();
     return ast;
 }
 

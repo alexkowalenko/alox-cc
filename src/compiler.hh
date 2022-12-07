@@ -35,6 +35,8 @@ class Compiler {
 
     void statement(Statement *ast);
     void ifStatement(If *ast);
+    void forStatement(For *ast);
+    void whileStatement(While *ast);
     void printStatement(Print *ast);
     void block(Block *);
     void exprStatement(Expr *ast);
@@ -99,9 +101,8 @@ class Compiler {
     void method();
     void classDeclaration();
     void funDeclaration();
-    void forStatement();
     void returnStatement();
-    void whileStatement();
+
     void breakStatement(TokenType t);
 
     void error(int line, const std::string_view &);

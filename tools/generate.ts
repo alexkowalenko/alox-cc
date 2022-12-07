@@ -94,11 +94,7 @@ let classes: Array<Class> = [
     },
     {
         name: "For",
-        instances: [{ type: "Expr *", name: "cond" }, { type: "Statement *", name: "body" }]
-    },
-    {
-        name: "While",
-        instances: [{ type: "Declaration *", name: "init" }, { type: "Expr *", name: "cond" }, { type: "Expr *", name: "iter" }, { type: "Statement *", name: "body" }]
+        instances: [{ type: "Obj *", name: "init" }, { type: "Expr *", name: "cond" }, { type: "Expr *", name: "iter" }, { type: "Statement *", name: "body" }]
     },
     {
         name: "Break",

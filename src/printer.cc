@@ -26,6 +26,7 @@ void AST_Printer::declaration(Declaration *ast) {
 void AST_Printer::decs_statement(Obj *s) {
     if (IS_VarDec(s)) {
         varDec(AS_VarDec(s));
+        os << ';';
     } else {
         statement(AS_Statement(s));
     }
@@ -39,20 +40,19 @@ void AST_Printer::varDec(VarDec *ast) {
         os << " = ";
         expr(ast->expr);
     }
-    os << ';';
 }
 
 void AST_Printer::statement(Statement *s) {
     if (IS_Print(s->stat)) {
         printStatement(AS_Print(s->stat));
-        //} else if (parser->match(TokenType::FOR)) {
-        //     forStatement();
+    } else if (IS_For(s->stat)) {
+        for_stat(AS_For(s->stat));
     } else if (IS_If(s->stat)) {
         if_stat(AS_If(s->stat));
         // } else if (parser->match(TokenType::RETURN)) {
         //     returnStatement();
-        // } else if (parser->match(TokenType::WHILE)) {
-        //     whileStatement();
+    } else if (IS_While(s->stat)) {
+        while_stat(AS_While(s->stat));
         // } else if (parser->match(TokenType::BREAK)) {
         //     breakStatement(TokenType::BREAK);
         // } else if (parser->match(TokenType::CONTINUE)) {
@@ -82,6 +82,34 @@ void AST_Printer::if_stat(If *s) {
         os << NL << "else ";
         statement(s->else_stat);
     }
+}
+
+void AST_Printer::for_stat(For *s) {
+    os << "for (";
+    if (s->init) {
+        if (IS_VarDec(s->init)) {
+            varDec(AS_VarDec(s->init));
+        } else if (IS_Expr(s->init)) {
+            expr(AS_Expr(s->init));
+        }
+    }
+    os << ';';
+    if (s->cond) {
+        expr(s->cond);
+    }
+    os << ';';
+    if (s->iter) {
+        expr(s->iter);
+    }
+    os << ')' << NL;
+    statement(s->body);
+}
+
+void AST_Printer::while_stat(While *s) {
+    os << "while (";
+    expr(s->cond);
+    os << ')' << NL;
+    statement(s->body);
 }
 
 void AST_Printer::printStatement(Print *s) {

@@ -28,6 +28,8 @@ class AST_Printer {
     void varDec(VarDec *ast);
     void statement(Statement *s);
     void if_stat(If *s);
+    void while_stat(While *);
+    void for_stat(For *);
     void printStatement(Print *s);
     void block(Block *s);
     void exprStatement(Expr *s);

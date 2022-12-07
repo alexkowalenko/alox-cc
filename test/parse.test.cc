@@ -65,7 +65,7 @@ TEST(Parser, binary) { // NOLINT
 
         // Error
         {"2 +", "", "[line 1] Error at end: Expect expression."},
-        {"* 3", "", "unexpected *"},
+        {"* 3", "", "[line 1] Error at '*': Expect expression."},
     };
     do_parse_tests(tests);
 }
@@ -105,7 +105,7 @@ TEST(Parser, var) { // NOLINT
 
         // Error
         {"var ;", "", "[line 1] Error at ';': Expect variable name."},
-        {"var = ;", "", "unexpected = expecting <ident>"},
+        {"var = ;", "", "[line 1] Error at '=': Expect variable name."},
     };
     do_parse_tests(tests);
 }
@@ -118,7 +118,7 @@ TEST(Parser, block) { // NOLINT
 
         // Error
         {"{ print 1;", "", "[line 1] Error at end: Expect '}' after block."},
-        {"print 1; }", "var x;", "unexpected }"},
+        {"print 1; }", "var x;", "[line 1] Error at '}': Expect expression."},
     };
     do_parse_tests(tests);
 }
@@ -132,6 +132,39 @@ TEST(Parser, if) { // NOLINT
 
         // Error
         {"if true) print 1;", "", "[line 1] Error at 'true': Expect '(' after 'if'."},
+    };
+    do_parse_tests(tests);
+}
+
+TEST(Parser, while) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"while (true) print 1;", "while (true) print 1;", ""},
+        {"while (true) { print 1; print 2;}", "while (true) { print 1; print 2; }", ""},
+        {"while (a == b) {} ", "while ((a == b)) { }", ""},
+
+        // Error
+        {"while true) print 1;", "",
+         "[line 1] Error at 'true': Expect '(' after 'while'."},
+    };
+    do_parse_tests(tests);
+}
+
+TEST(Parser, for) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"for (;;) true;", "for (;;) true;", ""},
+        {"for (true;;) {}", "for (true;;) { }", ""},
+        {"for (var x = 1;;) {}", "for (var x = 1;;) { }", ""},
+        {"for (; true ;) {}", "for (;true;) { }", ""},
+        {"for (; ;true) {}", "for (;;true) { }", ""},
+        {"for (true; true ; true) { true;}", "for (true;true;true) { true; }", ""},
+        // {"for (var x= 1; x < 10 ; x = x + 1) { true;}",
+        //  "for (var x = 1;(x < 10); x = (x + 1)) { true; }", ""},
+
+        // Error
+        {"for true; true ; true) { true;}", "",
+         "[line 1] Error at 'true': Expect '(' after 'for'."},
+        {"for (true; true ; true { true;}", "",
+         "[line 1] Error at '{': Expect ')' after for clauses."},
     };
     do_parse_tests(tests);
 }
@@ -156,7 +189,7 @@ void do_parse_tests(std::vector<ParseTests> &tests) {
             auto ast = parser.parse();
             if (errors.hadError) {
                 EXPECT_EQ(rtrim(err.str()), t.error);
-                return; // INTERPRET_PARSE_ERROR;
+                continue; // INTERPRET_PARSE_ERROR;
             }
             std::stringstream os;
             AST_Printer       printer(os, ' ', 0);

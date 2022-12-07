@@ -56,9 +56,9 @@ TEST(Eval, binary) { // NOLINT
 
         {"print 1 < 2;", "true", ""},
         {"print 1 < 2 <= 3;", "", "Operands must be numbers."},
-        {"print 1 == 2 != 3;", "((1 == 2) != 3);", ""},
+        {"print 1 == 2 != 3;", "true", ""},
 
-        {R"(print "a" + "b";)", R"((ab);)", ""},
+        {R"(print "a" + "b";)", R"(ab)", ""},
     };
     do_eval_tests(tests);
 }
@@ -138,7 +138,7 @@ void do_eval_tests(std::vector<ParseTests> &tests) {
             auto *ast = parser.parse();
             if (errors.hadError) {
                 EXPECT_EQ(rtrim(err.str()), t.error);
-                return;
+                continue;
             }
 
             Compiler compiler(options, errors);
@@ -146,12 +146,12 @@ void do_eval_tests(std::vector<ParseTests> &tests) {
             ObjFunction *function = compiler.compile(ast, &parser);
             if (errors.hadError) {
                 EXPECT_EQ(rtrim(err.str()), t.error);
-                return; // I
+                continue; // I
             }
             vm.run(function);
             if (errors.hadError) {
                 EXPECT_EQ(nl_trim(err.str()), t.error);
-                return; // I
+                continue; // I
             }
             EXPECT_EQ(rtrim(out.str()), t.output);
 
