@@ -5,6 +5,8 @@
 //
 
 #include "printer.hh"
+#include "ast/block.hh"
+#include "ast/declaration.hh"
 #include "ast/expr.hh"
 #include "ast/vardec.hh"
 #include "ast_base.hh"
@@ -16,13 +18,17 @@ void AST_Printer::print(Declaration *ast) {
 
 void AST_Printer::declaration(Declaration *ast) {
     for (auto *s : ast->stats) {
-        if (IS_VarDec(s)) {
-            varDec(AS_VarDec(s));
-        } else {
-            statement(AS_Statement(s));
-        }
-        os << NL;
+        decs_statement(s);
     }
+}
+
+void AST_Printer::decs_statement(Obj *s) {
+    if (IS_VarDec(s)) {
+        varDec(AS_VarDec(s));
+    } else {
+        statement(AS_Statement(s));
+    }
+    os << NL;
 }
 
 void AST_Printer::varDec(VarDec *ast) {
@@ -50,13 +56,20 @@ void AST_Printer::statement(Statement *s) {
         //     breakStatement(TokenType::BREAK);
         // } else if (parser->match(TokenType::CONTINUE)) {
         //     breakStatement(TokenType::CONTINUE);
-        // } else if (parser->match(TokenType::LEFT_BRACE)) {
-        //     beginScope();
-        //     block();
-        //     endScope();
+    } else if (IS_Block(s->stat)) {
+        block(AS_Block(s->stat));
     } else {
         exprStatement(AS_Expr(s->stat));
     }
+}
+
+void AST_Printer::block(Block *s) {
+    os << '{' << NL;
+    for (auto *s : s->stats) {
+        os << std::string(indent, ' ');
+        decs_statement(s);
+    }
+    os << '}';
 }
 
 void AST_Printer::printStatement(Print *s) {

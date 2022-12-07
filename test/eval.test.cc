@@ -80,6 +80,15 @@ TEST(Eval, var) { // NOLINT
     do_eval_tests(tests);
 }
 
+TEST(Eval, block) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"{var x = 1; print x;}", "1", ""},
+        {"{var x = 1; var y = 2; print x+y;}", "3", ""},
+        {"{var x = 1;} var x = 1; print x;", "1", ""},
+    };
+    do_eval_tests(tests);
+}
+
 inline std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); })
                 .base(),
@@ -105,14 +114,14 @@ void do_eval_tests(std::vector<ParseTests> &tests) {
 
     for (auto const &t : tests) {
         try {
-            std::cout << t.input;
+            std::cout << t.input << " -> " << t.output;
             out.str("");
             err.str("");
             errors.reset();
             Scanner scanner(t.input);
             Parser  parser(scanner, errors);
 
-            auto ast = parser.parse();
+            auto *ast = parser.parse();
             if (errors.hadError) {
                 EXPECT_EQ(rtrim(err.str()), t.error);
                 return;

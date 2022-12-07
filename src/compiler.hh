@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ast/binary.hh"
+#include "ast/block.hh"
 #include "ast/boolean.hh"
 #include "ast/includes.hh"
 #include "ast/unary.hh"
@@ -26,12 +27,15 @@ class Compiler {
     ObjFunction *compile(Declaration *ast, Parser *source);
     void         markCompilerRoots();
 
+  private:
     // Compile the AST
     void declaration(Declaration *ast);
+    void decs_statement(Obj *);
     void varDeclaration(VarDec *ast);
 
     void statement(Statement *ast);
     void printStatement(Print *ast);
+    void block(Block *);
     void exprStatement(Expr *ast);
 
     void expr(Expr *ast);
@@ -50,9 +54,7 @@ class Compiler {
     void super_(bool /*canAssign*/);
     void this_(bool /*canAssign*/);
 
-  private:
-    Chunk *currentChunk() { return &current->function->chunk; }
-
+    Chunk         *currentChunk() { return &current->function->chunk; }
     void           emitByte(uint8_t byte);
     constexpr void emitByte(OpCode byte) { return emitByte(uint8_t(byte)); };
     void           emitBytes(uint8_t byte1, uint8_t byte2);
@@ -79,9 +81,9 @@ class Compiler {
     const_index_t identifierConstant(const std::string &name);
     void          defineVariable(const_index_t global);
     void          markInitialized();
+    void          beginScope();
+    void          endScope();
 
-    void beginScope();
-    void endScope();
     void adjust_locals(int depth);
 
     int resolveLocal(Context *compiler, const std::string &name);
@@ -92,7 +94,6 @@ class Compiler {
 
     void namedVariable(const std::string &name, bool canAssign);
 
-    void block();
     void function(FunctionType type);
     void method();
     void classDeclaration();

@@ -40,8 +40,9 @@ class Parser {
     Parser(Scanner &s, Error &err) : scanner(s), err(err){};
 
     Declaration *parse();
-    void         declaration(Declaration *);
-    VarDec      *varDeclaration();
+
+    Obj *    declaration();
+    VarDec *varDeclaration();
 
     Statement *statement();
     Print     *printStatement();
@@ -57,6 +58,8 @@ class Parser {
     Expr *primary(bool /*canAssign*/);
     Expr *string(bool /*canAssign*/);
     Expr *number(bool /*canAssign*/);
+
+    Block *block();
 
     Identifier *ident();
 

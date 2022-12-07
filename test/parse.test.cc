@@ -110,6 +110,19 @@ TEST(Parser, var) { // NOLINT
     do_parse_tests(tests);
 }
 
+TEST(Parser, block) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"{var x = 1;}", "{ var x = 1; }", ""},
+        {"{var x = 1; var y = 2;}", "{ var x = 1; var y = 2; }", ""},
+        {"{}", "{ }", ""},
+
+        // Error
+        {"{ print 1;", "", "[line 1] Error at end: Expect '}' after block."},
+        {"print 1; }", "var x;", "unexpected }"},
+    };
+    do_parse_tests(tests);
+}
+
 std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); })
                 .base(),
@@ -133,7 +146,7 @@ void do_parse_tests(std::vector<ParseTests> &tests) {
                 return; // INTERPRET_PARSE_ERROR;
             }
             std::stringstream os;
-            AST_Printer       printer(os, ' ');
+            AST_Printer       printer(os, ' ', 0);
             printer.print(ast);
             EXPECT_EQ(rtrim(os.str()), t.output);
 

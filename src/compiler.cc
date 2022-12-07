@@ -12,6 +12,7 @@
 
 #include <fmt/core.h>
 
+#include "ast/block.hh"
 #include "ast/boolean.hh"
 #include "ast/expr.hh"
 #include "ast/identifier.hh"
@@ -297,15 +298,19 @@ void Compiler::declaration(Declaration *ast) {
     debug("declaration");
 
     for (auto *d : ast->stats) {
-        if (parser->match(TokenType::CLASS)) {
-            //     classDeclaration();
-        } else if (parser->match(TokenType::FUN)) {
-            //     funDeclaration();
-        } else if (IS_VarDec(d)) {
-            varDeclaration(AS_VarDec(d));
-        } else {
-            statement(AS_Statement(d));
-        }
+        decs_statement(d);
+    }
+}
+
+void Compiler::decs_statement(Obj *s) {
+    if (parser->match(TokenType::CLASS)) {
+        //     classDeclaration();
+    } else if (parser->match(TokenType::FUN)) {
+        //     funDeclaration();
+    } else if (IS_VarDec(s)) {
+        varDeclaration(AS_VarDec(s));
+    } else {
+        statement(AS_Statement(s));
     }
 }
 
@@ -335,12 +340,18 @@ void Compiler::statement(Statement *ast) {
         //     breakStatement(TokenType::BREAK);
         // } else if (parser->match(TokenType::CONTINUE)) {
         //     breakStatement(TokenType::CONTINUE);
-        // } else if (parser->match(TokenType::LEFT_BRACE)) {
-        //     beginScope();
-        //     block();
-        //     endScope();
+    } else if (IS_Block(ast->stat)) {
+        beginScope();
+        block(AS_Block(ast->stat));
+        endScope();
     } else {
         expr(AS_Expr(ast->stat));
+    }
+}
+
+void Compiler::block(Block *ast) {
+    for (auto s : ast->stats) {
+        decs_statement(s);
     }
 }
 
@@ -591,14 +602,6 @@ void Compiler::this_(bool /*canAssign*/) {
     variable(nullptr, false);
 }
 
-void Compiler::block() {
-    while (!parser->check(TokenType::RIGHT_BRACE) && !parser->check(TokenType::EOFS)) {
-        declaration(nullptr);
-    }
-
-    parser->consume(TokenType::RIGHT_BRACE, "Expect '}' after block.");
-}
-
 void Compiler::function(FunctionType type) {
     Context compiler;
     initCompiler(&compiler, type);
@@ -618,7 +621,7 @@ void Compiler::function(FunctionType type) {
     }
     parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.");
     parser->consume(TokenType::LEFT_BRACE, "Expect '{' before function body.");
-    block();
+    block(nullptr);
 
     ObjFunction *function = endCompiler();
     emitByteConst(OpCode::CLOSURE, makeConstant(OBJ_VAL(function)));

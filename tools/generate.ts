@@ -80,6 +80,10 @@ let classes: Array<Class> = [
         name: "Identifier",
         instances: [{ type: "ObjString*", name: "name" }]
     },
+    {
+        name: "Block",
+        instances: [{ type: "std::vector<Obj *>", name: "stats" }]
+    },
 ];
 
 function render(descript: Class, i: number) {

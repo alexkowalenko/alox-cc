@@ -7,6 +7,7 @@
 #include <fmt/core.h>
 #include <map>
 
+#include "ast/block.hh"
 #include "ast/boolean.hh"
 #include "ast/identifier.hh"
 #include "ast/includes.hh"
@@ -29,20 +30,21 @@ Declaration *Parser::parse() {
     auto *ast = newDeclaration(current.line);
 
     while (!match(TokenType::EOFS)) {
-        declaration(ast);
+        auto *s = declaration();
+        ast->stats.push_back(s);
     }
     return ast;
 }
 
-void Parser::declaration(Declaration *ast) {
+Obj *Parser::declaration() {
     if (match(TokenType::CLASS)) {
         // classDeclaration();
     } else if (match(TokenType::FUN)) {
         // funDeclaration();
     } else if (match(TokenType::VAR)) {
-        ast->stats.push_back(OBJ_AST(varDeclaration()));
+        return OBJ_AST(varDeclaration());
     } else {
-        ast->stats.push_back(OBJ_AST(statement()));
+        return OBJ_AST(statement());
     }
 
     if (err.panicMode) {
@@ -82,7 +84,7 @@ Statement *Parser::statement() {
         // breakStatement(TokenType::CONTINUE);
     } else if (match(TokenType::LEFT_BRACE)) {
         // beginScope();
-        // block();
+        ast->stat = OBJ_AST(block());
         // endScope();
     } else {
         ast->stat = OBJ_AST(exprStatement());
@@ -94,6 +96,17 @@ Print *Parser::printStatement() {
     auto *ast = newPrint(current.line);
     ast->expr = expr();
     consume(TokenType::SEMICOLON, "Expect ';' after value.");
+    return ast;
+}
+
+Block *Parser::block() {
+    auto *ast = newBlock(current.line);
+    while (!check(TokenType::RIGHT_BRACE) && !check(TokenType::EOFS)) {
+        auto *s = declaration();
+        ast->stats.push_back(s);
+    }
+
+    consume(TokenType::RIGHT_BRACE, "Expect '}' after block.");
     return ast;
 }
 
