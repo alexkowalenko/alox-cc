@@ -53,6 +53,7 @@ class Compiler {
     void binary(Binary *ast, bool canAssign);
     void assign(Assign *ast);
     void call(Call *ast);
+    void dot(Dot *ast, bool canAssign);
     void and_(Binary *ast, bool canAssign);
     void or_(Binary *ast, bool canAssign);
     void unary(Unary *ast, bool canAssign);
@@ -60,8 +61,6 @@ class Compiler {
     void number(Number *ast);
     void string(String *ast);
     void boolean(Boolean *ast);
-
-    void dot(bool canAssign);
 
     void super_(bool /*canAssign*/);
     void this_(bool /*canAssign*/);

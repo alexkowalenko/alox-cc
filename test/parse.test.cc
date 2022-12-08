@@ -240,6 +240,20 @@ TEST(Parser, class) { // NOLINT
     do_parse_tests(tests);
 }
 
+TEST(Parser, dot) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"x.s;", "x.s;", ""},
+        {"x.f(1,2);", "x.f(1, 2);", ""},
+        {"x.s = 2;", "x.s = 2;", ""},
+
+        // Errors
+        {"x.", "", "[line 1] Error at end: Expect property name after '.'."},
+        {"x.f(", "", "[line 1] Error at end: Expect expression."},
+        {"x.s  2", "", "[line 1] Error at '2': Expect ';' after expression."},
+    };
+    do_parse_tests(tests);
+}
+
 std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); })
                 .base(),

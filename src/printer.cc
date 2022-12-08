@@ -196,6 +196,8 @@ void AST_Printer::expr(Expr *ast) {
         assign(AS_Assign(ast->expr));
     } else if (IS_Call(ast->expr)) {
         call(AS_Call(ast->expr));
+    } else if (IS_Dot(ast->expr)) {
+        dot(AS_Dot(ast->expr));
     } else if (IS_Nil(ast->expr)) {
         os << "nil";
     }
@@ -241,7 +243,11 @@ void AST_Printer::binary(Binary *ast) {
     case TokenType::OR:
         os << " or ";
         break;
+    case TokenType::DOT:
+        os << " . ";
+        break;
     }
+
     expr(ast->right);
     os << ')';
 }
@@ -262,6 +268,27 @@ void AST_Printer::call(Call *ast) {
         }
     }
     os << ')';
+}
+
+void AST_Printer::dot(Dot *ast) {
+    expr(ast->left);
+    os << '.' << ast->id;
+    switch (ast->token) {
+    case TokenType::EQUAL:
+        os << " = ";
+        expr(ast->args[0]);
+        break;
+    case TokenType::LEFT_PAREN:
+        os << '(';
+        for (auto i = 0; i < ast->args.size(); i++) {
+            expr(ast->args[i]);
+            if (i < ast->args.size() - 1) {
+                os << ", ";
+            }
+        }
+        os << ')';
+        break;
+    };
 }
 
 void AST_Printer::unary(Unary *ast) {

@@ -116,6 +116,14 @@ let classes: Array<Class> = [
         name: "ClassDec",
         instances: [{ type: "std::string", name: "name" }, { type: "std::string", name: "super" }, { type: "std::vector<FunctDec*>", name: "methods" }]
     },
+    {
+        name: "Dot",
+        instances: [{ name: "left", type: "Expr*" }, { type: "std::string", name: "id" }, { name: "token", type: "TokenType" }, { type: "std::vector<Expr*>", name: "args" }]
+    },
+    {
+        name: "This",
+        instances: [{ name: "token", type: "TokenType" }]
+    },
 ];
 
 function render(descript: Class, i: number) {

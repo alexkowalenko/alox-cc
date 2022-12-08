@@ -352,7 +352,7 @@ void Compiler::method(FunctDec *ast) {
         type = TYPE_INITIALIZER;
     }
 
-    function(nullptr, type);
+    function(ast, type);
     emitByteConst(OpCode::METHOD, constant);
 }
 
@@ -648,6 +648,8 @@ void Compiler::expr(Expr *ast, bool canAssign) {
         binary(AS_Binary(ast->expr), canAssign);
     } else if (IS_Call(ast->expr)) {
         call(AS_Call(ast->expr));
+    } else if (IS_Dot(ast->expr)) {
+        dot(AS_Dot(ast->expr), canAssign);
     } else if (IS_Number(ast->expr)) {
         number(AS_Number(ast->expr));
     } else if (IS_Identifier(ast->expr)) {
@@ -673,14 +675,16 @@ void Compiler::call(Call *ast) {
 }
 
 void Compiler::binary(Binary *ast, bool canAssign) {
-    if (ast->token == TokenType::AND) {
+    switch (ast->token) {
+    case TokenType::AND:
         and_(ast, canAssign);
         return;
-    }
-    if (ast->token == TokenType::OR) {
+    case TokenType::OR:
         or_(ast, canAssign);
         return;
+    default:;
     }
+
     expr(ast->left, canAssign);
     expr(ast->right, canAssign);
 
@@ -741,6 +745,21 @@ void Compiler::or_(Binary *ast, bool canAssign) {
     patchJump(endJump);
 }
 
+void Compiler::dot(Dot *ast, bool canAssign) {
+    expr(ast->left, canAssign);
+    auto name = identifierConstant(ast->id);
+    if (ast->token == TokenType::EQUAL) {
+        expr(ast->args[0]);
+        emitByteConst(OpCode::SET_PROPERTY, name);
+    } else if (ast->token == TokenType::LEFT_PAREN) {
+        const uint8_t argCount = argumentList(ast->args);
+        emitByteConst(OpCode::INVOKE, name);
+        emitByte(argCount);
+    } else {
+        emitByteConst(OpCode::GET_PROPERTY, name);
+    }
+}
+
 void Compiler::unary(Unary *ast, bool canAssign) {
     expr(ast->expr, canAssign);
 
@@ -786,22 +805,6 @@ void Compiler::boolean(Boolean *ast) {
 }
 
 /////////////////////////////////////////////////////////////////////////
-
-void Compiler::dot(bool canAssign) {
-    parser->consume(TokenType::IDENTIFIER, "Expect property name after '.'.");
-    auto name = identifierConstant(parser->previous.text);
-
-    if (canAssign && parser->match(TokenType::EQUAL)) {
-        expr(nullptr);
-        emitByteConst(OpCode::SET_PROPERTY, name);
-    } else if (parser->match(TokenType::LEFT_PAREN)) {
-        const uint8_t argCount = argumentList({}); //! change
-        emitByteConst(OpCode::INVOKE, name);
-        emitByte(argCount);
-    } else {
-        emitByteConst(OpCode::GET_PROPERTY, name);
-    }
-}
 
 void Compiler::super_(bool /*canAssign*/) {
     if (currentClass == nullptr) {

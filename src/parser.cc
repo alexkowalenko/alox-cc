@@ -8,6 +8,7 @@
 #include <map>
 #include <string_view>
 
+#include "ast/dot.hh"
 #include "ast/includes.hh"
 #include "parser.hh"
 
@@ -279,7 +280,7 @@ inline const std::map<TokenType, ParseRule> rules{
     {TokenType::LEFT_BRACE, {nullptr, nullptr}}, // [big]
     {TokenType::RIGHT_BRACE, {nullptr, nullptr}},
     {TokenType::COMMA, {nullptr, nullptr}},
-    // {TokenType::DOT, {nullptr, std::mem_fn(&Compiler::dot)}},
+    {TokenType::DOT, {nullptr, std::mem_fn(&Parser::dot)}},
     {TokenType::MINUS, {std::mem_fn(&Parser::unary), std::mem_fn(&Parser::binary)}},
     {TokenType::PLUS, {nullptr, std::mem_fn(&Parser::binary)}},
     {TokenType::SEMICOLON, {nullptr, nullptr}},
@@ -385,6 +386,26 @@ Expr *Parser::call(Expr *left, bool /*canAssign*/) {
     argumentList(call->args);
     auto *e = newExpr(current.line);
     e->expr = OBJ_AST(call);
+    return e;
+}
+
+Expr *Parser::dot(Expr *left, bool /*canAssign*/) {
+    auto *dot = newDot(current.line);
+    dot->left = left;
+    consume(TokenType::IDENTIFIER, "Expect property name after '.'.");
+    dot->id = previous.text;
+
+    if (match(TokenType::EQUAL)) {
+        dot->token = TokenType::EQUAL;
+        dot->args.push_back(expr());
+    } else if (match(TokenType::LEFT_PAREN)) {
+        dot->token = TokenType::LEFT_PAREN;
+        argumentList(dot->args);
+    } else {
+        // Get - collect nothing
+    }
+    auto *e = newExpr(current.line);
+    e->expr = OBJ_AST(dot);
     return e;
 }
 

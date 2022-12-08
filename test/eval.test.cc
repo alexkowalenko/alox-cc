@@ -140,6 +140,7 @@ TEST(Eval, function) { // NOLINT
 TEST(Eval, class) { // NOLINT
     std::vector<ParseTests> tests = {
         {"class A{} var x = A(); print x;", "A instance", ""},
+        {"class A{f(a) {print a;}} var x = A(); x.f(17);", "17", ""},
     };
     do_eval_tests(tests);
 }
