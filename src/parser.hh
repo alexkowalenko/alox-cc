@@ -9,6 +9,7 @@
 #include <string_view>
 
 #include "ast/includes.hh"
+#include "context.hh"
 #include "error.hh"
 #include "scanner.hh"
 
@@ -43,7 +44,9 @@ class Parser {
 
     Obj      *declaration();
     VarDec   *varDeclaration();
-    FunctDec *funDeclaration();
+    FunctDec *funDeclaration(FunctionType type = TYPE_FUNCTION);
+    ClassDec *classDeclaration();
+    FunctDec *method();
 
     Statement *statement();
     If        *if_stat();

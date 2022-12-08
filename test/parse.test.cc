@@ -223,6 +223,23 @@ TEST(Parser, function) { // NOLINT
     do_parse_tests(tests);
 }
 
+TEST(Parser, class) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"class A {}", "class A { }", ""},
+        {"class A { f() {} }", "class A { f() { } }", ""},
+        {"class A < B {}", "class A < B { }", ""},
+        {"class A < B { f() {} }", "class A < B { f() { } }", ""},
+
+        // Errors
+        {"class {}", "", "[line 1] Error at '{': Expect class name."},
+        {"class A < { f() {} }", "", "[line 1] Error at '{': Expect superclass name."},
+        {"class A < B {x}", "", "[line 1] Error at '}': Expect '(' after method name."},
+        {"class A < A {}", "",
+         "[line 1] Error at 'A': A class can't inherit from itself."},
+    };
+    do_parse_tests(tests);
+}
+
 std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); })
                 .base(),

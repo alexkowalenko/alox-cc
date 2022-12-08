@@ -37,6 +37,7 @@ class Compiler {
     void decs_statement(Obj *);
     void varDeclaration(VarDec *ast);
     void funDeclaration(FunctDec *ast);
+    void classDeclaration(ClassDec *ast);
 
     void statement(Statement *ast);
     void ifStatement(If *ast);
@@ -101,12 +102,8 @@ class Compiler {
     int           resolveUpvalue(Context *compiler, const std::string &name);
 
     void    function(FunctDec *ast, FunctionType type);
+    void    method(FunctDec *ast);
     uint8_t argumentList(const std::vector<Expr *> &args);
-
-    // Spare
-
-    void method();
-    void classDeclaration();
 
     void error(size_t line, const std::string_view &);
 

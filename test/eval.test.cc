@@ -128,11 +128,18 @@ TEST(Eval, for) { // NOLINT
     do_eval_tests(tests);
 }
 
-TEST(Parser, function) { // NOLINT
+TEST(Eval, function) { // NOLINT
     std::vector<ParseTests> tests = {
         {"fun f() {print 1;} f();", "1", ""},
         {"fun f(a) {print a;} f(3);", "3", ""},
         {"fun f(a,b) {return a * b;} print f(2,4);", "8", ""},
+    };
+    do_eval_tests(tests);
+}
+
+TEST(Eval, class) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"class A{} var x = A(); print x;", "A instance", ""},
     };
     do_eval_tests(tests);
 }

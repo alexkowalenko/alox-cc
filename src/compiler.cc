@@ -345,6 +345,17 @@ uint8_t Compiler::argumentList(const std::vector<Expr *> &args) {
     return args.size();
 }
 
+void Compiler::method(FunctDec *ast) {
+    auto         constant = identifierConstant(ast->name->name->str);
+    FunctionType type = TYPE_METHOD;
+    if (ast->name->name->str == "init") {
+        type = TYPE_INITIALIZER;
+    }
+
+    function(nullptr, type);
+    emitByteConst(OpCode::METHOD, constant);
+}
+
 // Compiler functions
 
 ObjFunction *Compiler::compile(Declaration *ast, Parser *p) {
@@ -367,8 +378,8 @@ void Compiler::declaration(Declaration *ast) {
 }
 
 void Compiler::decs_statement(Obj *s) {
-    if (parser->match(TokenType::CLASS)) {
-        //     classDeclaration();
+    if (IS_ClassDec(s)) {
+        classDeclaration(AS_ClassDec(s));
     } else if (IS_FunctDec(s)) {
         funDeclaration(AS_FunctDec(s));
     } else if (IS_VarDec(s)) {
@@ -393,6 +404,43 @@ void Compiler::funDeclaration(FunctDec *ast) {
     markInitialized();
     function(ast, TYPE_FUNCTION);
     defineVariable(global);
+}
+
+void Compiler::classDeclaration(ClassDec *ast) {
+    auto nameConstant = identifierConstant(ast->name);
+    declareVariable(ast->name); // replace
+
+    emitByteConst(OpCode::CLASS, nameConstant);
+    defineVariable(nameConstant);
+
+    ClassContext classCompiler{};
+    classCompiler.hasSuperclass = false;
+    classCompiler.enclosing = currentClass;
+    currentClass = &classCompiler;
+
+    if (!ast->super.empty()) {
+        namedVariable(ast->super, false); // variable(nullptr, false);
+
+        beginScope();
+        addLocal(sym_super);
+        defineVariable(0);
+
+        namedVariable(ast->name, false);
+        emitByte(OpCode::INHERIT);
+        classCompiler.hasSuperclass = true;
+    }
+
+    namedVariable(ast->name, false);
+    for (auto *m : ast->methods) {
+        method(m);
+    }
+    emitByte(OpCode::POP);
+
+    if (classCompiler.hasSuperclass) {
+        endScope();
+    }
+
+    currentClass = currentClass->enclosing;
 }
 
 void Compiler::statement(Statement *ast) {
@@ -785,66 +833,6 @@ void Compiler::this_(bool /*canAssign*/) {
     }
 
     variable(nullptr, false);
-}
-
-void Compiler::method() {
-    parser->consume(TokenType::IDENTIFIER, "Expect method name.");
-    auto constant = identifierConstant(parser->previous.text);
-
-    FunctionType type = TYPE_METHOD;
-    if (parser->previous.text.size() == 4 &&
-        memcmp(parser->previous.text.data(), "init", 4) == 0) {
-        type = TYPE_INITIALIZER;
-    }
-
-    function(nullptr, type);
-    emitByteConst(OpCode::METHOD, constant);
-}
-
-void Compiler::classDeclaration() {
-    parser->consume(TokenType::IDENTIFIER, "Expect class name.");
-    Token className = parser->previous;
-    auto  nameConstant = identifierConstant(parser->previous.text);
-    declareVariable("name"); // replace
-
-    emitByteConst(OpCode::CLASS, nameConstant);
-    defineVariable(nameConstant);
-
-    ClassContext classCompiler{};
-    classCompiler.hasSuperclass = false;
-    classCompiler.enclosing = currentClass;
-    currentClass = &classCompiler;
-
-    if (parser->match(TokenType::LESS)) {
-        parser->consume(TokenType::IDENTIFIER, "Expect superclass name.");
-        variable(nullptr, false);
-
-        if (className.text == parser->previous.text) {
-            parser->error("A class can't inherit from itself.");
-        }
-
-        beginScope();
-        addLocal(sym_super);
-        defineVariable(0);
-
-        namedVariable(className.text, false);
-        emitByte(OpCode::INHERIT);
-        classCompiler.hasSuperclass = true;
-    }
-
-    namedVariable(className.text, false);
-    parser->consume(TokenType::LEFT_BRACE, "Expect '{' before class body.");
-    while (!parser->check(TokenType::RIGHT_BRACE) && !parser->check(TokenType::EOFS)) {
-        method();
-    }
-    parser->consume(TokenType::RIGHT_BRACE, "Expect '}' after class body.");
-    emitByte(OpCode::POP);
-
-    if (classCompiler.hasSuperclass) {
-        endScope();
-    }
-
-    currentClass = currentClass->enclosing;
 }
 
 void Compiler::markCompilerRoots() {

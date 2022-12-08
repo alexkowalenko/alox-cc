@@ -13,6 +13,7 @@
 #include "ast/includes.hh"
 #include "ast/vardec.hh"
 #include "ast_base.hh"
+#include "context.hh"
 #include <cstddef>
 #include <ostream>
 
@@ -27,7 +28,8 @@ class AST_Printer {
     void declaration(Declaration *ast);
     void decs_statement(Obj *);
     void varDec(VarDec *ast);
-    void funDec(FunctDec *ast);
+    void funDec(FunctDec *ast, FunctionType type = TYPE_FUNCTION);
+    void classDec(ClassDec *ast);
     void statement(Statement *s);
     void if_stat(If *s);
     void while_stat(While *);

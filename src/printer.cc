@@ -15,6 +15,7 @@
 #include "ast/return.hh"
 #include "ast/vardec.hh"
 #include "ast_base.hh"
+#include "context.hh"
 #include "scanner.hh"
 #include "value.hh"
 
@@ -34,6 +35,8 @@ void AST_Printer::decs_statement(Obj *s) {
         os << ';';
     } else if (IS_FunctDec(s)) {
         funDec(AS_FunctDec(s));
+    } else if (IS_ClassDec(s)) {
+        classDec(AS_ClassDec(s));
     } else {
         statement(AS_Statement(s));
     }
@@ -49,8 +52,10 @@ void AST_Printer::varDec(VarDec *ast) {
     }
 }
 
-void AST_Printer::funDec(FunctDec *ast) {
-    os << "fun ";
+void AST_Printer::funDec(FunctDec *ast, FunctionType type) {
+    if (type == TYPE_FUNCTION) {
+        os << "fun ";
+    }
     identifier(ast->name);
     os << "(";
     for (auto i = 0; i < ast->parameters.size(); i++) {
@@ -59,8 +64,21 @@ void AST_Printer::funDec(FunctDec *ast) {
             os << ", ";
         }
     }
-    os << ")" << NL;
+    os << ") ";
     block(ast->body);
+}
+
+void AST_Printer::classDec(ClassDec *ast) {
+    os << "class " << ast->name;
+    if (!ast->super.empty()) {
+        os << " < " << ast->super;
+    }
+    os << " {" << NL;
+    for (auto *m : ast->methods) {
+        funDec(m, TYPE_METHOD);
+        os << NL;
+    }
+    os << "}" << NL;
 }
 
 void AST_Printer::statement(Statement *s) {

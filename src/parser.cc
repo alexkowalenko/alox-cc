@@ -6,20 +6,10 @@
 
 #include <fmt/core.h>
 #include <map>
+#include <string_view>
 
-#include "ast/block.hh"
-#include "ast/boolean.hh"
-#include "ast/break.hh"
-#include "ast/functdec.hh"
-#include "ast/identifier.hh"
-#include "ast/if.hh"
 #include "ast/includes.hh"
-#include "ast/vardec.hh"
-#include "ast/while.hh"
-#include "ast_base.hh"
-#include "object.hh"
 #include "parser.hh"
-#include "scanner.hh"
 
 inline constexpr auto debug_parse{false};
 template <typename S, typename... Args>
@@ -43,21 +33,21 @@ Declaration *Parser::parse() {
 }
 
 Obj *Parser::declaration() {
+    // if (err.panicMode) {
+    //     synchronize();
+    // }
     if (match(TokenType::CLASS)) {
-        // classDeclaration();
-    } else if (match(TokenType::FUN)) {
+        return OBJ_AST(classDeclaration());
+    }
+    if (match(TokenType::FUN)) {
         return OBJ_AST(funDeclaration());
-    } else if (match(TokenType::VAR)) {
+    }
+    if (match(TokenType::VAR)) {
         auto *v = varDeclaration();
         consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
         return OBJ_AST(v);
-    } else {
-        return OBJ_AST(statement());
     }
-
-    if (err.panicMode) {
-        synchronize();
-    }
+    return OBJ_AST(statement());
 }
 
 VarDec *Parser::varDeclaration() {
@@ -73,12 +63,14 @@ VarDec *Parser::varDeclaration() {
     return ast;
 }
 
-FunctDec *Parser::funDeclaration() {
+FunctDec *Parser::funDeclaration(FunctionType type) {
+    debug("fun");
+    auto  type_name = (type == TYPE_METHOD) ? "method" : "function";
     auto *ast = newFunctDec(current.line);
-    consume(TokenType::IDENTIFIER, "Expect function name.");
+    consume(TokenType::IDENTIFIER, fmt::format("Expect {} name.", type_name));
     ast->name = ident();
 
-    consume(TokenType::LEFT_PAREN, "Expect '(' after function name.");
+    consume(TokenType::LEFT_PAREN, fmt::format("Expect '(' after {} name.", type_name));
     if (!check(TokenType::RIGHT_PAREN)) {
         do {
             if (ast->parameters.size() > MAX_ARGS) {
@@ -91,8 +83,31 @@ FunctDec *Parser::funDeclaration() {
         } while (match(TokenType::COMMA));
     }
     consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.");
-    consume(TokenType::LEFT_BRACE, "Expect '{' before function body.");
+    consume(TokenType::LEFT_BRACE, fmt::format("Expect '{{' before {} body.", type_name));
     ast->body = block();
+    return ast;
+}
+
+ClassDec *Parser::classDeclaration() {
+    debug("class");
+    auto *ast = newClassDec(current.line);
+    consume(TokenType::IDENTIFIER, "Expect class name.");
+    ast->name = previous.text;
+    Token className = previous;
+
+    if (match(TokenType::LESS)) {
+        consume(TokenType::IDENTIFIER, "Expect superclass name.");
+        ast->super = previous.text;
+
+        if (className.text == previous.text) {
+            error("A class can't inherit from itself.");
+        }
+    }
+    consume(TokenType::LEFT_BRACE, "Expect '{' before class body.");
+    while (!check(TokenType::RIGHT_BRACE) && !check(TokenType::EOFS)) {
+        ast->methods.push_back(funDeclaration(TYPE_METHOD));
+    }
+    consume(TokenType::RIGHT_BRACE, "Expect '}' after class body.");
     return ast;
 }
 
