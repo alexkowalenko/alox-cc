@@ -51,6 +51,7 @@ class Compiler {
     void expr(Expr *ast, bool canAssign = false);
     void binary(Binary *ast, bool canAssign);
     void assign(Assign *ast);
+    void call(Call *ast);
     void and_(Binary *ast, bool canAssign);
     void or_(Binary *ast, bool canAssign);
     void unary(Unary *ast, bool canAssign);
@@ -59,7 +60,6 @@ class Compiler {
     void string(String *ast);
     void boolean(Boolean *ast);
 
-    void call(bool /*canAssign*/);
     void dot(bool canAssign);
 
     void super_(bool /*canAssign*/);
@@ -100,11 +100,10 @@ class Compiler {
     int           addUpvalue(Context *compiler, uint8_t index, bool isLocal);
     int           resolveUpvalue(Context *compiler, const std::string &name);
 
-    void function(FunctDec *ast, FunctionType type);
+    void    function(FunctDec *ast, FunctionType type);
+    uint8_t argumentList(const std::vector<Expr *> &args);
 
     // Spare
-
-    uint8_t argumentList();
 
     void method();
     void classDeclaration();

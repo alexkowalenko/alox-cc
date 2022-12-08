@@ -61,6 +61,7 @@ class Parser {
 
     Expr *binary(Expr *left, bool /*canAssign*/);
     Expr *assign(Expr *left, bool /*canAssign*/);
+    Expr *call(Expr *left, bool /*canAssign*/);
 
     Expr *grouping(bool /*canAssign*/);
     Expr *unary(bool /*canAssign*/);
@@ -70,6 +71,8 @@ class Parser {
     Expr *number(bool /*canAssign*/);
 
     Identifier *ident();
+
+    void argumentList(std::vector<Expr *> &args);
 
     static ParseRule const *getRule(TokenType type);
 

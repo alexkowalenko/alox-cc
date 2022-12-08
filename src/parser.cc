@@ -257,7 +257,8 @@ inline auto get_precedence(TokenType t) -> Precedence {
 inline const std::map<TokenType, ParseRule> rules{
     {TokenType::LEFT_PAREN,
      {
-         std::mem_fn(&Parser::grouping), nullptr // std::mem_fn(&Compiler::call),
+         std::mem_fn(&Parser::grouping),
+         std::mem_fn(&Parser::call),
      }},
     {TokenType::RIGHT_PAREN, {nullptr, nullptr}},
     {TokenType::LEFT_BRACE, {nullptr, nullptr}}, // [big]
@@ -363,6 +364,15 @@ Expr *Parser::assign(Expr *left, bool /*canAssign*/) {
     return e;
 }
 
+Expr *Parser::call(Expr *left, bool /*canAssign*/) {
+    auto *call = newCall(current.line);
+    call->fname = left;
+    argumentList(call->args);
+    auto *e = newExpr(current.line);
+    e->expr = OBJ_AST(call);
+    return e;
+}
+
 Expr *Parser::grouping(bool /*canAssign*/) {
     auto *e = expr();
     consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
@@ -422,6 +432,19 @@ Identifier *Parser::ident() {
     auto *id = newIdentifier(current.line);
     id->name = newString(previous.text);
     return id;
+}
+
+void Parser::argumentList(std::vector<Expr *> &args) {
+    if (!check(TokenType::RIGHT_PAREN)) {
+        do {
+            if (args.size() == MAX_ARGS) {
+                error("Can't have more than 255 arguments.");
+            }
+            auto *e = expr();
+            args.push_back(e);
+        } while (match(TokenType::COMMA));
+    }
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after arguments.");
 }
 
 void Parser::synchronize() {

@@ -40,6 +40,7 @@ class AST_Printer {
     void expr(Expr *expr);
     void binary(Binary *ast);
     void assign(Assign *ast);
+    void call(Call *ast);
     void unary(Unary *ast);
     void identifier(Identifier *ast);
     void boolean(Boolean *expr);

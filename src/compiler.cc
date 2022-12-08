@@ -338,6 +338,13 @@ void Compiler::function(FunctDec *ast, FunctionType type) {
     }
 }
 
+uint8_t Compiler::argumentList(const std::vector<Expr *> &args) {
+    for (auto *arg : args) {
+        expr(arg);
+    }
+    return args.size();
+}
+
 // Compiler functions
 
 ObjFunction *Compiler::compile(Declaration *ast, Parser *p) {
@@ -591,6 +598,8 @@ void Compiler::expr(Expr *ast, bool canAssign) {
         unary(AS_Unary(ast->expr), canAssign);
     } else if (IS_Binary(ast->expr)) {
         binary(AS_Binary(ast->expr), canAssign);
+    } else if (IS_Call(ast->expr)) {
+        call(AS_Call(ast->expr));
     } else if (IS_Number(ast->expr)) {
         number(AS_Number(ast->expr));
     } else if (IS_Identifier(ast->expr)) {
@@ -607,6 +616,12 @@ void Compiler::expr(Expr *ast, bool canAssign) {
 void Compiler::assign(Assign *ast) {
     expr(ast->right, false);
     expr(ast->left, true);
+}
+
+void Compiler::call(Call *ast) {
+    expr(ast->fname, false);
+    const uint8_t argCount = argumentList(ast->args);
+    emitBytes(OpCode::CALL, argCount);
 }
 
 void Compiler::binary(Binary *ast, bool canAssign) {
@@ -724,26 +739,6 @@ void Compiler::boolean(Boolean *ast) {
 
 /////////////////////////////////////////////////////////////////////////
 
-uint8_t Compiler::argumentList() {
-    uint8_t argCount = 0;
-    if (!parser->check(TokenType::RIGHT_PAREN)) {
-        do {
-            expr(nullptr);
-            if (argCount == MAX_ARGS) {
-                parser->error("Can't have more than 255 arguments.");
-            }
-            argCount++;
-        } while (parser->match(TokenType::COMMA));
-    }
-    parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after arguments.");
-    return argCount;
-}
-
-void Compiler::call(bool /*canAssign*/) {
-    const uint8_t argCount = argumentList();
-    emitBytes(OpCode::CALL, argCount);
-}
-
 void Compiler::dot(bool canAssign) {
     parser->consume(TokenType::IDENTIFIER, "Expect property name after '.'.");
     auto name = identifierConstant(parser->previous.text);
@@ -752,7 +747,7 @@ void Compiler::dot(bool canAssign) {
         expr(nullptr);
         emitByteConst(OpCode::SET_PROPERTY, name);
     } else if (parser->match(TokenType::LEFT_PAREN)) {
-        const uint8_t argCount = argumentList();
+        const uint8_t argCount = argumentList({}); //! change
         emitByteConst(OpCode::INVOKE, name);
         emitByte(argCount);
     } else {
@@ -773,7 +768,7 @@ void Compiler::super_(bool /*canAssign*/) {
 
     namedVariable(sym_this, false);
     if (parser->match(TokenType::LEFT_PAREN)) {
-        const uint8_t argCount = argumentList();
+        const uint8_t argCount = argumentList({}); //! change
         namedVariable(sym_super, false);
         emitByteConst(OpCode::SUPER_INVOKE, name);
         emitByte(argCount);

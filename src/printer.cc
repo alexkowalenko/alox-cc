@@ -176,6 +176,8 @@ void AST_Printer::expr(Expr *ast) {
         boolean(AS_Boolean(ast->expr));
     } else if (IS_Assign(ast->expr)) {
         assign(AS_Assign(ast->expr));
+    } else if (IS_Call(ast->expr)) {
+        call(AS_Call(ast->expr));
     } else if (IS_Nil(ast->expr)) {
         os << "nil";
     }
@@ -230,6 +232,18 @@ void AST_Printer::assign(Assign *ast) {
     expr(ast->left);
     os << " = ";
     expr(ast->right);
+}
+
+void AST_Printer::call(Call *ast) {
+    expr(ast->fname);
+    os << '(';
+    for (auto i = 0; i < ast->args.size(); i++) {
+        expr(ast->args[i]);
+        if (i < ast->args.size() - 1) {
+            os << ", ";
+        }
+    }
+    os << ')';
 }
 
 void AST_Printer::unary(Unary *ast) {
