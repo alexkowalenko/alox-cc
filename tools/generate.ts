@@ -53,10 +53,6 @@ let classes: Array<Class> = [
         instances: [{ name: "value", type: "double" }]
     },
     {
-        name: "Number",
-        instances: [{ name: "value", type: "double" }]
-    },
-    {
         name: "String",
         instances: [{ name: "value", type: "ObjString *" }]
     },
@@ -107,6 +103,10 @@ let classes: Array<Class> = [
     {
         name: "Return",
         instances: [{ type: "Expr *", name: "expr" }]
+    },
+    {
+        name: "FunctDec",
+        instances: [{ type: "Identifier*", name: "name" }, { type: "std::vector<Identifier*>", name: "parameters" }, { type: "Block *", name: "body" }]
     },
 ];
 

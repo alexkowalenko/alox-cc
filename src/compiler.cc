@@ -16,6 +16,7 @@
 #include "ast/boolean.hh"
 #include "ast/break.hh"
 #include "ast/expr.hh"
+#include "ast/functdec.hh"
 #include "ast/identifier.hh"
 #include "ast/if.hh"
 #include "ast/print.hh"
@@ -116,11 +117,12 @@ void Compiler::patchJump(int offset) {
 
 // Context manipulation
 
-void Compiler::initCompiler(Context *compiler, FunctionType type) {
+void Compiler::initCompiler(Context *compiler, const std::string &name,
+                            FunctionType type) {
     compiler->init(current, type);
     current = compiler;
     if (type != TYPE_SCRIPT) {
-        current->function->name = newString(parser->previous.text);
+        current->function->name = newString(name);
     }
 
     Local *local = &current->locals[current->localCount++];
@@ -144,7 +146,6 @@ ObjFunction *Compiler::endCompiler() {
                                                  : "<script>");
         }
     }
-
     current = current->enclosing;
     return function;
 }
@@ -316,12 +317,33 @@ void Compiler::namedVariable(const std::string &name, bool canAssign) {
     }
 }
 
+void Compiler::function(FunctDec *ast, FunctionType type) {
+    Context compiler;
+    initCompiler(&compiler, ast->name->name->str, type);
+    beginScope();
+
+    for (auto p : ast->parameters) {
+        current->function->arity++;
+        const uint8_t constant = parseVariable(p->name->str);
+        defineVariable(constant);
+    }
+    block(ast->body);
+
+    ObjFunction *function = endCompiler();
+    emitByteConst(OpCode::CLOSURE, makeConstant(OBJ_VAL(function)));
+
+    for (int i = 0; i < function->upvalueCount; i++) {
+        emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
+        emitByte(compiler.upvalues[i].index);
+    }
+}
+
 // Compiler functions
 
 ObjFunction *Compiler::compile(Declaration *ast, Parser *p) {
     parser = p;
     Context compiler{};
-    initCompiler(&compiler, TYPE_SCRIPT);
+    initCompiler(&compiler, "script>", TYPE_SCRIPT);
 
     declaration(ast);
 
@@ -340,8 +362,8 @@ void Compiler::declaration(Declaration *ast) {
 void Compiler::decs_statement(Obj *s) {
     if (parser->match(TokenType::CLASS)) {
         //     classDeclaration();
-    } else if (parser->match(TokenType::FUN)) {
-        //     funDeclaration();
+    } else if (IS_FunctDec(s)) {
+        funDeclaration(AS_FunctDec(s));
     } else if (IS_VarDec(s)) {
         varDeclaration(AS_VarDec(s));
     } else {
@@ -356,6 +378,13 @@ void Compiler::varDeclaration(VarDec *ast) {
     } else {
         emitByte(OpCode::NIL);
     }
+    defineVariable(global);
+}
+
+void Compiler::funDeclaration(FunctDec *ast) {
+    const uint8_t global = parseVariable(ast->name->name->str);
+    markInitialized();
+    function(ast, TYPE_FUNCTION);
     defineVariable(global);
 }
 
@@ -763,36 +792,6 @@ void Compiler::this_(bool /*canAssign*/) {
     variable(nullptr, false);
 }
 
-void Compiler::function(FunctionType type) {
-    Context compiler;
-    initCompiler(&compiler, type);
-    beginScope(); // [no-end-scope]
-
-    parser->consume(TokenType::LEFT_PAREN, "Expect '(' after function name.");
-    if (!parser->check(TokenType::RIGHT_PAREN)) {
-        do {
-            current->function->arity++;
-            if (current->function->arity > MAX_ARGS) {
-                parser->errorAtCurrent(
-                    fmt::format("Can't have more than {} parameters.", MAX_ARGS));
-            }
-            const uint8_t constant = parseVariable("name"); // replace
-            defineVariable(constant);
-        } while (parser->match(TokenType::COMMA));
-    }
-    parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.");
-    parser->consume(TokenType::LEFT_BRACE, "Expect '{' before function body.");
-    block(nullptr);
-
-    ObjFunction *function = endCompiler();
-    emitByteConst(OpCode::CLOSURE, makeConstant(OBJ_VAL(function)));
-
-    for (int i = 0; i < function->upvalueCount; i++) {
-        emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
-        emitByte(compiler.upvalues[i].index);
-    }
-}
-
 void Compiler::method() {
     parser->consume(TokenType::IDENTIFIER, "Expect method name.");
     auto constant = identifierConstant(parser->previous.text);
@@ -803,7 +802,7 @@ void Compiler::method() {
         type = TYPE_INITIALIZER;
     }
 
-    function(type);
+    function(nullptr, type);
     emitByteConst(OpCode::METHOD, constant);
 }
 
@@ -851,13 +850,6 @@ void Compiler::classDeclaration() {
     }
 
     currentClass = currentClass->enclosing;
-}
-
-void Compiler::funDeclaration() {
-    const uint8_t global = parseVariable("name"); // replace
-    markInitialized();
-    function(TYPE_FUNCTION);
-    defineVariable(global);
 }
 
 void Compiler::markCompilerRoots() {

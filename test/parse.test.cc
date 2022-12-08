@@ -203,6 +203,26 @@ TEST(Parser, return) { // NOLINT
     do_parse_tests(tests);
 }
 
+TEST(Parser, function) { // NOLINT
+    std::vector<ParseTests> tests = {
+        {"fun f() {}", "fun f() { }", ""},
+        {"fun f(a) {}", "fun f(a) { }", ""},
+        {"fun f(a,b) {}", "fun f(a, b) { }", ""},
+
+        {"fun f() {print 1;}", "fun f() { print 1; }", ""},
+        {"fun f() {print 1;print 2;}", "fun f() { print 1; print 2; }", ""},
+        {"fun f(a) {print a;}", "fun f(a) { print a; }", ""},
+        {"fun f(a,b) {print a;print b;}", "fun f(a, b) { print a; print b; }", ""},
+
+        // Errors
+        {"fun f ) {}", "", "[line 1] Error at ')': Expect '(' after function name."},
+        {"fun f( {}", "", "[line 1] Error at '{': Expect parameter name."},
+        {"fun f(a, ) {}", "", "[line 1] Error at ')': Expect parameter name."},
+        {"fun f() }", "", "[line 1] Error at '}': Expect '{' before function body."},
+    };
+    do_parse_tests(tests);
+}
+
 std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); })
                 .base(),

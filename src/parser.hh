@@ -41,8 +41,9 @@ class Parser {
 
     Declaration *parse();
 
-    Obj    *declaration();
-    VarDec *varDeclaration();
+    Obj      *declaration();
+    VarDec   *varDeclaration();
+    FunctDec *funDeclaration();
 
     Statement *statement();
     If        *if_stat();
@@ -53,20 +54,20 @@ class Parser {
     Break     *break_stat(TokenType t);
     Expr      *exprStatement();
 
+    Block *block();
+
     Expr *expr();
     Expr *parsePrecedence(Precedence precedence);
 
     Expr *binary(Expr *left, bool /*canAssign*/);
     Expr *assign(Expr *left, bool /*canAssign*/);
-    
+
     Expr *grouping(bool /*canAssign*/);
     Expr *unary(bool /*canAssign*/);
     Expr *identifier(bool /*canAssign*/);
     Expr *primary(bool /*canAssign*/);
     Expr *string(bool /*canAssign*/);
     Expr *number(bool /*canAssign*/);
-
-    Block *block();
 
     Identifier *ident();
 

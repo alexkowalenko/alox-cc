@@ -10,6 +10,7 @@
 #include "ast/break.hh"
 #include "ast/declaration.hh"
 #include "ast/expr.hh"
+#include "ast/functdec.hh"
 #include "ast/if.hh"
 #include "ast/return.hh"
 #include "ast/vardec.hh"
@@ -31,6 +32,8 @@ void AST_Printer::decs_statement(Obj *s) {
     if (IS_VarDec(s)) {
         varDec(AS_VarDec(s));
         os << ';';
+    } else if (IS_FunctDec(s)) {
+        funDec(AS_FunctDec(s));
     } else {
         statement(AS_Statement(s));
     }
@@ -44,6 +47,20 @@ void AST_Printer::varDec(VarDec *ast) {
         os << " = ";
         expr(ast->expr);
     }
+}
+
+void AST_Printer::funDec(FunctDec *ast) {
+    os << "fun ";
+    identifier(ast->name);
+    os << "(";
+    for (auto i = 0; i < ast->parameters.size(); i++) {
+        identifier(ast->parameters[i]);
+        if (i < ast->parameters.size() - 1) {
+            os << ", ";
+        }
+    }
+    os << ")" << NL;
+    block(ast->body);
 }
 
 void AST_Printer::statement(Statement *s) {

@@ -10,6 +10,7 @@
 #include "ast/block.hh"
 #include "ast/boolean.hh"
 #include "ast/break.hh"
+#include "ast/functdec.hh"
 #include "ast/identifier.hh"
 #include "ast/if.hh"
 #include "ast/includes.hh"
@@ -28,6 +29,8 @@ static void debug(const S &format, const Args &...msg) {
     }
 }
 
+constexpr auto MAX_ARGS = UINT8_MAX;
+
 Declaration *Parser::parse() {
     advance();
     auto *ast = newDeclaration(current.line);
@@ -43,7 +46,7 @@ Obj *Parser::declaration() {
     if (match(TokenType::CLASS)) {
         // classDeclaration();
     } else if (match(TokenType::FUN)) {
-        // funDeclaration();
+        return OBJ_AST(funDeclaration());
     } else if (match(TokenType::VAR)) {
         auto *v = varDeclaration();
         consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
@@ -67,6 +70,29 @@ VarDec *Parser::varDeclaration() {
     } else {
         ast->expr = nullptr;
     }
+    return ast;
+}
+
+FunctDec *Parser::funDeclaration() {
+    auto *ast = newFunctDec(current.line);
+    consume(TokenType::IDENTIFIER, "Expect function name.");
+    ast->name = ident();
+
+    consume(TokenType::LEFT_PAREN, "Expect '(' after function name.");
+    if (!check(TokenType::RIGHT_PAREN)) {
+        do {
+            if (ast->parameters.size() > MAX_ARGS) {
+                errorAtCurrent(
+                    fmt::format("Can't have more than {} parameters.", MAX_ARGS));
+            }
+            consume(TokenType::IDENTIFIER, "Expect parameter name.");
+            auto *p = ident();
+            ast->parameters.push_back(p);
+        } while (match(TokenType::COMMA));
+    }
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.");
+    consume(TokenType::LEFT_BRACE, "Expect '{' before function body.");
+    ast->body = block();
     return ast;
 }
 

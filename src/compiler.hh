@@ -9,6 +9,7 @@
 #include "ast/block.hh"
 #include "ast/boolean.hh"
 #include "ast/break.hh"
+#include "ast/functdec.hh"
 #include "ast/includes.hh"
 #include "ast/return.hh"
 #include "ast/unary.hh"
@@ -35,6 +36,7 @@ class Compiler {
     void declaration(Declaration *ast);
     void decs_statement(Obj *);
     void varDeclaration(VarDec *ast);
+    void funDeclaration(FunctDec *ast);
 
     void statement(Statement *ast);
     void ifStatement(If *ast);
@@ -81,7 +83,7 @@ class Compiler {
     void          emitConstant(Value value);
     void          patchJump(int offset);
 
-    void         initCompiler(Context *compiler, FunctionType type);
+    void initCompiler(Context *compiler, const std::string &name, FunctionType type);
     ObjFunction *endCompiler();
 
     const_index_t parseVariable(const std::string &var);
@@ -98,12 +100,14 @@ class Compiler {
     int           addUpvalue(Context *compiler, uint8_t index, bool isLocal);
     int           resolveUpvalue(Context *compiler, const std::string &name);
 
+    void function(FunctDec *ast, FunctionType type);
+
+    // Spare
+
     uint8_t argumentList();
 
-    void function(FunctionType type);
     void method();
     void classDeclaration();
-    void funDeclaration();
 
     void error(size_t line, const std::string_view &);
 
