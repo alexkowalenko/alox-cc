@@ -198,6 +198,8 @@ void AST_Printer::expr(Expr *ast) {
         call(AS_Call(ast->expr));
     } else if (IS_Dot(ast->expr)) {
         dot(AS_Dot(ast->expr));
+    } else if (IS_This(ast->expr)) {
+        this_(AS_This(ast->expr));
     } else if (IS_Nil(ast->expr)) {
         os << "nil";
     }
@@ -246,6 +248,7 @@ void AST_Printer::binary(Binary *ast) {
     case TokenType::DOT:
         os << " . ";
         break;
+    default:;
     }
 
     expr(ast->right);
@@ -260,14 +263,7 @@ void AST_Printer::assign(Assign *ast) {
 
 void AST_Printer::call(Call *ast) {
     expr(ast->fname);
-    os << '(';
-    for (auto i = 0; i < ast->args.size(); i++) {
-        expr(ast->args[i]);
-        if (i < ast->args.size() - 1) {
-            os << ", ";
-        }
-    }
-    os << ')';
+    args(ast->args);
 }
 
 void AST_Printer::dot(Dot *ast) {
@@ -279,15 +275,9 @@ void AST_Printer::dot(Dot *ast) {
         expr(ast->args[0]);
         break;
     case TokenType::LEFT_PAREN:
-        os << '(';
-        for (auto i = 0; i < ast->args.size(); i++) {
-            expr(ast->args[i]);
-            if (i < ast->args.size() - 1) {
-                os << ", ";
-            }
-        }
-        os << ')';
+        args(ast->args);
         break;
+    default:;
     };
 }
 
@@ -325,4 +315,26 @@ void AST_Printer::string(String *str) {
     os << '"';
     printObject(os, OBJ_VAL(str->value));
     os << '"';
+}
+
+void AST_Printer::this_(This *ast) {
+    if (ast->token == TokenType::THIS) {
+        os << "this";
+        return;
+    }
+    os << "super." << ast->id;
+    if (ast->has_args) {
+        args(ast->args);
+    }
+}
+
+void AST_Printer::args(const std::vector<Expr *> &args) {
+    os << '(';
+    for (auto i = 0; i < args.size(); i++) {
+        expr(args[i]);
+        if (i < args.size() - 1) {
+            os << ", ";
+        }
+    }
+    os << ')';
 }

@@ -67,7 +67,9 @@ class Chunk {
 
     [[nodiscard]] constexpr size_t get_count() const { return count; }
     [[nodiscard]] constexpr size_t get_line(size_t n) const { return lines[n]; }
-    [[nodiscard]] constexpr size_t line_last() const { return lines.back(); }
+    [[nodiscard]] constexpr size_t line_last() const {
+        return lines.empty() ? 0 : lines.back();
+    }
 
     [[nodiscard]] constexpr ValueArray &get_constants() { return constants; }
     const_index_t                       add_constant(Value value);

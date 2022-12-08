@@ -62,8 +62,8 @@ class Compiler {
     void string(String *ast);
     void boolean(Boolean *ast);
 
-    void super_(bool /*canAssign*/);
-    void this_(bool /*canAssign*/);
+    void super_(This *ast, bool /*canAssign*/);
+    void this_(This *ast, bool /*canAssign*/);
 
     Chunk         *currentChunk() { return &current->function->chunk; }
     void           emitByte(uint8_t byte);

@@ -49,6 +49,9 @@ class AST_Printer {
     void boolean(Boolean *expr);
     void number(Number *num);
     void string(String *num);
+    void this_(This *num);
+
+     void args(const std::vector<Expr *> &args);
 
     std::ostream &os;
     const char    NL{};

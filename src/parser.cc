@@ -11,6 +11,7 @@
 #include "ast/dot.hh"
 #include "ast/includes.hh"
 #include "parser.hh"
+#include "scanner.hh"
 
 inline constexpr auto debug_parse{false};
 template <typename S, typename... Args>
@@ -308,9 +309,8 @@ inline const std::map<TokenType, ParseRule> rules{
     {TokenType::OR, {nullptr, std::mem_fn(&Parser::binary)}},
     {TokenType::PRINT, {nullptr, nullptr}},
     {TokenType::RETURN, {nullptr, nullptr}},
-    // {TokenType::SUPER, {std::mem_fn(&Compiler::super_), nullptr,
-    // Precedence::NONE}}, {TokenType::THIS, {std::mem_fn(&Compiler::this_),
-    // nullptr}},
+    {TokenType::SUPER, {std::mem_fn(&Parser::super_), nullptr}},
+    {TokenType::THIS, {std::mem_fn(&Parser::this_), nullptr}},
     {TokenType::TRUE, {std::mem_fn(&Parser::primary), nullptr}},
     {TokenType::VAR, {nullptr, nullptr}},
     {TokenType::WHILE, {nullptr, nullptr}},
@@ -468,6 +468,30 @@ Identifier *Parser::ident() {
     auto *id = newIdentifier(current.line);
     id->name = newString(previous.text);
     return id;
+}
+
+Expr *Parser::super_(bool /*canAssign*/) {
+    auto *ast = newThis(current.line);
+    ast->token = TokenType::SUPER;
+    consume(TokenType::DOT, "Expect '.' after 'super'.");
+    consume(TokenType::IDENTIFIER, "Expect superclass method name.");
+    ast->id = previous.text;
+    ast->has_args = false;
+    if (match(TokenType::LEFT_PAREN)) {
+        ast->has_args = true;
+        argumentList(ast->args);
+    }
+    auto *e = newExpr(current.line);
+    e->expr = OBJ_AST(ast);
+    return e;
+}
+
+Expr *Parser::this_(bool /*canAssign*/) {
+    auto *t = newThis(current.line);
+    t->token = TokenType::THIS;
+    auto *e = newExpr(current.line);
+    e->expr = OBJ_AST(t);
+    return e;
 }
 
 void Parser::argumentList(std::vector<Expr *> &args) {

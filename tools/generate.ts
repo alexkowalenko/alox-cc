@@ -122,7 +122,7 @@ let classes: Array<Class> = [
     },
     {
         name: "This",
-        instances: [{ name: "token", type: "TokenType" }]
+        instances: [{ name: "token", type: "TokenType" }, { type: "std::string", name: "id" }, { type: "bool", name: "has_args" }, { type: "std::vector<Expr*>", name: "args" }]
     },
 ];
 

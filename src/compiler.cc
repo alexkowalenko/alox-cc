@@ -47,7 +47,7 @@ constexpr auto sym_super = "super";
 // Code emission
 
 void Compiler::emitByte(uint8_t byte) {
-    currentChunk()->write(byte, parser->previous.line);
+    currentChunk()->write(byte, currentChunk()->line_last());
 }
 
 void Compiler::emitBytes(uint8_t byte1, uint8_t byte2) {
@@ -356,6 +356,39 @@ void Compiler::method(FunctDec *ast) {
     emitByteConst(OpCode::METHOD, constant);
 }
 
+void Compiler::super_(This *ast, bool /*canAssign*/) {
+    if (currentClass == nullptr) {
+        error(ast->line, "Can't use 'super' outside of a class.");
+    } else if (!currentClass->hasSuperclass) {
+        error(ast->line, "Can't use 'super' in a class with no superclass.");
+    }
+
+    auto name = identifierConstant(ast->id);
+    namedVariable(sym_this, false);
+    if (ast->token == TokenType::LEFT_PAREN) {
+        const uint8_t argCount = argumentList(ast->args);
+        namedVariable(sym_super, false);
+        emitByteConst(OpCode::SUPER_INVOKE, name);
+        emitByte(argCount);
+    } else {
+        namedVariable(sym_super, false);
+        emitByteConst(OpCode::GET_SUPER, name);
+    }
+}
+
+void Compiler::this_(This *ast, bool canAssign) {
+    if (ast->token == TokenType::SUPER) {
+        super_(ast, canAssign);
+        return;
+    }
+
+    if (currentClass == nullptr) {
+        error(ast->line, "Can't use 'this' outside of a class.");
+        return;
+    }
+    namedVariable(sym_this, false); // variable(sym_this, false);
+}
+
 // Compiler functions
 
 ObjFunction *Compiler::compile(Declaration *ast, Parser *p) {
@@ -577,14 +610,13 @@ void Compiler::forStatement(For *ast) {
 
 void Compiler::returnStatement(Return *ast) {
     if (current->type == TYPE_SCRIPT) {
-        error(currentChunk()->line_last(), "Can't return from top-level code.");
+        error(ast->line, "Can't return from top-level code.");
     }
     if (!ast->expr) {
         emitReturn();
     } else {
         if (current->type == TYPE_INITIALIZER) {
-            error(currentChunk()->line_last(),
-                  "Can't return a value from an initializer.");
+            error(ast->line, "Can't return a value from an initializer.");
         }
         expr(ast->expr);
         emitByte(OpCode::RETURN);
@@ -595,8 +627,7 @@ void Compiler::breakStatement(Break *ast) {
     debug("breakStatement");
     const auto *name = ast->tok == TokenType::BREAK ? "break" : "continue";
     if (current->enclosing_loop == 0) {
-        error(currentChunk()->line_last(),
-              fmt::format("{} must be used in a loop.", name));
+        error(ast->line, fmt::format("{} must be used in a loop.", name));
     }
 
     // take off local variables
@@ -658,6 +689,8 @@ void Compiler::expr(Expr *ast, bool canAssign) {
         string(AS_String(ast->expr));
     } else if (IS_Boolean(ast->expr)) {
         boolean(AS_Boolean(ast->expr));
+    } else if (IS_This(ast->expr)) {
+        this_(AS_This(ast->expr), canAssign);
     } else if (IS_Nil(ast->expr)) {
         emitByte(OpCode::NIL);
     }
@@ -805,38 +838,6 @@ void Compiler::boolean(Boolean *ast) {
 }
 
 /////////////////////////////////////////////////////////////////////////
-
-void Compiler::super_(bool /*canAssign*/) {
-    if (currentClass == nullptr) {
-        parser->error("Can't use 'super' outside of a class.");
-    } else if (!currentClass->hasSuperclass) {
-        parser->error("Can't use 'super' in a class with no superclass.");
-    }
-
-    parser->consume(TokenType::DOT, "Expect '.' after 'super'.");
-    parser->consume(TokenType::IDENTIFIER, "Expect superclass method name.");
-    auto name = identifierConstant(parser->previous.text);
-
-    namedVariable(sym_this, false);
-    if (parser->match(TokenType::LEFT_PAREN)) {
-        const uint8_t argCount = argumentList({}); //! change
-        namedVariable(sym_super, false);
-        emitByteConst(OpCode::SUPER_INVOKE, name);
-        emitByte(argCount);
-    } else {
-        namedVariable(sym_super, false);
-        emitByteConst(OpCode::GET_SUPER, name);
-    }
-}
-
-void Compiler::this_(bool /*canAssign*/) {
-    if (currentClass == nullptr) {
-        parser->error("Can't use 'this' outside of a class.");
-        return;
-    }
-
-    variable(nullptr, false);
-}
 
 void Compiler::markCompilerRoots() {
     Context *compiler = current;

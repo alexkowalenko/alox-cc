@@ -73,6 +73,8 @@ class Parser {
     Expr *primary(bool /*canAssign*/);
     Expr *string(bool /*canAssign*/);
     Expr *number(bool /*canAssign*/);
+    Expr *super_(bool /*canAssign*/);
+    Expr *this_(bool /*canAssign*/);
 
     Identifier *ident();
 

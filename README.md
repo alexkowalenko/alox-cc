@@ -25,6 +25,7 @@ Modifications:
 * [x] Move init() functions to constructors, default initialisers.
 * [x] NOT_EQUAL, NOT_LESS, NOT_GREATER.
 * [x] moved from char* to std::string.
+* [ ] separate Parser and Compiler with an AST.
 
 
 Book modifications:
