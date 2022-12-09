@@ -354,7 +354,7 @@ void Compiler::super_(This *ast, bool /*canAssign*/) {
 
     auto name = identifierConstant(ast->id);
     namedVariable(sym_this, false);
-    if (ast->token == TokenType::LEFT_PAREN) {
+    if (ast->has_args) {
         const uint8_t argCount = argumentList(ast->args);
         namedVariable(sym_super, false);
         emitByteConst(OpCode::SUPER_INVOKE, name);

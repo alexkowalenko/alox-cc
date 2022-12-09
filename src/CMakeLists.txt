@@ -18,6 +18,7 @@ add_library(lox STATIC
    vm_stdlib.cc
    printer.cc
    error.cc
+   ast_base.cc
    alox.cc
    )
 

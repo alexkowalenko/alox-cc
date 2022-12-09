@@ -161,7 +161,7 @@ void do_eval_tests(std::vector<ParseTests> &tests) {
     std::ostringstream err;
     std::ostringstream out;
     Options            options(out, std::cin, err);
-    options.     = true;
+    options.silent = true;
     VM vm(options);
     gc.init(&vm);
     vm.init();

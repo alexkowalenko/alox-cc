@@ -91,6 +91,7 @@ InterpretResult Alox::runString(const std::string &source) {
     if (errors.hadError) {
         return INTERPRET_PARSE_ERROR;
     }
+    gc.set_ast(ast);
     if (options.parse) {
         std::stringstream os;
         AST_Printer       printer(os);
