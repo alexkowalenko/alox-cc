@@ -100,7 +100,7 @@ InterpretResult Alox::runString(const std::string &source) {
 
     Compiler compiler(options, errors);
     gc.set_compiler(&compiler);
-    ObjFunction *function = compiler.compile(ast, &parser);
+    ObjFunction *function = compiler.compile(ast);
     if (function == nullptr) {
         return INTERPRET_COMPILE_ERROR;
     }

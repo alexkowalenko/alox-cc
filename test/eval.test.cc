@@ -161,7 +161,7 @@ void do_eval_tests(std::vector<ParseTests> &tests) {
     std::ostringstream err;
     std::ostringstream out;
     Options            options(out, std::cin, err);
-    options.silent = true;
+    options.     = true;
     VM vm(options);
     gc.init(&vm);
     vm.init();
@@ -185,7 +185,7 @@ void do_eval_tests(std::vector<ParseTests> &tests) {
 
             Compiler compiler(options, errors);
             gc.set_compiler(&compiler);
-            ObjFunction *function = compiler.compile(ast, &parser);
+            ObjFunction *function = compiler.compile(ast);
             if (errors.hadError) {
                 EXPECT_EQ(rtrim(err.str()), t.error);
                 continue; // I

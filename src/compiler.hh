@@ -4,23 +4,13 @@
 
 #pragma once
 
-#include "ast/assign.hh"
-#include "ast/binary.hh"
-#include "ast/block.hh"
-#include "ast/boolean.hh"
-#include "ast/break.hh"
-#include "ast/functdec.hh"
 #include "ast/includes.hh"
-#include "ast/return.hh"
-#include "ast/unary.hh"
-#include "ast/vardec.hh"
 #include "ast_base.hh"
 #include "chunk.hh"
 #include "context.hh"
 #include "object.hh"
 #include "options.hh"
-#include "parser.hh"
-#include "scanner.hh"
+
 #include <string_view>
 
 class Compiler {
@@ -28,7 +18,7 @@ class Compiler {
     Compiler(const Options &opt, Error &err) : options(opt), err(err){};
     ~Compiler() = default;
 
-    ObjFunction *compile(Declaration *ast, Parser *source);
+    ObjFunction *compile(Declaration *ast);
     void         markCompilerRoots();
 
   private:
@@ -108,7 +98,6 @@ class Compiler {
 
     const Options &options;
     Error         &err;
-    Parser        *parser{nullptr};
 
     Context      *current{nullptr};
     ClassContext *currentClass{nullptr};

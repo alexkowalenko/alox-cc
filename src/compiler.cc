@@ -12,17 +12,6 @@
 
 #include <fmt/core.h>
 
-#include "ast/block.hh"
-#include "ast/boolean.hh"
-#include "ast/break.hh"
-#include "ast/expr.hh"
-#include "ast/functdec.hh"
-#include "ast/identifier.hh"
-#include "ast/if.hh"
-#include "ast/print.hh"
-#include "ast/return.hh"
-#include "ast/vardec.hh"
-#include "ast_base.hh"
 #include "chunk.hh"
 #include "common.hh"
 #include "compiler.hh"
@@ -391,8 +380,7 @@ void Compiler::this_(This *ast, bool canAssign) {
 
 // Compiler functions
 
-ObjFunction *Compiler::compile(Declaration *ast, Parser *p) {
-    parser = p;
+ObjFunction *Compiler::compile(Declaration *ast) {
     Context compiler{};
     initCompiler(&compiler, "script>", TYPE_SCRIPT);
 
