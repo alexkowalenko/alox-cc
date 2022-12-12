@@ -483,7 +483,7 @@ void Compiler::statement(Statement *ast) {
         block(AS_Block(ast->stat));
         endScope();
     } else {
-        expr(AS_Expr(ast->stat));
+        exprStatement(AS_Expr(ast->stat));
     }
 }
 
