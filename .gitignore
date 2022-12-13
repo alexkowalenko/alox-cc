@@ -22,4 +22,3 @@ __latexindent_temp.tex
 *.fail
 
 src/ast/*
-extern/CLI11

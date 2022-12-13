@@ -14,10 +14,11 @@
 #include <sstream>
 
 #include "alox.hh"
-#include "ast/printer.hh"
 #include "compiler.hh"
+#include "error.hh"
 #include "memory.hh"
 #include "parser.hh"
+#include "printer.hh"
 #include "scanner.hh"
 #include "vm.hh"
 
@@ -30,7 +31,7 @@ Alox::Alox(const Options &opt) : options(opt), vm(options) {
 
 Alox::~Alox() {
     vm.free();
-    gc.freeObjects(); // and the last to be destroyed is death.
+    gc.freeObjects(); // and the last enemy to be destroyed is death.
 }
 
 void Alox::repl() {
@@ -83,20 +84,24 @@ int Alox::runFile(const std::string_view &path) {
 InterpretResult Alox::runString(const std::string &source) {
 
     auto scanner = Scanner(source);
-    auto parser = Parser(scanner);
+    auto errors = Error(options.err);
+    auto parser = Parser(scanner, errors);
 
     auto ast = parser.parse();
-    if (parser.hadError) {
+    if (errors.hadError) {
         return INTERPRET_PARSE_ERROR;
     }
-    std::stringstream os;
-    AST_Printer       printer(os);
-    printer.print(ast);
-    std::cout << os.str();
+    gc.set_ast(ast);
+    if (options.parse) {
+        std::stringstream os;
+        AST_Printer       printer(os);
+        printer.print(ast);
+        std::cout << os.str();
+    }
 
-    Compiler compiler(options);
+    Compiler compiler(options, errors);
     gc.set_compiler(&compiler);
-    ObjFunction *function = compiler.compile(ast, &parser);
+    ObjFunction *function = compiler.compile(ast);
     if (function == nullptr) {
         return INTERPRET_COMPILE_ERROR;
     }

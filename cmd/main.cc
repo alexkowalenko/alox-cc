@@ -9,7 +9,7 @@
 
 int main(int argc, const char *argv[]) {
 
-    Options options;
+    Options options(std::cout, std::cin, std::cerr);
     getOptions(argc, argv, options);
 
     Alox alox(options);

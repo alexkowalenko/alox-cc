@@ -120,6 +120,9 @@ void GC::blackenObject(Obj *object) {
     case OBJ_STRING:
         break;
     }
+    if (object->type >= START_AST) {
+        blackenASTObject(object);
+    }
 }
 
 void GC::freeObject(Obj *object) {
@@ -136,9 +139,8 @@ void GC::freeObject(Obj *object) {
         auto *klass = (ObjClass *)object;
         klass->methods.free();
         deleteObject(klass);
-        // FREE<ObjClass>(object);
         break;
-    } // [braces]
+    }
     case OBJ_CLOSURE: {
         auto *closure = (ObjClosure *)object;
         gc.delete_array<ObjUpvalue *>(closure->upvalues, closure->upvalueCount);
@@ -169,6 +171,9 @@ void GC::freeObject(Obj *object) {
         deleteObject<ObjUpvalue>((ObjUpvalue *)object);
         break;
     }
+    if (object->type >= START_AST) {
+        // freeASTObject(object);
+    }
 }
 
 // dependent on vm
@@ -177,6 +182,9 @@ void GC::markRoots() {
         compiler->markCompilerRoots();
     }
     vm->markRoots();
+    if (ast) {
+        markASTRoots(ast);
+    }
 }
 
 void GC::traceReferences() {

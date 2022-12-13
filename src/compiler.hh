@@ -10,66 +10,52 @@
 #include "context.hh"
 #include "object.hh"
 #include "options.hh"
-#include "parser.hh"
-#include "scanner.hh"
 
-enum class Precedence {
-    NONE,
-    ASSIGNMENT, // =
-    OR,         // or
-    AND,        // and
-    EQUALITY,   // == !=
-    COMPARISON, // < > <= >=
-    TERM,       // + -
-    FACTOR,     // * /
-    UNARY,      // ! -
-    CALL,       // . ()
-    PRIMARY
-};
-
-class Compiler;
-using ParseFn = std::function<void(Compiler *, bool)>;
-
-struct ParseRule {
-    ParseFn    prefix;
-    ParseFn    infix;
-    Precedence precedence;
-};
+#include <string_view>
 
 class Compiler {
   public:
-    Compiler(const Options &opt) : options(opt){};
+    Compiler(const Options &opt, Error &err) : options(opt), err(err){};
     ~Compiler() = default;
 
-    ObjFunction *compile(Declaration *ast, Parser *source);
+    ObjFunction *compile(Declaration *ast);
     void         markCompilerRoots();
 
+  private:
     // Compile the AST
     void declaration(Declaration *ast);
+    void decs_statement(Obj *);
+    void varDeclaration(VarDec *ast);
+    void funDeclaration(FunctDec *ast);
+    void classDeclaration(ClassDec *ast);
+
     void statement(Statement *ast);
+    void ifStatement(If *ast);
+    void forStatement(For *ast);
+    void whileStatement(While *ast);
     void printStatement(Print *ast);
+    void returnStatement(Return *ast);
+    void breakStatement(Break *ast);
+    void block(Block *);
     void exprStatement(Expr *ast);
-    void expr(Expr *ast);
-    void primary(Primary *ast);
+
+    void expr(Expr *ast, bool canAssign = false);
+    void binary(Binary *ast, bool canAssign);
+    void assign(Assign *ast);
+    void call(Call *ast);
+    void dot(Dot *ast, bool canAssign);
+    void and_(Binary *ast, bool canAssign);
+    void or_(Binary *ast, bool canAssign);
+    void unary(Unary *ast, bool canAssign);
+    void variable(Identifier *ast, bool canAssign);
     void number(Number *ast);
+    void string(String *ast);
+    void boolean(Boolean *ast);
 
-    void and_(bool /*canAssign*/);
-    void binary(bool /*canAssign*/);
-    void call(bool /*canAssign*/);
-    void dot(bool canAssign);
-    void number(bool);
-    void literal(bool /*canAssign*/);
-    void grouping(bool /*canAssign*/);
-    void or_(bool /*canAssign*/);
-    void string(bool /*canAssign*/);
-    void super_(bool /*canAssign*/);
-    void this_(bool /*canAssign*/);
-    void unary(bool /*canAssign*/);
-    void variable(bool canAssign);
+    void super_(This *ast, bool /*canAssign*/);
+    void this_(This *ast, bool /*canAssign*/);
 
-  private:
-    Chunk *currentChunk() { return &current->function->chunk; }
-
+    Chunk         *currentChunk() { return &current->function->chunk; }
     void           emitByte(uint8_t byte);
     constexpr void emitByte(OpCode byte) { return emitByte(uint8_t(byte)); };
     void           emitBytes(uint8_t byte1, uint8_t byte2);
@@ -87,49 +73,31 @@ class Compiler {
     void          emitConstant(Value value);
     void          patchJump(int offset);
 
-    void         initCompiler(Context *compiler, FunctionType type);
+    void initCompiler(Context *compiler, const std::string &name, FunctionType type);
     ObjFunction *endCompiler();
 
-    void beginScope();
-    void endScope();
-    void adjust_locals(int depth);
-
-    void expression();
-
-    static ParseRule const *getRule(TokenType type);
-    void                    parsePrecedence(Precedence precedence);
-
-    const_index_t identifierConstant(Token *name);
-    static bool   identifiersEqual(Token *a, Token *b);
-    int           resolveLocal(Context *compiler, Token *name);
-    int           addUpvalue(Context *compiler, uint8_t index, bool isLocal);
-    int           resolveUpvalue(Context *compiler, Token *name);
-    void          addLocal(Token name);
-    void          declareVariable();
-    const_index_t parseVariable(const char *errorMessage);
-    void          markInitialized();
+    const_index_t parseVariable(const std::string &var);
+    void          declareVariable(const std::string &name);
+    void          addLocal(const std::string &name);
+    const_index_t identifierConstant(const std::string &name);
     void          defineVariable(const_index_t global);
+    void          markInitialized();
+    void          beginScope();
+    void          endScope();
+    void          namedVariable(const std::string &name, bool canAssign);
+    void          adjust_locals(int depth);
+    int           resolveLocal(Context *compiler, const std::string &name);
+    int           addUpvalue(Context *compiler, uint8_t index, bool isLocal);
+    int           resolveUpvalue(Context *compiler, const std::string &name);
 
-    uint8_t argumentList();
+    void    function(FunctDec *ast, FunctionType type);
+    void    method(FunctDec *ast);
+    uint8_t argumentList(const std::vector<Expr *> &args);
 
-    void namedVariable(Token name, bool canAssign);
-
-    static Token syntheticToken(const char *text);
-
-    void block();
-    void function(FunctionType type);
-    void method();
-    void classDeclaration();
-    void funDeclaration();
-    void varDeclaration();
-    void forStatement();
-    void ifStatement();
-    void returnStatement();
-    void whileStatement();
-    void breakStatement(TokenType t);
+    void error(size_t line, const std::string_view &);
 
     const Options &options;
-    Parser        *parser{nullptr};
+    Error         &err;
 
     Context      *current{nullptr};
     ClassContext *currentClass{nullptr};

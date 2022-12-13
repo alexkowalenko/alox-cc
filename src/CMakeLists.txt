@@ -16,7 +16,9 @@ add_library(lox STATIC
    val_array.cc
    vm.cc
    vm_stdlib.cc
-   ast/printer.cc
+   printer.cc
+   error.cc
+   ast_base.cc
    alox.cc
    )
 

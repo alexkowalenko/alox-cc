@@ -1,6 +1,6 @@
 # ALOX-CC
 
-LOX converted to C++
+LOX converted to C++ and refactored.
 
 Additions:
 
@@ -10,7 +10,7 @@ Additions:
 * [x] `getc()`, `chr(ch)`, `exit(status)`, `print_error(message)`.
 * [ ] I/O read, write, stderr.
 * [ ] `lambda` functions. lambda () { }
-* [ ] Lists [1,2,3], Maps, Arrays, Sets. 
+* [ ] Lists [1,2,3], Maps, Arrays, Sets.
 * [ ] Object class, literal initialisers {s: value....};
 * [ ] Conditional expressions: `print x == 5 ? "5" : nil;`
 * [ ] file inclusion `include`.
@@ -25,7 +25,7 @@ Modifications:
 * [x] Move init() functions to constructors, default initialisers.
 * [x] NOT_EQUAL, NOT_LESS, NOT_GREATER.
 * [x] moved from char* to std::string.
-
+* [x] separate Parser and Compiler with an AST.
 
 Book modifications:
 

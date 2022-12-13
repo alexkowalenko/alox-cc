@@ -10,6 +10,8 @@
 
 inline constexpr auto Base_GC_Size = 1024 * 1024;
 
+class Declaration;
+
 class GC {
   public:
     GC() = default;
@@ -17,6 +19,7 @@ class GC {
 
     void init(VM *vm);
     void set_compiler(Compiler *c) { compiler = c; }
+    void set_ast(Declaration *d) { ast = d; }
 
     // New allocators
     template <typename T> T             *allocateObject(ObjType type);
@@ -39,16 +42,19 @@ class GC {
 
     void trigger(size_t oldSize, size_t newSize);
 
+    void freeObject(Obj *object);
+
   private:
     void placeObject(Obj *object, ObjType type);
     void blackenObject(Obj *object);
-    void freeObject(Obj *object);
+
     void markRoots();
     void traceReferences();
     void sweep();
 
-    VM       *vm{nullptr};
-    Compiler *compiler{nullptr};
+    VM          *vm{nullptr};
+    Compiler    *compiler{nullptr};
+    Declaration *ast{nullptr};
 
     size_t bytesAllocated{0};
     size_t nextGC{Base_GC_Size};
