@@ -15,14 +15,14 @@
 #include "value.hh"
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
-    auto *bound = gc.allocateObject<ObjBoundMethod>(ObjType::BOUND_METHOD);
+    auto *bound = gc.allocateObject<ObjBoundMethod>(OBJ_BOUND_METHOD);
     bound->receiver = receiver;
     bound->method = method;
     return bound;
 }
 
 ObjClass *newClass(ObjString *name) {
-    auto *klass = gc.allocateObject<ObjClass>(ObjType::CLASS);
+    auto *klass = gc.allocateObject<ObjClass>(OBJ_CLASS);
     klass->name = name; // [klass]
     return klass;
 }
@@ -33,7 +33,7 @@ ObjClosure *newClosure(ObjFunction *function) {
         upvalues[i] = nullptr;
     }
 
-    auto *closure = gc.allocateObject<ObjClosure>(ObjType::CLOSURE);
+    auto *closure = gc.allocateObject<ObjClosure>(OBJ_CLOSURE);
     closure->function = function;
     closure->upvalues = upvalues;
     closure->upvalueCount = function->upvalueCount;
@@ -41,7 +41,7 @@ ObjClosure *newClosure(ObjFunction *function) {
 }
 
 ObjFunction *newFunction() {
-    auto *function = gc.allocateObject<ObjFunction>(ObjType::FUNCTION);
+    auto *function = gc.allocateObject<ObjFunction>(OBJ_FUNCTION);
     function->arity = 0;
     function->upvalueCount = 0;
     function->name = nullptr;
@@ -49,13 +49,13 @@ ObjFunction *newFunction() {
 }
 
 ObjInstance *newInstance(ObjClass *klass) {
-    auto *instance = gc.allocateObject<ObjInstance>(ObjType::INSTANCE);
+    auto *instance = gc.allocateObject<ObjInstance>(OBJ_INSTANCE);
     instance->klass = klass;
     return instance;
 }
 
 ObjNative *newNative(NativeFn function) {
-    auto *native = gc.allocateObject<ObjNative>(ObjType::NATIVE);
+    auto *native = gc.allocateObject<ObjNative>(OBJ_NATIVE);
     native->function = function;
     return native;
 }
@@ -70,14 +70,14 @@ inline uint32_t hashString(const std::string_view &s) {
 }
 
 ObjString *newString(std::string const &s) {
-    auto *string = gc.allocateObject<ObjString>(ObjType::STRING);
+    auto *string = gc.allocateObject<ObjString>(OBJ_STRING);
     string->str = s;
     string->hash = hashString(s);
     return string;
 }
 
 ObjUpvalue *newUpvalue(Value *slot) {
-    auto *upvalue = gc.allocateObject<ObjUpvalue>(ObjType::UPVALUE);
+    auto *upvalue = gc.allocateObject<ObjUpvalue>(OBJ_UPVALUE);
     upvalue->closed = NIL_VAL;
     upvalue->location = slot;
     upvalue->next = nullptr;
@@ -94,28 +94,28 @@ static void printFunction(std::ostream &os, ObjFunction *function) {
 
 void printObject(std::ostream &os, Value value) {
     switch (OBJ_TYPE(value)) {
-    case ObjType::BOUND_METHOD:
+    case OBJ_BOUND_METHOD:
         printFunction(os, AS_BOUND_METHOD(value)->method->function);
         break;
-    case ObjType::CLASS:
+    case OBJ_CLASS:
         fmt::print("{}", AS_CLASS(value)->name->str);
         break;
-    case ObjType::CLOSURE:
+    case OBJ_CLOSURE:
         printFunction(os, AS_CLOSURE(value)->function);
         break;
-    case ObjType::FUNCTION:
+    case OBJ_FUNCTION:
         printFunction(os, AS_FUNCTION(value));
         break;
-    case ObjType::INSTANCE:
+    case OBJ_INSTANCE:
         os << fmt::format("{} instance", AS_INSTANCE(value)->klass->name->str);
         break;
-    case ObjType::NATIVE:
+    case OBJ_NATIVE:
         os << "<native fn>";
         break;
-    case ObjType::STRING:
+    case OBJ_STRING:
         os << fmt::format("{}", AS_CSTRING(value));
         break;
-    case ObjType::UPVALUE:
+    case OBJ_UPVALUE:
         os << "upvalue";
         break;
     }

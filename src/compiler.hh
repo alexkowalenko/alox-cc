@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "ast/includes.hh"
+#include "ast_base.hh"
 #include "chunk.hh"
 #include "context.hh"
 #include "object.hh"
@@ -39,16 +41,25 @@ class Compiler {
     Compiler(const Options &opt) : options(opt){};
     ~Compiler() = default;
 
-    ObjFunction *compile(Parser *source);
+    ObjFunction *compile(Declaration *ast, Parser *source);
     void         markCompilerRoots();
+
+    // Compile the AST
+    void declaration(Declaration *ast);
+    void statement(Statement *ast);
+    void printStatement(Print *ast);
+    void exprStatement(Expr *ast);
+    void expr(Expr *ast);
+    void primary(Primary *ast);
+    void number(Number *ast);
 
     void and_(bool /*canAssign*/);
     void binary(bool /*canAssign*/);
     void call(bool /*canAssign*/);
     void dot(bool canAssign);
+    void number(bool);
     void literal(bool /*canAssign*/);
     void grouping(bool /*canAssign*/);
-    void number(bool /*canAssign*/);
     void or_(bool /*canAssign*/);
     void string(bool /*canAssign*/);
     void super_(bool /*canAssign*/);
@@ -83,9 +94,8 @@ class Compiler {
     void endScope();
     void adjust_locals(int depth);
 
-    void                    expression();
-    void                    statement();
-    void                    declaration();
+    void expression();
+
     static ParseRule const *getRule(TokenType type);
     void                    parsePrecedence(Precedence precedence);
 
@@ -112,14 +122,11 @@ class Compiler {
     void classDeclaration();
     void funDeclaration();
     void varDeclaration();
-    void expressionStatement();
     void forStatement();
     void ifStatement();
-    void printStatement();
     void returnStatement();
     void whileStatement();
     void breakStatement(TokenType t);
-    void synchronize();
 
     const Options &options;
     Parser        *parser{nullptr};

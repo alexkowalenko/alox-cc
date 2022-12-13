@@ -11,16 +11,16 @@
 #include "table.hh"
 #include "value.hh"
 
-enum class ObjType {
-    BOUND_METHOD,
-    CLASS,
-    CLOSURE,
-    FUNCTION,
-    INSTANCE,
-    NATIVE,
-    STRING,
-    UPVALUE
-};
+using ObjType = uint8_t;
+
+constexpr ObjType OBJ_BOUND_METHOD = 0;
+constexpr ObjType OBJ_CLASS = 1;
+constexpr ObjType OBJ_CLOSURE = 2;
+constexpr ObjType OBJ_FUNCTION = 3;
+constexpr ObjType OBJ_INSTANCE = 4;
+constexpr ObjType OBJ_NATIVE = 5;
+constexpr ObjType OBJ_STRING = 6;
+constexpr ObjType OBJ_UPVALUE = 7;
 
 struct Obj {
     ObjType     type;
@@ -90,31 +90,31 @@ constexpr bool isObjType(Value value, ObjType type) {
 }
 
 constexpr bool IS_BOUND_METHOD(Value value) {
-    return isObjType(value, ObjType::BOUND_METHOD);
+    return isObjType(value, OBJ_BOUND_METHOD);
 }
 
 constexpr bool IS_CLASS(Value value) {
-    return isObjType(value, ObjType::CLASS);
+    return isObjType(value, OBJ_CLASS);
 }
 
 constexpr bool IS_CLOSURE(Value value) {
-    return isObjType(value, ObjType::CLOSURE);
+    return isObjType(value, OBJ_CLOSURE);
 }
 
 constexpr bool IS_FUNCTION(Value value) {
-    return isObjType(value, ObjType::FUNCTION);
+    return isObjType(value, OBJ_FUNCTION);
 }
 
 constexpr bool IS_INSTANCE(Value value) {
-    return isObjType(value, ObjType::INSTANCE);
+    return isObjType(value, OBJ_INSTANCE);
 }
 
 constexpr bool IS_NATIVE(Value value) {
-    return isObjType(value, ObjType::NATIVE);
+    return isObjType(value, OBJ_NATIVE);
 }
 
 constexpr bool IS_STRING(Value value) {
-    return isObjType(value, ObjType::STRING);
+    return isObjType(value, OBJ_STRING);
 }
 
 inline ObjBoundMethod *AS_BOUND_METHOD(Value value) {

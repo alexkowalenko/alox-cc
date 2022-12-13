@@ -81,19 +81,19 @@ void GC::blackenObject(Obj *object) {
     }
 
     switch (object->type) {
-    case ObjType::BOUND_METHOD: {
+    case OBJ_BOUND_METHOD: {
         auto *bound = (ObjBoundMethod *)object;
         markValue(bound->receiver);
         markObject((Obj *)bound->method);
         break;
     }
-    case ObjType::CLASS: {
+    case OBJ_CLASS: {
         auto *klass = (ObjClass *)object;
         markObject((Obj *)klass->name);
         klass->methods.mark();
         break;
     }
-    case ObjType::CLOSURE: {
+    case OBJ_CLOSURE: {
         auto *closure = (ObjClosure *)object;
         markObject((Obj *)closure->function);
         for (int i = 0; i < closure->upvalueCount; i++) {
@@ -101,23 +101,23 @@ void GC::blackenObject(Obj *object) {
         }
         break;
     }
-    case ObjType::FUNCTION: {
+    case OBJ_FUNCTION: {
         auto *function = (ObjFunction *)object;
         markObject((Obj *)function->name);
         function->chunk.get_constants().mark();
         break;
     }
-    case ObjType::INSTANCE: {
+    case OBJ_INSTANCE: {
         auto *instance = (ObjInstance *)object;
         markObject((Obj *)instance->klass);
         instance->fields.mark();
         break;
     }
-    case ObjType::UPVALUE:
+    case OBJ_UPVALUE:
         markValue(((ObjUpvalue *)object)->closed);
         break;
-    case ObjType::NATIVE:
-    case ObjType::STRING:
+    case OBJ_NATIVE:
+    case OBJ_STRING:
         break;
     }
 }
@@ -129,43 +129,43 @@ void GC::freeObject(Obj *object) {
     }
 
     switch (object->type) {
-    case ObjType::BOUND_METHOD:
+    case OBJ_BOUND_METHOD:
         deleteObject<ObjBoundMethod>((ObjBoundMethod *)object);
         break;
-    case ObjType::CLASS: {
+    case OBJ_CLASS: {
         auto *klass = (ObjClass *)object;
         klass->methods.free();
         deleteObject(klass);
         // FREE<ObjClass>(object);
         break;
     } // [braces]
-    case ObjType::CLOSURE: {
+    case OBJ_CLOSURE: {
         auto *closure = (ObjClosure *)object;
         gc.delete_array<ObjUpvalue *>(closure->upvalues, closure->upvalueCount);
         deleteObject<ObjClosure>(closure);
         break;
     }
-    case ObjType::FUNCTION: {
+    case OBJ_FUNCTION: {
         auto *function = (ObjFunction *)object;
         function->chunk.free();
         deleteObject<ObjFunction>(function);
         break;
     }
-    case ObjType::INSTANCE: {
+    case OBJ_INSTANCE: {
         auto *instance = (ObjInstance *)object;
         instance->fields.free();
         deleteObject<ObjInstance>(instance);
         break;
     }
-    case ObjType::NATIVE:
+    case OBJ_NATIVE:
         deleteObject<ObjNative>((ObjNative *)object);
         break;
-    case ObjType::STRING: {
+    case OBJ_STRING: {
         auto *string = (ObjString *)object;
         deleteObject<ObjString>(string);
         break;
     }
-    case ObjType::UPVALUE:
+    case OBJ_UPVALUE:
         deleteObject<ObjUpvalue>((ObjUpvalue *)object);
         break;
     }

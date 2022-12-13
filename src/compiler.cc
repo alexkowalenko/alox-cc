@@ -12,6 +12,9 @@
 
 #include <fmt/core.h>
 
+#include "ast/expr.hh"
+#include "ast/print.hh"
+#include "ast_base.hh"
 #include "chunk.hh"
 #include "common.hh"
 #include "compiler.hh"
@@ -29,6 +32,8 @@ static void debug(const S &format, const Args &...msg) {
 
 constexpr auto MAX_ARGS = UINT8_MAX;
 constexpr auto MAX_CONSTANTS = UINT16_MAX;
+
+// Code emission
 
 void Compiler::emitByte(uint8_t byte) {
     currentChunk()->write(byte, parser->previous.line);
@@ -98,6 +103,8 @@ void Compiler::patchJump(int offset) {
     currentChunk()->get_code(offset) = (jump >> UINT8_WIDTH) & 0xff;
     currentChunk()->get_code(offset + 1) = jump & 0xff;
 }
+
+// Context manipulation
 
 void Compiler::initCompiler(Context *compiler, FunctionType type) {
     compiler->init(current, type);
@@ -251,6 +258,91 @@ void Compiler::declareVariable() {
     addLocal(*name);
 }
 
+// Compiler functions
+
+ObjFunction *Compiler::compile(Declaration *ast, Parser *p) {
+    parser = p;
+    Context compiler{};
+    initCompiler(&compiler, TYPE_SCRIPT);
+
+    declaration(ast);
+
+    ObjFunction *function = endCompiler();
+    return function;
+}
+
+void Compiler::declaration(Declaration *ast) {
+    debug("declaration");
+
+    for (auto d : ast->stats) {
+        // if (parser->match(TokenType::CLASS)) {
+        //     classDeclaration();
+        // } else if (parser->match(TokenType::FUN)) {
+        //     funDeclaration();
+        // } else if (parser->match(TokenType::VAR)) {
+        //     varDeclaration();
+        // } else {
+        statement(d);
+        // }
+    }
+}
+
+void Compiler::statement(Statement *ast) {
+    debug("statement");
+    if (IS_Print(ast->stat)) {
+        printStatement(AS_Print(ast->stat));
+        //} else if (parser->match(TokenType::FOR)) {
+        //     forStatement();
+        // } else if (parser->match(TokenType::IF)) {
+        //     ifStatement();
+        // } else if (parser->match(TokenType::RETURN)) {
+        //     returnStatement();
+        // } else if (parser->match(TokenType::WHILE)) {
+        //     whileStatement();
+        // } else if (parser->match(TokenType::BREAK)) {
+        //     breakStatement(TokenType::BREAK);
+        // } else if (parser->match(TokenType::CONTINUE)) {
+        //     breakStatement(TokenType::CONTINUE);
+        // } else if (parser->match(TokenType::LEFT_BRACE)) {
+        //     beginScope();
+        //     block();
+        //     endScope();
+    } else {
+        expr(AS_Expr(ast->stat));
+    }
+}
+
+void Compiler::printStatement(Print *ast) {
+    expr(ast->expr);
+    emitByte(OpCode::PRINT);
+}
+
+void Compiler::exprStatement(Expr *ast) {
+    expr(ast);
+    emitByte(OpCode::POP);
+}
+
+void Compiler::expr(Expr *ast) {
+    debug("expr");
+    primary(ast->expr);
+}
+
+void Compiler::primary(Primary *ast) {
+    number(ast->value);
+}
+
+void Compiler::number(Number *ast) {
+    if (ast->value == 0) {
+        emitByte(OpCode::ZERO);
+        return;
+    }
+    if (ast->value == 1) {
+        emitByte(OpCode::ONE);
+        return;
+    }
+    emitConstant(NUMBER_VAL(ast->value));
+}
+
 const_index_t Compiler::parseVariable(const char *errorMessage) {
     parser->consume(TokenType::IDENTIFIER, errorMessage);
 
@@ -383,19 +475,6 @@ void Compiler::literal(bool /*canAssign*/) {
 void Compiler::grouping(bool /*canAssign*/) {
     expression();
     parser->consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
-}
-
-void Compiler::number(bool /*canAssign*/) {
-    const double value = strtod(parser->previous.text.data(), nullptr);
-    if (value == 0) {
-        emitByte(OpCode::ZERO);
-        return;
-    }
-    if (value == 1) {
-        emitByte(OpCode::ONE);
-        return;
-    }
-    emitConstant(NUMBER_VAL(value));
 }
 
 void Compiler::or_(bool /*canAssign*/) {
@@ -537,7 +616,8 @@ inline const std::map<TokenType, ParseRule> rules{
     {TokenType::IDENTIFIER,
      {std::mem_fn(&Compiler::variable), nullptr, Precedence::NONE}},
     {TokenType::STRING, {std::mem_fn(&Compiler::string), nullptr, Precedence::NONE}},
-    {TokenType::NUMBER, {std::mem_fn(&Compiler::number), nullptr, Precedence::NONE}},
+    //{TokenType::NUMBER, {std::mem_fn(&Compiler::number), nullptr,
+    // Precedence::NONE}},
     {TokenType::AND, {nullptr, std::mem_fn(&Compiler::and_), Precedence::AND}},
     {TokenType::CLASS, {nullptr, nullptr, Precedence::NONE}},
     {TokenType::ELSE, {nullptr, nullptr, Precedence::NONE}},
@@ -590,7 +670,7 @@ void Compiler::expression() {
 
 void Compiler::block() {
     while (!parser->check(TokenType::RIGHT_BRACE) && !parser->check(TokenType::EOFS)) {
-        declaration();
+        declaration(nullptr);
     }
 
     parser->consume(TokenType::RIGHT_BRACE, "Expect '}' after block.");
@@ -706,13 +786,6 @@ void Compiler::varDeclaration() {
     defineVariable(global);
 }
 
-void Compiler::expressionStatement() {
-    debug("expressionStatement");
-    expression();
-    parser->consume(TokenType::SEMICOLON, "Expect ';' after expression.");
-    emitByte(OpCode::POP);
-}
-
 /**
  * @brief forStatement - this is out of order, as there is no AST.
  *
@@ -730,7 +803,7 @@ void Compiler::forStatement() {
     } else if (parser->match(TokenType::VAR)) {
         varDeclaration();
     } else {
-        expressionStatement();
+        expr(nullptr);
     }
 
     // condition
@@ -764,7 +837,7 @@ void Compiler::forStatement() {
 
     // statement
     current->enclosing_loop++;
-    statement();
+    statement(nullptr);
     current->enclosing_loop--;
     emitLoop(loopStart);
 
@@ -790,7 +863,7 @@ void Compiler::ifStatement() {
 
     int thenJump = emitJump(OpCode::JUMP_IF_FALSE);
     emitByte(OpCode::POP);
-    statement();
+    statement(nullptr);
 
     int elseJump = emitJump(OpCode::JUMP);
 
@@ -798,15 +871,9 @@ void Compiler::ifStatement() {
     emitByte(OpCode::POP);
 
     if (parser->match(TokenType::ELSE)) {
-        statement();
+        statement(nullptr);
     }
     patchJump(elseJump);
-}
-
-void Compiler::printStatement() {
-    expression();
-    parser->consume(TokenType::SEMICOLON, "Expect ';' after value.");
-    emitByte(OpCode::PRINT);
 }
 
 void Compiler::returnStatement() {
@@ -842,7 +909,7 @@ void Compiler::whileStatement() {
     const auto exitJump = emitJump(OpCode::JUMP_IF_FALSE);
     emitByte(OpCode::POP);
     current->enclosing_loop++;
-    statement();
+    statement(nullptr);
     current->enclosing_loop--;
     emitLoop(loopStart);
 
@@ -884,88 +951,6 @@ void Compiler::breakStatement(TokenType t) {
         emitLoop(current->last_continue);
         current->last_continue = 0;
     }
-}
-
-void Compiler::synchronize() {
-    parser->panicMode = false;
-
-    while (parser->current.type != TokenType::EOFS) {
-        if (parser->previous.type == TokenType::SEMICOLON) {
-            return;
-        }
-        switch (parser->current.type) {
-        case TokenType::CLASS:
-        case TokenType::FUN:
-        case TokenType::VAR:
-        case TokenType::FOR:
-        case TokenType::IF:
-        case TokenType::WHILE:
-        case TokenType::PRINT:
-        case TokenType::RETURN:
-            return;
-
-        default:; // Do nothing.
-        }
-
-        parser->advance();
-    }
-}
-
-void Compiler::declaration() {
-    debug("declaration");
-    if (parser->match(TokenType::CLASS)) {
-        classDeclaration();
-    } else if (parser->match(TokenType::FUN)) {
-        funDeclaration();
-    } else if (parser->match(TokenType::VAR)) {
-        varDeclaration();
-    } else {
-        statement();
-    }
-
-    if (parser->panicMode) {
-        synchronize();
-    }
-}
-
-void Compiler::statement() {
-    debug("statement");
-    if (parser->match(TokenType::PRINT)) {
-        printStatement();
-    } else if (parser->match(TokenType::FOR)) {
-        forStatement();
-    } else if (parser->match(TokenType::IF)) {
-        ifStatement();
-    } else if (parser->match(TokenType::RETURN)) {
-        returnStatement();
-    } else if (parser->match(TokenType::WHILE)) {
-        whileStatement();
-    } else if (parser->match(TokenType::BREAK)) {
-        breakStatement(TokenType::BREAK);
-    } else if (parser->match(TokenType::CONTINUE)) {
-        breakStatement(TokenType::CONTINUE);
-    } else if (parser->match(TokenType::LEFT_BRACE)) {
-        beginScope();
-        block();
-        endScope();
-    } else {
-        expressionStatement();
-    }
-}
-
-ObjFunction *Compiler::compile(Parser *p) {
-    parser = p;
-    Context compiler{};
-    initCompiler(&compiler, TYPE_SCRIPT);
-
-    parser->advance();
-
-    while (!parser->match(TokenType::EOFS)) {
-        declaration();
-    }
-
-    ObjFunction *function = endCompiler();
-    return parser->hadError ? nullptr : function;
 }
 
 void Compiler::markCompilerRoots() {
