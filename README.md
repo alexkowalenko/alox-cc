@@ -1,6 +1,6 @@
 # ALOX-CC
 
-LOX converted to C++ and refactored.
+LOX converted to C++
 
 Additions:
 
