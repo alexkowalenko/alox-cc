@@ -327,6 +327,7 @@ Expr *Parser::expr() {
 }
 
 Expr *Parser::parsePrecedence(Precedence precedence) {
+    debug("parsePrecedence {}", int(precedence));
     auto *left = newExpr(current.line);
     advance();
     auto prefixRule = getRule(previous.type)->prefix;
@@ -344,7 +345,8 @@ Expr *Parser::parsePrecedence(Precedence precedence) {
         left = infixRule(this, left, canAssign);
     }
 
-    if (canAssign && match(TokenType::EQUAL)) {
+    debug("parsePrecedence can assign {}", canAssign);
+    if (/* canAssign && */ match(TokenType::EQUAL)) {
         error("Invalid assignment target.");
     }
     return left;
@@ -389,13 +391,13 @@ Expr *Parser::call(Expr *left, bool /*canAssign*/) {
     return e;
 }
 
-Expr *Parser::dot(Expr *left, bool /*canAssign*/) {
+Expr *Parser::dot(Expr *left, bool canAssign) {
     auto *dot = newDot(current.line);
     dot->left = left;
     consume(TokenType::IDENTIFIER, "Expect property name after '.'.");
     dot->id = previous.text;
 
-    if (match(TokenType::EQUAL)) {
+    if (canAssign && match(TokenType::EQUAL)) {
         dot->token = TokenType::EQUAL;
         dot->args.push_back(expr());
     } else if (match(TokenType::LEFT_PAREN)) {
