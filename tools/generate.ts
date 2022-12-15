@@ -54,7 +54,7 @@ let classes: Array<Class> = [
     },
     {
         name: "String",
-        instances: [{ name: "value", type: "ObjString *" }]
+        instances: [{ name: "value", type: "std::string" }]
     },
     {
         name: "Boolean",
@@ -74,7 +74,7 @@ let classes: Array<Class> = [
     },
     {
         name: "Identifier",
-        instances: [{ type: "ObjString*", name: "name" }]
+        instances: [{ type: "std::string", name: "name" }]
     },
     {
         name: "Assign",

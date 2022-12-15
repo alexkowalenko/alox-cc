@@ -42,19 +42,9 @@ void blackenASTObject(Obj *object) {
         gc.markObject(OBJ_AST(ast->right));
         break;
     }
-    case AST_String: {
-        auto *ast = AS_String(object);
-        gc.markObject(OBJ_AST(ast->value));
-        break;
-    }
     case AST_Print: {
         auto *ast = AS_Print(object);
         gc.markObject(OBJ_AST(ast->expr));
-        break;
-    }
-    case AST_Identifier: {
-        auto *ast = AS_Identifier(object);
-        gc.markObject(OBJ_AST(ast->name));
         break;
     }
     case AST_Assign: {
@@ -187,21 +177,9 @@ void freeASTObject(Obj *object) {
         gc.deleteObject(ast);
         break;
     }
-    case AST_String: {
-        auto *ast = AS_String(object);
-        gc.freeObject(OBJ_AST(ast->value));
-        gc.deleteObject(ast);
-        break;
-    }
     case AST_Print: {
         auto *ast = AS_Print(object);
         gc.freeObject(OBJ_AST(ast->expr));
-        gc.deleteObject(ast);
-        break;
-    }
-    case AST_Identifier: {
-        auto *ast = AS_Identifier(object);
-        gc.freeObject(OBJ_AST(ast->name));
         gc.deleteObject(ast);
         break;
     }

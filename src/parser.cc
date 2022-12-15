@@ -435,7 +435,7 @@ Expr *Parser::number(bool /*canAssign*/) {
 
 Expr *Parser::string(bool /*canAssign*/) {
     auto *ast = newString(current.line);
-    ast->value = newString(previous.text);
+    ast->value = previous.text;
     auto *e = newExpr(current.line);
     e->expr = OBJ_AST(ast);
     return e;
@@ -468,7 +468,7 @@ Expr *Parser::primary(bool /*canAssign*/) {
 
 Identifier *Parser::ident() {
     auto *id = newIdentifier(current.line);
-    id->name = newString(previous.text);
+    id->name = previous.text;
     return id;
 }
 

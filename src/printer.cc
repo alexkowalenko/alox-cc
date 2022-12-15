@@ -296,7 +296,7 @@ void AST_Printer::unary(Unary *ast) {
 }
 
 void AST_Printer::identifier(Identifier *ast) {
-    printObject(os, OBJ_VAL(ast->name));
+    os << ast->name;
 }
 
 void AST_Printer::boolean(Boolean *expr) {
@@ -312,9 +312,7 @@ void AST_Printer::number(Number *num) {
 }
 
 void AST_Printer::string(String *str) {
-    os << '"';
-    printObject(os, OBJ_VAL(str->value));
-    os << '"';
+    os << '"' << str->value << '"';
 }
 
 void AST_Printer::this_(This *ast) {

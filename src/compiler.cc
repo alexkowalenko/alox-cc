@@ -308,12 +308,12 @@ void Compiler::namedVariable(const std::string &name, bool canAssign) {
 
 void Compiler::function(FunctDec *ast, FunctionType type) {
     Context compiler;
-    initCompiler(&compiler, ast->name->name->str, type);
+    initCompiler(&compiler, ast->name->name, type);
     beginScope();
 
     for (auto p : ast->parameters) {
         current->function->arity++;
-        const uint8_t constant = parseVariable(p->name->str);
+        const uint8_t constant = parseVariable(p->name);
         defineVariable(constant);
     }
     block(ast->body);
@@ -335,9 +335,9 @@ uint8_t Compiler::argumentList(const std::vector<Expr *> &args) {
 }
 
 void Compiler::method(FunctDec *ast) {
-    auto         constant = identifierConstant(ast->name->name->str);
+    auto         constant = identifierConstant(ast->name->name);
     FunctionType type = TYPE_METHOD;
-    if (ast->name->name->str == "init") {
+    if (ast->name->name == "init") {
         type = TYPE_INITIALIZER;
     }
 
@@ -411,7 +411,7 @@ void Compiler::decs_statement(Obj *s) {
 }
 
 void Compiler::varDeclaration(VarDec *ast) {
-    const uint8_t global = parseVariable(ast->var->name->str);
+    const uint8_t global = parseVariable(ast->var->name);
     if (ast->expr) {
         expr(ast->expr);
     } else {
@@ -421,7 +421,7 @@ void Compiler::varDeclaration(VarDec *ast) {
 }
 
 void Compiler::funDeclaration(FunctDec *ast) {
-    const uint8_t global = parseVariable(ast->name->name->str);
+    const uint8_t global = parseVariable(ast->name->name);
     markInitialized();
     function(ast, TYPE_FUNCTION);
     defineVariable(global);
@@ -798,7 +798,7 @@ void Compiler::unary(Unary *ast, bool canAssign) {
 }
 
 void Compiler::variable(Identifier *ast, bool canAssign) {
-    namedVariable(ast->name->str, canAssign);
+    namedVariable(ast->name, canAssign);
 }
 
 void Compiler::number(Number *ast) {
@@ -814,7 +814,7 @@ void Compiler::number(Number *ast) {
 }
 
 void Compiler::string(String *ast) {
-    emitConstant(OBJ_VAL(ast->value));
+    emitConstant(OBJ_VAL(newString(ast->value)));
 }
 
 void Compiler::boolean(Boolean *ast) {
