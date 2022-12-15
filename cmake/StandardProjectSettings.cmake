@@ -47,6 +47,6 @@ message(STATUS "icuuc: [${ICU_LIBRARY_DIRS}]")
 
 include(cmake/CPM.cmake)
 CPMAddPackage("gh:fmtlib/fmt#9.1.0")
-CPMAddPackage("gh:arangodb/linenoise-ng#v1.0.1")
+CPMAddPackage("gh:AmokHuginnsson/replxx#release-0.0.4")
 CPMAddPackage("gh:nemtrif/utfcpp#v3.2.1")
 CPMAddPackage("gh:CLIUtils/CLI11#v2.3.0")

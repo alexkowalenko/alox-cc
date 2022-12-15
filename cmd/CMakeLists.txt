@@ -4,7 +4,7 @@ add_executable(alox main.cc)
 
 target_link_libraries(alox
                     PRIVATE project_options project_warnings
-                    lox linenoise fmt icuuc)
+                    lox replxx fmt icuuc)
                     
 target_include_directories(alox PUBLIC "${linenoise_SOURCE_DIR}/include")
                     
