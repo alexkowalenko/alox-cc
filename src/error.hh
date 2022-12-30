@@ -6,12 +6,12 @@
 
 #include "scanner.hh"
 
-class Error {
+class ErrorManager {
   public:
-    Error(std::ostream &cerr) : cerr(cerr){};
+    ErrorManager(std::ostream &cerr) : cerr(cerr){};
 
     void errorAt(Token *token, std::string_view message);
-    void errorAt(int line, std::string_view message);
+    void errorAt(size_t line, std::string_view message);
 
     void reset() {
         panicMode = false;

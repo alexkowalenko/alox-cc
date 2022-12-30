@@ -268,7 +268,7 @@ void do_parse_tests(std::vector<ParseTests> &tests) {
             std::cout << t.input << std::endl;
             Scanner            scanner(t.input);
             std::ostringstream err;
-            Error              errors(err);
+            ErrorManager       errors(err);
             Parser             parser(scanner, errors);
 
             auto ast = parser.parse();

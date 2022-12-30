@@ -7,6 +7,7 @@
 #include "ast/includes.hh"
 #include "ast_base.hh"
 #include "chunk.hh"
+#include "codegen.hh"
 #include "context.hh"
 #include "object.hh"
 #include "options.hh"
@@ -15,7 +16,7 @@
 
 class Compiler {
   public:
-    Compiler(const Options &opt, Error &err) : options(opt), err(err){};
+    Compiler(const Options &opt, ErrorManager &err) : options(opt), err(err), gen(err){};
     ~Compiler() = default;
 
     ObjFunction *compile(Declaration *ast);
@@ -55,24 +56,6 @@ class Compiler {
     void super_(This *ast, bool /*canAssign*/);
     void this_(This *ast, bool /*canAssign*/);
 
-    Chunk         *currentChunk() { return &current->function->chunk; }
-    void           emitByte(uint8_t byte);
-    constexpr void emitByte(OpCode byte) { return emitByte(uint8_t(byte)); };
-    void           emitBytes(uint8_t byte1, uint8_t byte2);
-    void           emitByteConst(OpCode byte1, const_index_t c);
-    constexpr void emitBytes(OpCode byte1, OpCode byte2) {
-        return emitBytes(uint8_t(byte1), uint8_t(byte2));
-    }
-    constexpr void emitBytes(OpCode byte1, uint8_t byte2) {
-        return emitBytes(uint8_t(byte1), byte2);
-    }
-    void          emitLoop(int loopStart);
-    int           emitJump(OpCode instruction);
-    void          emitReturn();
-    const_index_t makeConstant(Value value);
-    void          emitConstant(Value value);
-    void          patchJump(int offset);
-
     void initCompiler(Context *compiler, const std::string &name, FunctionType type);
     ObjFunction *endCompiler();
 
@@ -97,8 +80,9 @@ class Compiler {
     void error(size_t line, const std::string_view &);
 
     const Options &options;
-    Error         &err;
+    ErrorManager  &err;
 
     Context      *current{nullptr};
     ClassContext *currentClass{nullptr};
+    CodeGen       gen;
 };

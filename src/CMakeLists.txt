@@ -4,6 +4,7 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 add_library(lox STATIC
    options.cc
    chunk.cc
+   codegen.cc
    compiler.cc
    context.cc
    debug.cc

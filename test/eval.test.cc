@@ -165,7 +165,7 @@ void do_eval_tests(std::vector<ParseTests> &tests) {
     VM vm(options);
     gc.init(&vm);
     vm.init();
-    Error errors(options.err);
+    ErrorManager errors(options.err);
     vm.set_error_manager(&errors);
 
     for (auto const &t : tests) {

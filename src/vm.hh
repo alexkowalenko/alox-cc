@@ -38,7 +38,7 @@ class VM {
     void init();
     void free();
 
-    void            set_error_manager(Error *err) { errors = err; }
+    void            set_error_manager(ErrorManager *err) { errors = err; }
     InterpretResult run(ObjFunction *function);
 
     void markRoots();
@@ -81,7 +81,7 @@ class VM {
     int addConstant(Value value);
 
     const Options &options;
-    Error         *errors;
+    ErrorManager  *errors;
 
     CallFrame frames[FRAMES_MAX];
     int       frameCount;

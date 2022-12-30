@@ -42,10 +42,10 @@ class Context {
     std::array<Upvalue, UINT8_COUNT> upvalues{};
     int                              scopeDepth{0};
 
-    int last_continue{0};
-    int last_break{0};
-    int last_scope_depth{0};
-    int enclosing_loop{0};
+    size_t last_continue{0};
+    size_t last_break{0};
+    int    last_scope_depth{0};
+    int    enclosing_loop{0};
 };
 
 struct ClassContext {

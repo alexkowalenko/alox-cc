@@ -9,16 +9,16 @@ void Chunk::free() {
     gc.delete_array<uint8_t>(this->code, this->capacity);
 }
 
-void Chunk::write(uint8_t byte, int line) {
-    if (this->capacity < this->count + 1) {
+void Chunk::write(uint8_t byte, size_t line) {
+    if (capacity < count + 1) {
         const size_t oldCapacity = this->capacity;
-        this->capacity = grow_capacity(oldCapacity);
-        this->code = gc.grow_array<uint8_t>(this->code, oldCapacity, this->capacity);
+        capacity = grow_capacity(oldCapacity);
+        code = gc.grow_array<uint8_t>(this->code, oldCapacity, this->capacity);
     }
 
-    this->code[this->count] = byte;
-    this->lines.push_back(line);
-    this->count++;
+    code[count] = byte;
+    lines.push_back(line);
+    count++;
 }
 
 const_index_t Chunk::add_constant(Value value) {

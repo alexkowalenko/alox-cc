@@ -28,81 +28,9 @@ static void debug(const S &format, const Args &...msg) {
 }
 
 constexpr auto MAX_ARGS = UINT8_MAX;
-constexpr auto MAX_CONSTANTS = UINT16_MAX;
 
 constexpr auto sym_this = "this";
 constexpr auto sym_super = "super";
-
-// Code emission
-
-void Compiler::emitByte(uint8_t byte) {
-    currentChunk()->write(byte, currentChunk()->line_last());
-}
-
-void Compiler::emitBytes(uint8_t byte1, uint8_t byte2) {
-    emitByte(byte1);
-    emitByte(byte2);
-}
-
-void Compiler::emitByteConst(OpCode byte1, const_index_t c) {
-    emitByte(uint8_t(byte1));
-    emitByte((c >> UINT8_WIDTH) & 0xff);
-    emitByte(c & 0xff);
-}
-
-void Compiler::emitLoop(int loopStart) {
-    emitByte(OpCode::LOOP);
-
-    auto offset = currentChunk()->get_count() - loopStart + 2;
-    if (offset > UINT16_MAX) {
-        err.errorAt(currentChunk()->line_last(), "Loop body too large.");
-    }
-
-    emitByte((offset >> UINT8_WIDTH) & 0xff);
-    emitByte(offset & 0xff);
-}
-
-int Compiler::emitJump(OpCode instruction) {
-    emitByte(instruction);
-    emitByte(0xff);
-    emitByte(0xff);
-    return currentChunk()->get_count() - 2;
-}
-
-void Compiler::emitReturn() {
-    if (current->type == TYPE_INITIALIZER) {
-        emitBytes(OpCode::GET_LOCAL, 0);
-    } else {
-        emitByte(OpCode::NIL);
-    }
-
-    emitByte(OpCode::RETURN);
-}
-
-const_index_t Compiler::makeConstant(Value value) {
-    auto constant = currentChunk()->add_constant(value);
-    if (constant > MAX_CONSTANTS) {
-        err.errorAt(currentChunk()->line_last(), "Too many constants in one chunk.");
-        return 0;
-    }
-    return constant;
-}
-
-void Compiler::emitConstant(Value value) {
-    emitByteConst(OpCode::CONSTANT, makeConstant(value));
-}
-
-void Compiler::patchJump(int offset) {
-    // -2 to adjust for the bytecode for the jump offset itself.
-    auto jump = currentChunk()->get_count() - offset - 2;
-
-    if (jump > UINT16_MAX) {
-        err.errorAt(currentChunk()->line_last(), "Too much code to jump over.");
-    }
-
-    currentChunk()->get_code(offset) = (jump >> UINT8_WIDTH) & 0xff;
-    currentChunk()->get_code(offset + 1) = jump & 0xff;
-}
 
 // Context manipulation
 
@@ -110,6 +38,7 @@ void Compiler::initCompiler(Context *compiler, const std::string &name,
                             FunctionType type) {
     compiler->init(current, type);
     current = compiler;
+    gen.set_chunk(&current->function->chunk);
     if (type != TYPE_SCRIPT) {
         current->function->name = newString(name);
     }
@@ -125,17 +54,20 @@ void Compiler::initCompiler(Context *compiler, const std::string &name,
 }
 
 ObjFunction *Compiler::endCompiler() {
-    emitReturn();
+    gen.emitReturn(current->type);
     ObjFunction *function = current->function;
 
     if (options.debug_code) {
         if (!err.hadError) {
-            disassembleChunk(currentChunk(), function->name != nullptr
-                                                 ? function->name->str
-                                                 : "<script>");
+            disassembleChunk(&current->function->chunk, function->name != nullptr
+                                                            ? function->name->str
+                                                            : "<script>");
         }
     }
     current = current->enclosing;
+    if (current) {
+        gen.set_chunk(&current->function->chunk);
+    }
     return function;
 }
 
@@ -154,9 +86,9 @@ void Compiler::adjust_locals(int depth) {
            current->locals[current->localCount - 1].depth > depth) {
         debug("pop");
         if (current->locals[current->localCount - 1].isCaptured) {
-            emitByte(OpCode::CLOSE_UPVALUE);
+            gen.emitByte(OpCode::CLOSE_UPVALUE);
         } else {
-            emitByte(OpCode::POP);
+            gen.emitByte(OpCode::POP);
         }
         current->localCount--;
     }
@@ -167,7 +99,7 @@ int Compiler::resolveLocal(Context *compiler, const std::string &name) {
         Local *local = &compiler->locals[i];
         if (name == local->name) {
             if (local->depth == -1) {
-                err.errorAt(currentChunk()->line_last(),
+                err.errorAt(gen.get_linenumber(),
                             "Can't read local variable in its own initializer.");
             }
             return i;
@@ -187,8 +119,7 @@ int Compiler::addUpvalue(Context *compiler, uint8_t index, bool isLocal) {
     }
 
     if (upvalueCount == UINT8_COUNT) {
-        err.errorAt(currentChunk()->line_last(),
-                    "Too many closure variables in function.");
+        err.errorAt(gen.get_linenumber(), "Too many closure variables in function.");
         return 0;
     }
 
@@ -218,7 +149,7 @@ int Compiler::resolveUpvalue(Context *compiler, const std::string &name) {
 
 void Compiler::addLocal(const std::string &name) {
     if (current->localCount == UINT8_COUNT) {
-        err.errorAt(currentChunk()->line_last(), "Too many local variables in function.");
+        err.errorAt(gen.get_linenumber(), "Too many local variables in function.");
         return;
     }
 
@@ -240,7 +171,7 @@ void Compiler::declareVariable(const std::string &name) {
         }
 
         if (name == local->name) {
-            err.errorAt(currentChunk()->line_last(),
+            err.errorAt(gen.get_linenumber(),
                         "Already a variable with this name in this scope.");
         }
     }
@@ -259,7 +190,7 @@ void Compiler::defineVariable(const_index_t global) {
         markInitialized();
         return;
     }
-    emitByteConst(OpCode::DEFINE_GLOBAL, global);
+    gen.emitByteConst(OpCode::DEFINE_GLOBAL, global);
 }
 
 const_index_t Compiler::parseVariable(const std::string &var) {
@@ -271,7 +202,7 @@ const_index_t Compiler::parseVariable(const std::string &var) {
 }
 
 const_index_t Compiler::identifierConstant(const std::string &name) {
-    return makeConstant(OBJ_VAL(newString(name)));
+    return gen.makeConstant(OBJ_VAL(newString(name)));
 }
 
 void Compiler::namedVariable(const std::string &name, bool canAssign) {
@@ -293,15 +224,15 @@ void Compiler::namedVariable(const std::string &name, bool canAssign) {
 
     if (canAssign) {
         if (is_16) {
-            emitByteConst(setOp, (const_index_t)arg);
+            gen.emitByteConst(setOp, (const_index_t)arg);
         } else {
-            emitBytes(setOp, (uint8_t)arg);
+            gen.emitBytes(setOp, (uint8_t)arg);
         }
     } else {
         if (is_16) {
-            emitByteConst(getOp, (const_index_t)arg);
+            gen.emitByteConst(getOp, (const_index_t)arg);
         } else {
-            emitBytes(getOp, (uint8_t)arg);
+            gen.emitBytes(getOp, (uint8_t)arg);
         }
     }
 }
@@ -319,11 +250,11 @@ void Compiler::function(FunctDec *ast, FunctionType type) {
     block(ast->body);
 
     ObjFunction *function = endCompiler();
-    emitByteConst(OpCode::CLOSURE, makeConstant(OBJ_VAL(function)));
+    gen.emitByteConst(OpCode::CLOSURE, gen.makeConstant(OBJ_VAL(function)));
 
     for (int i = 0; i < function->upvalueCount; i++) {
-        emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
-        emitByte(compiler.upvalues[i].index);
+        gen.emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
+        gen.emitByte(compiler.upvalues[i].index);
     }
 }
 
@@ -342,7 +273,7 @@ void Compiler::method(FunctDec *ast) {
     }
 
     function(ast, type);
-    emitByteConst(OpCode::METHOD, constant);
+    gen.emitByteConst(OpCode::METHOD, constant);
 }
 
 void Compiler::super_(This *ast, bool /*canAssign*/) {
@@ -357,11 +288,11 @@ void Compiler::super_(This *ast, bool /*canAssign*/) {
     if (ast->has_args) {
         const uint8_t argCount = argumentList(ast->args);
         namedVariable(sym_super, false);
-        emitByteConst(OpCode::SUPER_INVOKE, name);
-        emitByte(argCount);
+        gen.emitByteConst(OpCode::SUPER_INVOKE, name);
+        gen.emitByte(argCount);
     } else {
         namedVariable(sym_super, false);
-        emitByteConst(OpCode::GET_SUPER, name);
+        gen.emitByteConst(OpCode::GET_SUPER, name);
     }
 }
 
@@ -392,6 +323,7 @@ ObjFunction *Compiler::compile(Declaration *ast) {
 
 void Compiler::declaration(Declaration *ast) {
     debug("declaration");
+    gen.set_linenumber(ast->line);
 
     for (auto *d : ast->stats) {
         decs_statement(d);
@@ -411,16 +343,18 @@ void Compiler::decs_statement(Obj *s) {
 }
 
 void Compiler::varDeclaration(VarDec *ast) {
+    gen.set_linenumber(ast->line);
     const uint8_t global = parseVariable(ast->var->name);
     if (ast->expr) {
         expr(ast->expr);
     } else {
-        emitByte(OpCode::NIL);
+        gen.emitByte(OpCode::NIL);
     }
     defineVariable(global);
 }
 
 void Compiler::funDeclaration(FunctDec *ast) {
+    gen.set_linenumber(ast->line);
     const uint8_t global = parseVariable(ast->name->name);
     markInitialized();
     function(ast, TYPE_FUNCTION);
@@ -428,10 +362,11 @@ void Compiler::funDeclaration(FunctDec *ast) {
 }
 
 void Compiler::classDeclaration(ClassDec *ast) {
+    gen.set_linenumber(ast->line);
     auto nameConstant = identifierConstant(ast->name);
     declareVariable(ast->name); // replace
 
-    emitByteConst(OpCode::CLASS, nameConstant);
+    gen.emitByteConst(OpCode::CLASS, nameConstant);
     defineVariable(nameConstant);
 
     ClassContext classCompiler{};
@@ -447,7 +382,7 @@ void Compiler::classDeclaration(ClassDec *ast) {
         defineVariable(0);
 
         namedVariable(ast->name, false);
-        emitByte(OpCode::INHERIT);
+        gen.emitByte(OpCode::INHERIT);
         classCompiler.hasSuperclass = true;
     }
 
@@ -455,7 +390,7 @@ void Compiler::classDeclaration(ClassDec *ast) {
     for (auto *m : ast->methods) {
         method(m);
     }
-    emitByte(OpCode::POP);
+    gen.emitByte(OpCode::POP);
 
     if (classCompiler.hasSuperclass) {
         endScope();
@@ -465,6 +400,7 @@ void Compiler::classDeclaration(ClassDec *ast) {
 }
 
 void Compiler::statement(Statement *ast) {
+    gen.set_linenumber(ast->line);
     debug("statement");
     if (IS_Print(ast->stat)) {
         printStatement(AS_Print(ast->stat));
@@ -489,18 +425,18 @@ void Compiler::statement(Statement *ast) {
 
 void Compiler::ifStatement(If *ast) {
     expr(ast->cond);
-    int thenJump = emitJump(OpCode::JUMP_IF_FALSE);
-    emitByte(OpCode::POP);
+    int thenJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
+    gen.emitByte(OpCode::POP);
     statement(ast->then_stat);
 
-    int elseJump = emitJump(OpCode::JUMP);
-    patchJump(thenJump);
-    emitByte(OpCode::POP);
+    int elseJump = gen.emitJump(OpCode::JUMP);
+    gen.patchJump(thenJump);
+    gen.emitByte(OpCode::POP);
 
     if (ast->else_stat) {
         statement(ast->else_stat);
     }
-    patchJump(elseJump);
+    gen.patchJump(elseJump);
 }
 
 void Compiler::whileStatement(While *ast) {
@@ -508,25 +444,25 @@ void Compiler::whileStatement(While *ast) {
 
     auto context = current->save_break_context();
 
-    const auto loopStart = currentChunk()->get_count();
+    const auto loopStart = gen.get_position();
     current->last_continue = loopStart;
 
     expr(ast->cond);
 
-    const auto exitJump = emitJump(OpCode::JUMP_IF_FALSE);
-    emitByte(OpCode::POP);
+    const auto exitJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
+    gen.emitByte(OpCode::POP);
     current->enclosing_loop++;
     statement(ast->body);
     current->enclosing_loop--;
-    emitLoop(loopStart);
+    gen.emitLoop(loopStart);
 
-    patchJump(exitJump);
+    gen.patchJump(exitJump);
     // handle break
     if (current->last_break) {
-        patchJump(current->last_break);
+        gen.patchJump(current->last_break);
         current->last_break = 0;
     }
-    emitByte(OpCode::POP);
+    gen.emitByte(OpCode::POP);
 
     current->restore_break_context(context);
 }
@@ -540,7 +476,7 @@ void Compiler::forStatement(For *ast) {
     beginScope();
 
     //  initialiser expression
-    debug("forStatement init: {}", currentChunk()->get_count());
+    debug("forStatement init: {}", gen.get_position());
     auto context = current->save_break_context();
     if (ast->init) {
         // No initializer.
@@ -552,44 +488,44 @@ void Compiler::forStatement(For *ast) {
     }
 
     // condition
-    auto loopStart = currentChunk()->get_count();
-    debug("forStatement condition: {}", currentChunk()->get_count());
+    auto loopStart = gen.get_position();
+    debug("forStatement condition: {}", gen.get_position());
     int exitJump = -1;
     if (ast->cond) {
         expr(ast->cond);
 
         // Jump out of the loop if the condition is false.
-        exitJump = emitJump(OpCode::JUMP_IF_FALSE);
-        emitByte(OpCode::POP); // Condition.
+        exitJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
+        gen.emitByte(OpCode::POP); // Condition.
     }
 
     // increment
-    debug("forStatement increment: {}", currentChunk()->get_count());
+    debug("forStatement increment: {}", gen.get_position());
     if (ast->iter) {
-        const auto bodyJump = emitJump(OpCode::JUMP);
-        const auto incrementStart = currentChunk()->get_count();
-        current->last_continue = currentChunk()->get_count();
+        const auto bodyJump = gen.emitJump(OpCode::JUMP);
+        const auto incrementStart = gen.get_position();
+        current->last_continue = gen.get_position();
         expr(ast->iter);
-        emitByte(OpCode::POP);
+        gen.emitByte(OpCode::POP);
 
-        emitLoop(loopStart);
+        gen.emitLoop(loopStart);
         loopStart = incrementStart;
-        patchJump(bodyJump);
+        gen.patchJump(bodyJump);
     }
 
     // statement
     current->enclosing_loop++;
     statement(ast->body);
     current->enclosing_loop--;
-    emitLoop(loopStart);
+    gen.emitLoop(loopStart);
 
     if (exitJump != -1) {
-        patchJump(exitJump);
+        gen.patchJump(exitJump);
         if (current->last_break) {
-            patchJump(current->last_break);
+            gen.patchJump(current->last_break);
             current->last_break = 0;
         }
-        emitByte(OpCode::POP); // Condition.
+        gen.emitByte(OpCode::POP); // Condition.
     }
 
     current->restore_break_context(context);
@@ -601,13 +537,13 @@ void Compiler::returnStatement(Return *ast) {
         error(ast->line, "Can't return from top-level code.");
     }
     if (!ast->expr) {
-        emitReturn();
+        gen.emitReturn(current->type);
     } else {
         if (current->type == TYPE_INITIALIZER) {
             error(ast->line, "Can't return a value from an initializer.");
         }
         expr(ast->expr);
-        emitByte(OpCode::RETURN);
+        gen.emitByte(OpCode::RETURN);
     }
 }
 
@@ -624,7 +560,7 @@ void Compiler::breakStatement(Break *ast) {
         debug("last scope depth {} current {}", current->last_scope_depth,
               current->scopeDepth);
         adjust_locals(current->scopeDepth);
-        current->last_break = emitJump(OpCode::JUMP);
+        current->last_break = gen.emitJump(OpCode::JUMP);
         return;
     }
     // continue
@@ -634,7 +570,7 @@ void Compiler::breakStatement(Break *ast) {
               current->scopeDepth);
         adjust_locals(current->last_scope_depth);
 
-        emitLoop(current->last_continue);
+        gen.emitLoop(current->last_continue);
         current->last_continue = 0;
     }
 }
@@ -647,15 +583,16 @@ void Compiler::block(Block *ast) {
 
 void Compiler::printStatement(Print *ast) {
     expr(ast->expr);
-    emitByte(OpCode::PRINT);
+    gen.emitByte(OpCode::PRINT);
 }
 
 void Compiler::exprStatement(Expr *ast) {
     expr(ast);
-    emitByte(OpCode::POP);
+    gen.emitByte(OpCode::POP);
 }
 
 void Compiler::expr(Expr *ast, bool canAssign) {
+    gen.set_linenumber(ast->line);
     debug("expr");
     if (IS_Expr(ast->expr)) {
         expr(AS_Expr(ast->expr), canAssign);
@@ -680,11 +617,12 @@ void Compiler::expr(Expr *ast, bool canAssign) {
     } else if (IS_This(ast->expr)) {
         this_(AS_This(ast->expr), canAssign);
     } else if (IS_Nil(ast->expr)) {
-        emitByte(OpCode::NIL);
+        gen.emitByte(OpCode::NIL);
     }
 }
 
 void Compiler::assign(Assign *ast) {
+    gen.set_linenumber(ast->line);
     expr(ast->right, false);
     expr(ast->left, true);
 }
@@ -692,7 +630,7 @@ void Compiler::assign(Assign *ast) {
 void Compiler::call(Call *ast) {
     expr(ast->fname, false);
     const uint8_t argCount = argumentList(ast->args);
-    emitBytes(OpCode::CALL, argCount);
+    gen.emitBytes(OpCode::CALL, argCount);
 }
 
 void Compiler::binary(Binary *ast, bool canAssign) {
@@ -711,34 +649,34 @@ void Compiler::binary(Binary *ast, bool canAssign) {
 
     switch (ast->token) {
     case TokenType::BANG_EQUAL:
-        emitByte(OpCode::NOT_EQUAL);
+        gen.emitByte(OpCode::NOT_EQUAL);
         break;
     case TokenType::EQUAL_EQUAL:
-        emitByte(OpCode::EQUAL);
+        gen.emitByte(OpCode::EQUAL);
         break;
     case TokenType::GREATER:
-        emitByte(OpCode::GREATER);
+        gen.emitByte(OpCode::GREATER);
         break;
     case TokenType::GREATER_EQUAL:
-        emitByte(OpCode::NOT_LESS);
+        gen.emitByte(OpCode::NOT_LESS);
         break;
     case TokenType::LESS:
-        emitByte(OpCode::LESS);
+        gen.emitByte(OpCode::LESS);
         break;
     case TokenType::LESS_EQUAL:
-        emitByte(OpCode::NOT_GREATER);
+        gen.emitByte(OpCode::NOT_GREATER);
         break;
     case TokenType::PLUS:
-        emitByte(OpCode::ADD);
+        gen.emitByte(OpCode::ADD);
         break;
     case TokenType::MINUS:
-        emitByte(OpCode::SUBTRACT);
+        gen.emitByte(OpCode::SUBTRACT);
         break;
     case TokenType::ASTÉRIX:
-        emitByte(OpCode::MULTIPLY);
+        gen.emitByte(OpCode::MULTIPLY);
         break;
     case TokenType::SLASH:
-        emitByte(OpCode::DIVIDE);
+        gen.emitByte(OpCode::DIVIDE);
         break;
     default:
         return; // Unreachable.
@@ -747,23 +685,23 @@ void Compiler::binary(Binary *ast, bool canAssign) {
 
 void Compiler::and_(Binary *ast, bool canAssign) {
     expr(ast->left, canAssign);
-    const int endJump = emitJump(OpCode::JUMP_IF_FALSE);
-    emitByte(OpCode::POP);
+    const int endJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
+    gen.emitByte(OpCode::POP);
 
     expr(ast->right, canAssign);
-    patchJump(endJump);
+    gen.patchJump(endJump);
 }
 
 void Compiler::or_(Binary *ast, bool canAssign) {
     expr(ast->left, canAssign);
-    int elseJump = emitJump(OpCode::JUMP_IF_FALSE);
-    int endJump = emitJump(OpCode::JUMP);
+    int elseJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
+    int endJump = gen.emitJump(OpCode::JUMP);
 
-    patchJump(elseJump);
-    emitByte(OpCode::POP);
+    gen.patchJump(elseJump);
+    gen.emitByte(OpCode::POP);
 
     expr(ast->right, canAssign);
-    patchJump(endJump);
+    gen.patchJump(endJump);
 }
 
 void Compiler::dot(Dot *ast, bool canAssign) {
@@ -771,13 +709,13 @@ void Compiler::dot(Dot *ast, bool canAssign) {
     auto name = identifierConstant(ast->id);
     if (ast->token == TokenType::EQUAL) {
         expr(ast->args[0]);
-        emitByteConst(OpCode::SET_PROPERTY, name);
+        gen.emitByteConst(OpCode::SET_PROPERTY, name);
     } else if (ast->token == TokenType::LEFT_PAREN) {
         const uint8_t argCount = argumentList(ast->args);
-        emitByteConst(OpCode::INVOKE, name);
-        emitByte(argCount);
+        gen.emitByteConst(OpCode::INVOKE, name);
+        gen.emitByte(argCount);
     } else {
-        emitByteConst(OpCode::GET_PROPERTY, name);
+        gen.emitByteConst(OpCode::GET_PROPERTY, name);
     }
 }
 
@@ -787,10 +725,10 @@ void Compiler::unary(Unary *ast, bool canAssign) {
     // Emit the operator instruction.
     switch (ast->token) {
     case TokenType::BANG:
-        emitByte(OpCode::NOT);
+        gen.emitByte(OpCode::NOT);
         break;
     case TokenType::MINUS:
-        emitByte(OpCode::NEGATE);
+        gen.emitByte(OpCode::NEGATE);
         break;
     default:
         return; // Unreachable.
@@ -803,25 +741,25 @@ void Compiler::variable(Identifier *ast, bool canAssign) {
 
 void Compiler::number(Number *ast) {
     if (ast->value == 0) {
-        emitByte(OpCode::ZERO);
+        gen.emitByte(OpCode::ZERO);
         return;
     }
     if (ast->value == 1) {
-        emitByte(OpCode::ONE);
+        gen.emitByte(OpCode::ONE);
         return;
     }
-    emitConstant(NUMBER_VAL(ast->value));
+    gen.emitConstant(NUMBER_VAL(ast->value));
 }
 
 void Compiler::string(String *ast) {
-    emitConstant(OBJ_VAL(newString(ast->value)));
+    gen.emitConstant(OBJ_VAL(newString(ast->value)));
 }
 
 void Compiler::boolean(Boolean *ast) {
     if (ast->value) {
-        emitByte(OpCode::TRUE);
+        gen.emitByte(OpCode::TRUE);
     } else {
-        emitByte(OpCode::FALSE);
+        gen.emitByte(OpCode::FALSE);
     }
 }
 

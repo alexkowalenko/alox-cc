@@ -63,7 +63,7 @@ class Chunk {
     Chunk(const Chunk &) = delete;
 
     void free();
-    void write(uint8_t byte, int line);
+    void write(uint8_t byte, size_t line);
 
     [[nodiscard]] constexpr size_t get_count() const { return count; }
     [[nodiscard]] constexpr size_t get_line(size_t n) const { return lines[n]; }

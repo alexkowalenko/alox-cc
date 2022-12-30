@@ -38,7 +38,7 @@ struct ParseRule {
 
 class Parser {
   public:
-    Parser(Scanner &s, Error &err) : scanner(s), err(err){};
+    Parser(Scanner &s, ErrorManager &err) : scanner(s), err(err){};
 
     Declaration *parse();
 
@@ -99,6 +99,6 @@ class Parser {
     Token previous;
 
   private:
-    Scanner &scanner;
-    Error   &err;
+    Scanner      &scanner;
+    ErrorManager &err;
 };

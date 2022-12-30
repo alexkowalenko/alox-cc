@@ -8,7 +8,7 @@
 
 #include "error.hh"
 
-void Error::errorAt(int line, std::string_view message) {
+void ErrorManager::errorAt(size_t line, std::string_view message) {
     if (panicMode) {
         return;
     }
@@ -19,7 +19,7 @@ void Error::errorAt(int line, std::string_view message) {
     hadError = true;
 }
 
-void Error::errorAt(Token *token, std::string_view message) {
+void ErrorManager::errorAt(Token *token, std::string_view message) {
     if (panicMode) {
         return;
     }

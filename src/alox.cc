@@ -91,7 +91,7 @@ int Alox::runFile(const std::string_view &path) {
 InterpretResult Alox::runString(const std::string &source) {
 
     auto scanner = Scanner(source);
-    auto errors = Error(options.err);
+    auto errors = ErrorManager(options.err);
     auto parser = Parser(scanner, errors);
 
     auto ast = parser.parse();
