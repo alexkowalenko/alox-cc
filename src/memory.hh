@@ -7,6 +7,7 @@
 #include "common.hh"
 #include "object.hh"
 #include "vm.hh"
+#include <concepts>
 
 inline constexpr auto Base_GC_Size = 1024 * 1024;
 
@@ -22,12 +23,21 @@ class GC {
     void set_ast(Declaration *d) { ast = d; }
 
     // New allocators
-    template <typename T> T             *allocateObject(ObjType type);
-    template <typename T> T             *allocate_array(size_t count);
-    template <typename T> constexpr void deleteObject(T *pointer);
-    template <typename T> constexpr void delete_array(T *pointer, size_t oldCount);
+    template <typename T>
+        requires std::default_initializable<T>
+    T *allocateObject(ObjType type);
+    template <typename T>
+        requires std::default_initializable<T>
+    T *allocate_array(size_t count);
+    template <typename T>
+        requires std::destructible<T>
+    constexpr void deleteObject(T *pointer);
+    template <typename T>
+        requires std::destructible<T>
+    constexpr void delete_array(T *pointer, size_t oldCount);
 
     template <typename T>
+        requires std::default_initializable<T> && std::destructible<T>
     constexpr T *grow_array(T *pointer, size_t oldCount, size_t newCount) {
         auto result = allocate_array<T>(newCount);
         memcpy(result, pointer, sizeof(T) * oldCount);
@@ -73,7 +83,9 @@ extern GC gc;
  * @param type Object type
  * @return T*
  */
-template <typename T> T *GC::allocateObject(ObjType type) {
+template <typename T>
+    requires std::default_initializable<T>
+T *GC::allocateObject(ObjType type) {
     trigger(0, sizeof(T));
     auto *object = new T;
     placeObject((Obj *)object, type);
@@ -90,7 +102,9 @@ template <typename T> T *GC::allocateObject(ObjType type) {
  * @param count
  * @return T*
  */
-template <typename T> T *GC::allocate_array(size_t count) {
+template <typename T>
+    requires std::default_initializable<T>
+T *GC::allocate_array(size_t count) {
     trigger(0, sizeof(T) * count);
     auto *object = new T[count];
     if constexpr (DEBUG_LOG_GC) {
@@ -106,7 +120,9 @@ template <typename T> T *GC::allocate_array(size_t count) {
  * @tparam T
  * @param pointer
  */
-template <typename T> constexpr void GC::deleteObject(T *pointer) {
+template <typename T>
+    requires std::destructible<T>
+constexpr void GC::deleteObject(T *pointer) {
     delete pointer;
     trigger(sizeof(T), 0);
 }
@@ -118,7 +134,9 @@ template <typename T> constexpr void GC::deleteObject(T *pointer) {
  * @param pointer
  * @param oldCount
  */
-template <typename T> constexpr void GC::delete_array(T *pointer, size_t oldCount) {
+template <typename T>
+    requires std::destructible<T>
+constexpr void GC::delete_array(T *pointer, size_t oldCount) {
     delete[] pointer;
     trigger(sizeof(T) * oldCount, 0);
 }

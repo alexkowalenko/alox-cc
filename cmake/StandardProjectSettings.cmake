@@ -38,8 +38,8 @@ if(ENABLE_IPO)
 endif()
 
 # ICU unicode library
-set(ICU_INCLUDE_DIRS /usr/local/opt/icu4c/include)
-set(ICU_LIBRARY_DIRS /usr/local/opt/icu4c/lib)
+set(ICU_INCLUDE_DIRS /opt/homebrew/opt/icu4c/include)
+set(ICU_LIBRARY_DIRS /opt/homebrew/opt/icu4c/lib)
 set(ICU_LIBRARIES icuuc)
 link_directories(${ICU_LIBRARY_DIRS})
 

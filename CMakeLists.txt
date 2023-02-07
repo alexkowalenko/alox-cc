@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 # Change compiler here
-set(AX_BASE_CLANG /usr/local/opt/llvm)
+set(AX_BASE_CLANG /opt/homebrew/opt/llvm)
 set(CMAKE_CXX_COMPILER ${AX_BASE_CLANG}/bin/clang++)
 message(STATUS "C++ compiler = ${CMAKE_CXX_COMPILER}")
 
