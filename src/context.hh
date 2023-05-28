@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "object.hh"
 #include "scanner.hh"
 
