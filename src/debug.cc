@@ -10,6 +10,8 @@
 #include "object.hh"
 #include "value.hh"
 
+namespace alox {
+
 void disassembleChunk(Chunk *chunk, const std::string_view &name) {
     fmt::print("== {} ==\n", name);
 
@@ -170,3 +172,5 @@ int disassembleInstruction(Chunk *chunk, int offset) {
         return offset + 1;
     }
 }
+
+} // namespace lox

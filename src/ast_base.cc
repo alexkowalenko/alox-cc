@@ -7,6 +7,8 @@
 #include "ast_base.hh"
 #include "ast/includes.hh"
 
+namespace alox {
+
 void blackenASTObject(Obj *object) {
     switch (object->type) {
     case AST_Declaration: {
@@ -288,3 +290,5 @@ void markASTRoots(Declaration *ast) {
         gc.markObject(d);
     }
 };
+
+} // namespace alox

@@ -10,6 +10,8 @@
 #include "object.hh"
 #include "scanner.hh"
 
+namespace alox {
+
 constexpr ObjType AST_{{name}} = {{index}};
 
 class {{name}} {
@@ -34,4 +36,6 @@ constexpr bool IS_{{name}}(Obj *obj) {
 
 inline {{name}} *AS_{{name}}(Obj *obj) {
     return reinterpret_cast<{{name}} *>(obj);
+}
+
 }

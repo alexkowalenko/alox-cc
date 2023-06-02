@@ -8,6 +8,8 @@
 
 #include "error.hh"
 
+namespace alox {
+
 void ErrorManager::errorAt(size_t line, std::string_view message) {
     if (panicMode) {
         return;
@@ -36,3 +38,5 @@ void ErrorManager::errorAt(Token *token, std::string_view message) {
     cerr << fmt::format(": {}\n", message);
     hadError = true;
 }
+
+} // namespace lox

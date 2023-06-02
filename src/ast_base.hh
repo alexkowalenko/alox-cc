@@ -9,6 +9,8 @@
 #include "memory.hh"
 #include "object.hh"
 
+namespace alox {
+
 class Declaration;
 class Statement;
 class Expr;
@@ -27,3 +29,5 @@ constexpr auto START_AST = 100;
 void blackenASTObject(Obj *object);
 void freeASTObject(Obj *object);
 void markASTRoots(Declaration *ast);
+
+} // namespace alox

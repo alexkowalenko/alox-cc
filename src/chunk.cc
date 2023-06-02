@@ -5,6 +5,8 @@
 #include "chunk.hh"
 #include "memory.hh"
 
+namespace alox {
+
 void Chunk::free() {
     gc.delete_array<uint8_t>(this->code, this->capacity);
 }
@@ -24,3 +26,5 @@ void Chunk::write(uint8_t byte, size_t line) {
 const_index_t Chunk::add_constant(Value value) {
     return this->constants.write(value);
 }
+
+} // namespace alox

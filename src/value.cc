@@ -10,6 +10,8 @@
 #include "object.hh"
 #include "value.hh"
 
+namespace alox {
+
 void printValue(std::ostream &os, Value value) {
 #ifdef NAN_BOXING
     if (IS_BOOL(value)) {
@@ -71,3 +73,5 @@ bool valuesEqual(Value a, Value b) {
     }
 #endif
 }
+
+} // namespace lox

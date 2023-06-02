@@ -14,6 +14,8 @@
 
 #include <string_view>
 
+namespace alox {
+
 class Compiler {
   public:
     Compiler(const Options &opt, ErrorManager &err) : options(opt), err(err), gen(err){};
@@ -86,3 +88,5 @@ class Compiler {
     ClassContext *currentClass{nullptr};
     CodeGen       gen;
 };
+
+} // namespace lox

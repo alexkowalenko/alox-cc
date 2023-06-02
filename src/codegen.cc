@@ -4,6 +4,8 @@
 
 #include "codegen.hh"
 
+namespace alox {
+
 constexpr auto MAX_CONSTANTS = UINT16_MAX;
 
 void CodeGen::emitByte(uint8_t byte) {
@@ -74,3 +76,5 @@ void CodeGen::patchJump(size_t offset) {
     cur->get_code(offset) = (jump >> UINT8_WIDTH) & 0xff;
     cur->get_code(offset + 1) = jump & 0xff;
 }
+
+} // namespace lox

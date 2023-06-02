@@ -19,6 +19,8 @@
 #include "memory.hh"
 #include "scanner.hh"
 
+namespace alox {
+
 inline constexpr auto debug_compile{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
@@ -776,3 +778,5 @@ void Compiler::markCompilerRoots() {
 void Compiler::error(size_t line, const std::string_view &message) {
     err.errorAt(line, message);
 }
+
+} // namespace lox

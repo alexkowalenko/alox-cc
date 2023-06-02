@@ -9,6 +9,8 @@
 #include <iostream>
 #include <string>
 
+namespace alox {
+
 struct Options {
 
     Options(std::ostream &out, std::istream &in, std::ostream &err)
@@ -26,3 +28,5 @@ struct Options {
 };
 
 int getOptions(int argc, const char *argv[], Options &options);
+
+} // namespace lox

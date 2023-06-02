@@ -9,10 +9,14 @@
 #include <fmt/core.h>
 #include <string_view>
 
+#include <gc_cpp.h>
+
 #include "memory.hh"
 #include "object.hh"
 #include "table.hh"
 #include "value.hh"
+
+namespace alox {
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
     auto *bound = gc.allocateObject<ObjBoundMethod>(OBJ_BOUND_METHOD);
@@ -70,7 +74,8 @@ inline uint32_t hashString(const std::string_view &s) {
 }
 
 ObjString *newString(std::string const &s) {
-    auto *string = gc.allocateObject<ObjString>(OBJ_STRING);
+    auto *string = new ObjString;
+    string->obj.type = OBJ_STRING;
     string->str = s;
     string->hash = hashString(s);
     return string;
@@ -120,3 +125,5 @@ void printObject(std::ostream &os, Value value) {
         break;
     }
 }
+
+} // namespace lox

@@ -10,6 +10,8 @@
 #include <fmt/core.h>
 #include <gtest/gtest.h>
 
+using namespace alox;
+
 TEST(Table, basic) { // NOLINT
 
     Value a = BOOL_VAL(true);

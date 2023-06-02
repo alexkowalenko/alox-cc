@@ -7,6 +7,8 @@
 #include "object.hh"
 #include "value.hh"
 
+namespace alox {
+
 inline constexpr auto TABLE_MAX_LOAD = 0.75;
 
 void Table::free() {
@@ -140,3 +142,5 @@ void Table::mark() {
         gc.markValue(entry->value);
     }
 }
+
+} // namespace lox

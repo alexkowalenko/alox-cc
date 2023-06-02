@@ -19,6 +19,8 @@
 #include "value.hh"
 #include "vm.hh"
 
+namespace alox {
+
 inline constexpr auto debug_vm{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
@@ -596,3 +598,5 @@ InterpretResult VM::run(ObjFunction *function) {
     }
     return run();
 }
+
+} // namespace lox

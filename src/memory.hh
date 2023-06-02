@@ -9,6 +9,8 @@
 #include "vm.hh"
 #include <concepts>
 
+namespace alox {
+
 inline constexpr auto Base_GC_Size = 1024 * 1024;
 
 class Declaration;
@@ -144,3 +146,5 @@ constexpr void GC::delete_array(T *pointer, size_t oldCount) {
 constexpr size_t grow_capacity(size_t capacity) {
     return ((capacity) < 8 ? 8 : (capacity)*2);
 };
+
+} // namespace lox

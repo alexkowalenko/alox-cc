@@ -13,6 +13,8 @@
 #include "parser.hh"
 #include "printer.hh"
 
+using namespace alox;
+
 struct ParseTests {
     std::string input;
     std::string output;

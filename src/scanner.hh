@@ -13,6 +13,8 @@
 
 #include "common.hh"
 
+namespace alox {
+
 #undef FALSE
 #undef TRUE
 
@@ -99,3 +101,5 @@ class Scanner {
 
     int line{1};
 };
+
+} // namespace lox

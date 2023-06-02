@@ -6,6 +6,8 @@
 
 #include "scanner.hh"
 
+namespace alox {
+
 class ErrorManager {
   public:
     ErrorManager(std::ostream &cerr) : cerr(cerr){};
@@ -24,3 +26,5 @@ class ErrorManager {
   private:
     std::ostream &cerr;
 };
+
+} // namespace alox

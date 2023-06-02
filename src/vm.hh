@@ -12,6 +12,8 @@
 #include "table.hh"
 #include "value.hh"
 
+namespace alox {
+
 class Compiler;
 
 constexpr auto FRAMES_MAX = 64;
@@ -95,3 +97,5 @@ class VM {
 
     // std::unique_ptr<Compiler> compiler;
 };
+
+} // namespace lox

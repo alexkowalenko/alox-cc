@@ -11,6 +11,8 @@
 #include "table.hh"
 #include "value.hh"
 
+namespace alox {
+
 using ObjType = uint8_t;
 
 constexpr ObjType OBJ_BOUND_METHOD = 0;
@@ -158,3 +160,5 @@ ObjNative      *newNative(NativeFn function);
 ObjString      *newString(std::string const &s);
 ObjUpvalue     *newUpvalue(Value *slot);
 void            printObject(std::ostream &os, Value value);
+
+} // namespace lox

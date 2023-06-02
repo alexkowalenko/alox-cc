@@ -8,6 +8,8 @@
 
 #include <vector>
 
+namespace alox {
+
 class ValueArray {
   public:
     ValueArray() = default;
@@ -23,3 +25,5 @@ class ValueArray {
   private:
     std::vector<Value> values{};
 };
+
+} // namespace lox

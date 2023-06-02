@@ -19,6 +19,8 @@
 #include "scanner.hh"
 #include "value.hh"
 
+namespace alox {
+
 void AST_Printer::print(Declaration *ast) {
     declaration(ast);
 }
@@ -336,3 +338,5 @@ void AST_Printer::args(const std::vector<Expr *> &args) {
     }
     os << ')';
 }
+
+} // namespace lox

@@ -10,6 +10,8 @@
 #include "memory.hh"
 #include "vm.hh"
 
+namespace alox {
+
 inline constexpr auto GC_HEAP_GROW_FACTOR = 2;
 
 GC gc;
@@ -163,8 +165,6 @@ void GC::freeObject(Obj *object) {
         deleteObject<ObjNative>((ObjNative *)object);
         break;
     case OBJ_STRING: {
-        auto *string = (ObjString *)object;
-        deleteObject<ObjString>(string);
         break;
     }
     case OBJ_UPVALUE:
@@ -246,3 +246,5 @@ void GC::freeObjects() {
 
     ::free(this->grayStack);
 }
+
+} // namespace alox

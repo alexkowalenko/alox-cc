@@ -9,6 +9,8 @@
 #include <fmt/core.h>
 #include <gtest/gtest.h>
 
+using namespace alox;
+
 struct TestLexer {
     std::string input;
     TokenType   tok;

@@ -12,6 +12,8 @@
 #include <iostream>
 #include <string>
 
+namespace alox {
+
 inline constexpr auto debug_stdlib{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
@@ -77,3 +79,5 @@ void VM::def_stdlib() {
     auto *obj_class = newClass(newString("Object"));
     globals.set(obj_class->name, OBJ_VAL(obj_class));
 }
+
+} // namespace lox

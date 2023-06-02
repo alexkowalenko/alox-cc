@@ -13,6 +13,8 @@
 #include "parser.hh"
 #include "scanner.hh"
 
+namespace alox {
+
 inline constexpr auto debug_parse{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
@@ -561,3 +563,5 @@ bool Parser::match(TokenType type) {
     advance();
     return true;
 }
+
+} // namespace lox

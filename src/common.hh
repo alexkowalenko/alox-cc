@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace alox {
+
 #define NAN_BOXING
 
 constexpr auto DEBUG_STRESS_GC{false};
@@ -19,3 +21,5 @@ constexpr auto UINT8_WIDTH = sizeof(uint8_t) * 8;
 #endif
 
 using Char = uint32_t;
+
+} // namespace lox

@@ -11,6 +11,8 @@
 #include <CLI/CLI.hpp>
 #pragma clang diagnostic pop
 
+namespace alox {
+
 int getOptions(int argc, const char *argv[], Options &options) {
 
     CLI::App app{"alox: Alox"};
@@ -25,3 +27,5 @@ int getOptions(int argc, const char *argv[], Options &options) {
     CLI11_PARSE(app, argc, argv);
     return 0;
 }
+
+} // namespace alox

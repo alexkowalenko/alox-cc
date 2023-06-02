@@ -7,6 +7,8 @@
 #include "common.hh"
 #include "value.hh"
 
+namespace alox {
+
 struct Entry {
     ObjString *key;
     Value      value;
@@ -35,3 +37,5 @@ class Table {
     size_t capacity{0};
     Entry *entries{nullptr};
 };
+
+} // namespace lox

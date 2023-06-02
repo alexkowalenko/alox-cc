@@ -24,6 +24,8 @@
 #include "scanner.hh"
 #include "vm.hh"
 
+namespace alox {
+
 constexpr auto history_file = ".alox-cc";
 constexpr auto prompt = "-> ";
 constexpr auto max_history = 1000;
@@ -115,3 +117,5 @@ InterpretResult Alox::runString(const std::string &source) {
     InterpretResult result = vm.run(function);
     return result;
 }
+
+} // namespace alox
