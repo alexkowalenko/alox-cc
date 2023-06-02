@@ -18,7 +18,6 @@ class ValueArray {
     ValueArray(const ValueArray &) = delete;
 
     size_t write(const Value &value);
-    void   mark();
 
     [[nodiscard]] constexpr Value &get_value(size_t n) { return values[n]; }
 

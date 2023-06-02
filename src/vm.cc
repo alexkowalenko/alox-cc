@@ -79,25 +79,6 @@ void VM::free() {
     initString = nullptr;
 }
 
-void VM::markRoots() {
-    for (Value *slot = this->stack; slot < this->stackTop; slot++) {
-        gc.markValue(*slot);
-    }
-
-    for (int i = 0; i < this->frameCount; i++) {
-        gc.markObject((Obj *)this->frames[i].closure);
-    }
-
-    for (ObjUpvalue *upvalue = this->openUpvalues; upvalue != nullptr;
-         upvalue = upvalue->next) {
-        gc.markObject((Obj *)upvalue);
-    }
-
-    this->globals.mark();
-
-    gc.markObject((Obj *)this->initString);
-}
-
 bool VM::call(ObjClosure *closure, int argCount) {
     if (argCount != closure->function->arity) {
         runtimeError("Expected {:d} arguments but got {:d}.", closure->function->arity,
@@ -599,4 +580,4 @@ InterpretResult VM::run(ObjFunction *function) {
     return run();
 }
 
-} // namespace lox
+} // namespace alox

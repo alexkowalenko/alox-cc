@@ -31,13 +31,11 @@ constexpr auto prompt = "-> ";
 constexpr auto max_history = 1000;
 
 Alox::Alox(const Options &opt) : options(opt), vm(options) {
-    gc.init(&vm);
     vm.init();
 }
 
 Alox::~Alox() {
     vm.free();
-    gc.freeObjects(); // and the last enemy to be destroyed is death.
 }
 
 void Alox::repl() {
@@ -100,7 +98,6 @@ InterpretResult Alox::runString(const std::string &source) {
     if (errors.hadError) {
         return INTERPRET_PARSE_ERROR;
     }
-    gc.set_ast(ast);
     if (options.parse) {
         std::stringstream os;
         AST_Printer       printer(os);
@@ -108,8 +105,7 @@ InterpretResult Alox::runString(const std::string &source) {
         std::cout << os.str();
     }
 
-    Compiler compiler(options, errors);
-    gc.set_compiler(&compiler);
+    Compiler     compiler(options, errors);
     ObjFunction *function = compiler.compile(ast);
     if (function == nullptr) {
         return INTERPRET_COMPILE_ERROR;

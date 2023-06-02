@@ -14,9 +14,11 @@ namespace alox {
 
 constexpr ObjType AST_{{name}} = {{index}};
 
-class {{name}} {
+class {{name}} : public Obj {
   public:
-    Obj obj;
+  
+    {{name}}() : Obj(AST_{{name}}) {};
+
     int line{0};
 
     {{#instances}}
@@ -25,13 +27,13 @@ class {{name}} {
 };
 
 inline  {{name}} *new{{name}}(int l) {
-    auto *ast = gc.allocateObject< {{name}}>(AST_{{name}});
+    auto *ast = allocateObject< {{name}}>(AST_{{name}});
     ast->line = l;
     return ast;
 }
 
 constexpr bool IS_{{name}}(Obj *obj) {
-    return obj->type == AST_{{name}};
+    return obj->get_type() == AST_{{name}};
 }
 
 inline {{name}} *AS_{{name}}(Obj *obj) {

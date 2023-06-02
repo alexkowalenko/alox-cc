@@ -12,8 +12,8 @@
 
 namespace alox {
 
-struct ObjString;
-struct Obj;
+class ObjString;
+class Obj;
 
 #ifdef NAN_BOXING
 
@@ -154,4 +154,4 @@ template <typename T> inline Value OBJ_VAL(T *object) {
 bool valuesEqual(Value a, Value b);
 void printValue(std::ostream &os, Value value);
 
-} // namespace lox
+} // namespace alox

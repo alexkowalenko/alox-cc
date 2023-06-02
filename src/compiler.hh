@@ -22,7 +22,6 @@ class Compiler {
     ~Compiler() = default;
 
     ObjFunction *compile(Declaration *ast);
-    void         markCompilerRoots();
 
   private:
     // Compile the AST
@@ -89,4 +88,4 @@ class Compiler {
     CodeGen       gen;
 };
 
-} // namespace lox
+} // namespace alox

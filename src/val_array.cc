@@ -20,10 +20,4 @@ size_t ValueArray::write(const Value &value) {
     return values.size() - 1;
 }
 
-void ValueArray::mark() {
-    for (auto &v : values) {
-        gc.markValue(v);
-    }
-}
-
-} // namespace lox
+} // namespace alox

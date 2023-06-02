@@ -24,71 +24,91 @@ constexpr ObjType OBJ_NATIVE = 5;
 constexpr ObjType OBJ_STRING = 6;
 constexpr ObjType OBJ_UPVALUE = 7;
 
-struct Obj {
-    ObjType     type;
-    bool        isMarked;
-    struct Obj *next;
+class Obj {
+  public:
+    explicit Obj(ObjType t) : type(t){};
+
+    [[nodiscard]] ObjType get_type() const { return type; }
+
+  private:
+    ObjType type;
 };
 
-struct ObjFunction {
+class ObjFunction : public Obj {
   public:
-    Obj        obj;
-    int        arity;
-    int        upvalueCount;
+    ObjFunction() : Obj(OBJ_FUNCTION){};
+
+    int        arity{};
+    int        upvalueCount{};
     Chunk      chunk;
-    ObjString *name;
+    ObjString *name{};
 };
 
 using NativeFn = Value (*)(int, Value const *);
 
-struct ObjNative {
-    Obj      obj;
-    NativeFn function;
+class ObjNative : public Obj {
+  public:
+    ObjNative() : Obj(OBJ_NATIVE){};
+
+    NativeFn function{};
 };
 
-struct ObjString {
-    Obj         obj;
+class ObjString : public Obj {
+  public:
+    ObjString() : Obj(OBJ_STRING){};
+
     std::string str;
-    uint32_t    hash;
+    uint32_t    hash{};
 };
 
-struct ObjUpvalue {
-    Obj                obj;
-    Value             *location;
-    Value              closed;
-    struct ObjUpvalue *next;
+class ObjUpvalue : public Obj {
+  public:
+    ObjUpvalue() : Obj(OBJ_UPVALUE){};
+
+    Value      *location{};
+    Value       closed{};
+    ObjUpvalue *next{};
 };
 
-struct ObjClosure {
-    Obj          obj;
-    ObjFunction *function;
-    ObjUpvalue **upvalues;
-    int          upvalueCount;
+class ObjClosure : public Obj {
+  public:
+    ObjClosure() : Obj(OBJ_CLOSURE){};
+
+    ObjFunction *function{};
+    ObjUpvalue **upvalues{};
+    int          upvalueCount{};
 };
 
-struct ObjClass {
-    Obj        obj;
-    ObjString *name;
+class ObjClass : public Obj {
+  public:
+    ObjClass() : Obj(OBJ_CLASS){};
+
+    ObjString *name{};
     Table      methods;
 };
-struct ObjInstance {
-    Obj       obj;
-    ObjClass *klass;
+
+class ObjInstance : public Obj {
+  public:
+    ObjInstance() : Obj(OBJ_INSTANCE){};
+
+    ObjClass *klass{};
     Table     fields; // [fields]
 };
 
-struct ObjBoundMethod {
-    Obj         obj;
+class ObjBoundMethod : public Obj {
+  public:
+    ObjBoundMethod() : Obj(OBJ_BOUND_METHOD){};
+
     Value       receiver;
     ObjClosure *method;
 };
 
 constexpr ObjType OBJ_TYPE(Value value) {
-    return (AS_OBJ(value)->type);
+    return (AS_OBJ(value)->get_type());
 }
 
 constexpr bool isObjType(Value value, ObjType type) {
-    return IS_OBJ(value) && AS_OBJ(value)->type == type;
+    return IS_OBJ(value) && AS_OBJ(value)->get_type() == type;
 }
 
 constexpr bool IS_BOUND_METHOD(Value value) {
@@ -161,4 +181,4 @@ ObjString      *newString(std::string const &s);
 ObjUpvalue     *newUpvalue(Value *slot);
 void            printObject(std::ostream &os, Value value);
 
-} // namespace lox
+} // namespace alox

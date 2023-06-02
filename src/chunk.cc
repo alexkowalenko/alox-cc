@@ -8,14 +8,14 @@
 namespace alox {
 
 void Chunk::free() {
-    gc.delete_array<uint8_t>(this->code, this->capacity);
+    delete[] code;
 }
 
 void Chunk::write(uint8_t byte, size_t line) {
     if (capacity < count + 1) {
         const size_t oldCapacity = this->capacity;
         capacity = grow_capacity(oldCapacity);
-        code = gc.grow_array<uint8_t>(this->code, oldCapacity, this->capacity);
+        code = grow_array<uint8_t>(this->code, oldCapacity, this->capacity);
     }
 
     code[count] = byte;

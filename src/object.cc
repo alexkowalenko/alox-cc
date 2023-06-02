@@ -19,25 +19,25 @@
 namespace alox {
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
-    auto *bound = gc.allocateObject<ObjBoundMethod>(OBJ_BOUND_METHOD);
+    auto *bound = allocateObject<ObjBoundMethod>(OBJ_BOUND_METHOD);
     bound->receiver = receiver;
     bound->method = method;
     return bound;
 }
 
 ObjClass *newClass(ObjString *name) {
-    auto *klass = gc.allocateObject<ObjClass>(OBJ_CLASS);
+    auto *klass = allocateObject<ObjClass>(OBJ_CLASS);
     klass->name = name; // [klass]
     return klass;
 }
 
 ObjClosure *newClosure(ObjFunction *function) {
-    auto **upvalues = gc.allocate_array<ObjUpvalue *>(function->upvalueCount);
+    auto **upvalues = new ObjUpvalue *[function->upvalueCount];
     for (int i = 0; i < function->upvalueCount; i++) {
         upvalues[i] = nullptr;
     }
 
-    auto *closure = gc.allocateObject<ObjClosure>(OBJ_CLOSURE);
+    auto *closure = allocateObject<ObjClosure>(OBJ_CLOSURE);
     closure->function = function;
     closure->upvalues = upvalues;
     closure->upvalueCount = function->upvalueCount;
@@ -45,7 +45,7 @@ ObjClosure *newClosure(ObjFunction *function) {
 }
 
 ObjFunction *newFunction() {
-    auto *function = gc.allocateObject<ObjFunction>(OBJ_FUNCTION);
+    auto *function = allocateObject<ObjFunction>(OBJ_FUNCTION);
     function->arity = 0;
     function->upvalueCount = 0;
     function->name = nullptr;
@@ -53,13 +53,13 @@ ObjFunction *newFunction() {
 }
 
 ObjInstance *newInstance(ObjClass *klass) {
-    auto *instance = gc.allocateObject<ObjInstance>(OBJ_INSTANCE);
+    auto *instance = allocateObject<ObjInstance>(OBJ_INSTANCE);
     instance->klass = klass;
     return instance;
 }
 
 ObjNative *newNative(NativeFn function) {
-    auto *native = gc.allocateObject<ObjNative>(OBJ_NATIVE);
+    auto *native = allocateObject<ObjNative>(OBJ_NATIVE);
     native->function = function;
     return native;
 }
@@ -74,15 +74,14 @@ inline uint32_t hashString(const std::string_view &s) {
 }
 
 ObjString *newString(std::string const &s) {
-    auto *string = new ObjString;
-    string->obj.type = OBJ_STRING;
+    auto *string = new ObjString();
     string->str = s;
     string->hash = hashString(s);
     return string;
 }
 
 ObjUpvalue *newUpvalue(Value *slot) {
-    auto *upvalue = gc.allocateObject<ObjUpvalue>(OBJ_UPVALUE);
+    auto *upvalue = allocateObject<ObjUpvalue>(OBJ_UPVALUE);
     upvalue->closed = NIL_VAL;
     upvalue->location = slot;
     upvalue->next = nullptr;
@@ -126,4 +125,4 @@ void printObject(std::ostream &os, Value value) {
     }
 }
 
-} // namespace lox
+} // namespace alox

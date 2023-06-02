@@ -27,9 +27,6 @@ class Table {
     bool        del(ObjString *key);
     static void addAll(const Table &from, Table &to);
 
-    void removeWhite();
-    void mark();
-
   private:
     void adjustCapacity(size_t capacity);
 
@@ -38,4 +35,4 @@ class Table {
     Entry *entries{nullptr};
 };
 
-} // namespace lox
+} // namespace alox

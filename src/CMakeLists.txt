@@ -8,7 +8,6 @@ add_library(lox STATIC
    compiler.cc
    context.cc
    debug.cc
-   memory.cc
    object.cc
    parser.cc
    scanner.cc

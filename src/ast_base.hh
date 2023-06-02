@@ -24,10 +24,4 @@ template <typename T> Obj *OBJ_AST(T *obj) {
 
 constexpr auto START_AST = 100;
 
-// GC Functions for AST
-
-void blackenASTObject(Obj *object);
-void freeASTObject(Obj *object);
-void markASTRoots(Declaration *ast);
-
 } // namespace alox

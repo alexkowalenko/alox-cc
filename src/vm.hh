@@ -43,8 +43,6 @@ class VM {
     void            set_error_manager(ErrorManager *err) { errors = err; }
     InterpretResult run(ObjFunction *function);
 
-    void markRoots();
-
   private:
     void resetStack();
 
@@ -98,4 +96,4 @@ class VM {
     // std::unique_ptr<Compiler> compiler;
 };
 
-} // namespace lox
+} // namespace alox

@@ -767,16 +767,8 @@ void Compiler::boolean(Boolean *ast) {
 
 /////////////////////////////////////////////////////////////////////////
 
-void Compiler::markCompilerRoots() {
-    Context *compiler = current;
-    while (compiler != nullptr) {
-        gc.markObject((Obj *)compiler->function);
-        compiler = compiler->enclosing;
-    }
-}
-
 void Compiler::error(size_t line, const std::string_view &message) {
     err.errorAt(line, message);
 }
 
-} // namespace lox
+} // namespace alox
