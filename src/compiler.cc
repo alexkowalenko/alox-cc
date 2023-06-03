@@ -19,6 +19,8 @@
 #include "memory.hh"
 #include "scanner.hh"
 
+namespace alox {
+
 inline constexpr auto debug_compile{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
@@ -202,7 +204,7 @@ const_index_t Compiler::parseVariable(const std::string &var) {
 }
 
 const_index_t Compiler::identifierConstant(const std::string &name) {
-    return gen.makeConstant(OBJ_VAL(newString(name)));
+    return gen.makeConstant(value<Obj *>(newString(name)));
 }
 
 void Compiler::namedVariable(const std::string &name, bool canAssign) {
@@ -250,7 +252,7 @@ void Compiler::function(FunctDec *ast, FunctionType type) {
     block(ast->body);
 
     ObjFunction *function = endCompiler();
-    gen.emitByteConst(OpCode::CLOSURE, gen.makeConstant(OBJ_VAL(function)));
+    gen.emitByteConst(OpCode::CLOSURE, gen.makeConstant(value<Obj *>(function)));
 
     for (int i = 0; i < function->upvalueCount; i++) {
         gen.emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
@@ -278,9 +280,9 @@ void Compiler::method(FunctDec *ast) {
 
 void Compiler::super_(This *ast, bool /*canAssign*/) {
     if (currentClass == nullptr) {
-        error(ast->line, "Can't use 'super' outside of a class.");
+        error(ast->get_line(), "Can't use 'super' outside of a class.");
     } else if (!currentClass->hasSuperclass) {
-        error(ast->line, "Can't use 'super' in a class with no superclass.");
+        error(ast->get_line(), "Can't use 'super' in a class with no superclass.");
     }
 
     auto name = identifierConstant(ast->id);
@@ -303,7 +305,7 @@ void Compiler::this_(This *ast, bool canAssign) {
     }
 
     if (currentClass == nullptr) {
-        error(ast->line, "Can't use 'this' outside of a class.");
+        error(ast->get_line(), "Can't use 'this' outside of a class.");
         return;
     }
     namedVariable(sym_this, false); // variable(sym_this, false);
@@ -323,7 +325,7 @@ ObjFunction *Compiler::compile(Declaration *ast) {
 
 void Compiler::declaration(Declaration *ast) {
     debug("declaration");
-    gen.set_linenumber(ast->line);
+    gen.set_linenumber(ast->get_line());
 
     for (auto *d : ast->stats) {
         decs_statement(d);
@@ -331,19 +333,19 @@ void Compiler::declaration(Declaration *ast) {
 }
 
 void Compiler::decs_statement(Obj *s) {
-    if (IS_ClassDec(s)) {
-        classDeclaration(AS_ClassDec(s));
-    } else if (IS_FunctDec(s)) {
-        funDeclaration(AS_FunctDec(s));
-    } else if (IS_VarDec(s)) {
-        varDeclaration(AS_VarDec(s));
+    if (is<ClassDec>(s)) {
+        classDeclaration(as<ClassDec>(s));
+    } else if (is<FunctDec>(s)) {
+        funDeclaration(as<FunctDec>(s));
+    } else if (is<VarDec>(s)) {
+        varDeclaration(as<VarDec>(s));
     } else {
-        statement(AS_Statement(s));
+        statement(as<Statement>(s));
     }
 }
 
 void Compiler::varDeclaration(VarDec *ast) {
-    gen.set_linenumber(ast->line);
+    gen.set_linenumber(ast->get_line());
     const uint8_t global = parseVariable(ast->var->name);
     if (ast->expr) {
         expr(ast->expr);
@@ -354,7 +356,7 @@ void Compiler::varDeclaration(VarDec *ast) {
 }
 
 void Compiler::funDeclaration(FunctDec *ast) {
-    gen.set_linenumber(ast->line);
+    gen.set_linenumber(ast->get_line());
     const uint8_t global = parseVariable(ast->name->name);
     markInitialized();
     function(ast, TYPE_FUNCTION);
@@ -362,7 +364,7 @@ void Compiler::funDeclaration(FunctDec *ast) {
 }
 
 void Compiler::classDeclaration(ClassDec *ast) {
-    gen.set_linenumber(ast->line);
+    gen.set_linenumber(ast->get_line());
     auto nameConstant = identifierConstant(ast->name);
     declareVariable(ast->name); // replace
 
@@ -400,26 +402,26 @@ void Compiler::classDeclaration(ClassDec *ast) {
 }
 
 void Compiler::statement(Statement *ast) {
-    gen.set_linenumber(ast->line);
+    gen.set_linenumber(ast->get_line());
     debug("statement");
-    if (IS_Print(ast->stat)) {
-        printStatement(AS_Print(ast->stat));
-    } else if (IS_For(ast->stat)) {
-        forStatement(AS_For(ast->stat));
-    } else if (IS_If(ast->stat)) {
-        ifStatement(AS_If(ast->stat));
-    } else if (IS_Return(ast->stat)) {
-        returnStatement(AS_Return(ast->stat));
-    } else if (IS_While(ast->stat)) {
-        whileStatement(AS_While(ast->stat));
-    } else if (IS_Break(ast->stat)) {
-        breakStatement(AS_Break(ast->stat));
-    } else if (IS_Block(ast->stat)) {
+    if (is<Print>(ast->stat)) {
+        printStatement(as<Print>(ast->stat));
+    } else if (is<For>(ast->stat)) {
+        forStatement(as<For>(ast->stat));
+    } else if (is<If>(ast->stat)) {
+        ifStatement(as<If>(ast->stat));
+    } else if (is<Return>(ast->stat)) {
+        returnStatement(as<Return>(ast->stat));
+    } else if (is<While>(ast->stat)) {
+        whileStatement(as<While>(ast->stat));
+    } else if (is<Break>(ast->stat)) {
+        breakStatement(as<Break>(ast->stat));
+    } else if (is<Block>(ast->stat)) {
         beginScope();
-        block(AS_Block(ast->stat));
+        block(as<Block>(ast->stat));
         endScope();
     } else {
-        exprStatement(AS_Expr(ast->stat));
+        exprStatement(as<Expr>(ast->stat));
     }
 }
 
@@ -480,10 +482,10 @@ void Compiler::forStatement(For *ast) {
     auto context = current->save_break_context();
     if (ast->init) {
         // No initializer.
-        if (IS_VarDec(ast->init)) {
-            varDeclaration(AS_VarDec(ast->init));
+        if (is<VarDec>(ast->init)) {
+            varDeclaration(as<VarDec>(ast->init));
         } else {
-            expr(AS_Expr(ast->init));
+            expr(as<Expr>(ast->init));
         }
     }
 
@@ -534,13 +536,13 @@ void Compiler::forStatement(For *ast) {
 
 void Compiler::returnStatement(Return *ast) {
     if (current->type == TYPE_SCRIPT) {
-        error(ast->line, "Can't return from top-level code.");
+        error(ast->get_line(), "Can't return from top-level code.");
     }
     if (!ast->expr) {
         gen.emitReturn(current->type);
     } else {
         if (current->type == TYPE_INITIALIZER) {
-            error(ast->line, "Can't return a value from an initializer.");
+            error(ast->get_line(), "Can't return a value from an initializer.");
         }
         expr(ast->expr);
         gen.emitByte(OpCode::RETURN);
@@ -551,7 +553,7 @@ void Compiler::breakStatement(Break *ast) {
     debug("breakStatement");
     const auto *name = ast->tok == TokenType::BREAK ? "break" : "continue";
     if (current->enclosing_loop == 0) {
-        error(ast->line, fmt::format("{} must be used in a loop.", name));
+        error(ast->get_line(), fmt::format("{} must be used in a loop.", name));
     }
 
     // take off local variables
@@ -592,37 +594,37 @@ void Compiler::exprStatement(Expr *ast) {
 }
 
 void Compiler::expr(Expr *ast, bool canAssign) {
-    gen.set_linenumber(ast->line);
+    gen.set_linenumber(ast->get_line());
     debug("expr");
-    if (IS_Expr(ast->expr)) {
-        expr(AS_Expr(ast->expr), canAssign);
-    } else if (IS_Assign(ast->expr)) {
-        assign(AS_Assign(ast->expr));
-    } else if (IS_Unary(ast->expr)) {
-        unary(AS_Unary(ast->expr), canAssign);
-    } else if (IS_Binary(ast->expr)) {
-        binary(AS_Binary(ast->expr), canAssign);
-    } else if (IS_Call(ast->expr)) {
-        call(AS_Call(ast->expr));
-    } else if (IS_Dot(ast->expr)) {
-        dot(AS_Dot(ast->expr), canAssign);
-    } else if (IS_Number(ast->expr)) {
-        number(AS_Number(ast->expr));
-    } else if (IS_Identifier(ast->expr)) {
-        variable(AS_Identifier(ast->expr), canAssign);
-    } else if (IS_String(ast->expr)) {
-        string(AS_String(ast->expr));
-    } else if (IS_Boolean(ast->expr)) {
-        boolean(AS_Boolean(ast->expr));
-    } else if (IS_This(ast->expr)) {
-        this_(AS_This(ast->expr), canAssign);
-    } else if (IS_Nil(ast->expr)) {
+    if (is<Expr>(ast->expr)) {
+        expr(as<Expr>(ast->expr), canAssign);
+    } else if (is<Assign>(ast->expr)) {
+        assign(as<Assign>(ast->expr));
+    } else if (is<Unary>(ast->expr)) {
+        unary(as<Unary>(ast->expr), canAssign);
+    } else if (is<Binary>(ast->expr)) {
+        binary(as<Binary>(ast->expr), canAssign);
+    } else if (is<Call>(ast->expr)) {
+        call(as<Call>(ast->expr));
+    } else if (is<Dot>(ast->expr)) {
+        dot(as<Dot>(ast->expr), canAssign);
+    } else if (is<Number>(ast->expr)) {
+        number(as<Number>(ast->expr));
+    } else if (is<Identifier>(ast->expr)) {
+        variable(as<Identifier>(ast->expr), canAssign);
+    } else if (is<String>(ast->expr)) {
+        string(as<String>(ast->expr));
+    } else if (is<Boolean>(ast->expr)) {
+        boolean(as<Boolean>(ast->expr));
+    } else if (is<This>(ast->expr)) {
+        this_(as<This>(ast->expr), canAssign);
+    } else if (is<Nil>(ast->expr)) {
         gen.emitByte(OpCode::NIL);
     }
 }
 
 void Compiler::assign(Assign *ast) {
-    gen.set_linenumber(ast->line);
+    gen.set_linenumber(ast->get_line());
     expr(ast->right, false);
     expr(ast->left, true);
 }
@@ -748,11 +750,11 @@ void Compiler::number(Number *ast) {
         gen.emitByte(OpCode::ONE);
         return;
     }
-    gen.emitConstant(NUMBER_VAL(ast->value));
+    gen.emitConstant(value<double>(ast->value));
 }
 
 void Compiler::string(String *ast) {
-    gen.emitConstant(OBJ_VAL(newString(ast->value)));
+    gen.emitConstant(value<Obj *>(newString(ast->value)));
 }
 
 void Compiler::boolean(Boolean *ast) {
@@ -765,14 +767,8 @@ void Compiler::boolean(Boolean *ast) {
 
 /////////////////////////////////////////////////////////////////////////
 
-void Compiler::markCompilerRoots() {
-    Context *compiler = current;
-    while (compiler != nullptr) {
-        gc.markObject((Obj *)compiler->function);
-        compiler = compiler->enclosing;
-    }
-}
-
 void Compiler::error(size_t line, const std::string_view &message) {
     err.errorAt(line, message);
 }
+
+} // namespace alox

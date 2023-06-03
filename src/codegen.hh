@@ -9,6 +9,8 @@
 #include "error.hh"
 #include <cstddef>
 
+namespace alox {
+
 class CodeGen {
   public:
     CodeGen(ErrorManager &e) : err(e){};
@@ -42,3 +44,5 @@ class CodeGen {
     size_t        linenumber{0};
     ErrorManager &err;
 };
+
+} // namespace lox

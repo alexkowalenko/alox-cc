@@ -12,6 +12,8 @@
 #include <iostream>
 #include <string>
 
+namespace alox {
+
 inline constexpr auto debug_stdlib{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
@@ -23,33 +25,33 @@ static void debug(const S &format, const Args &...msg) {
 // Native functions must return a value or there will be a crash.
 
 [[noreturn]] Value lox_exit(int /*argCount*/, Value const *value) {
-    auto sig = AS_NUMBER(*value);
+    auto sig = as<double>(*value);
     exit(int(sig));
 }
 
 Value clockNative(int /*argCount*/, Value const * /*args*/) {
-    return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
+    return value<double>((double)clock() / CLOCKS_PER_SEC);
 }
 
 Value getc(int /*argCount*/, Value const * /*args*/) {
     auto ch = std::getc(stdin);
-    return NUMBER_VAL(ch);
+    return value<double>(ch);
 }
 
-Value chr(int /*argCount*/, Value const *value) {
-    auto ch = char(AS_NUMBER(*value));
+Value chr(int /*argCount*/, Value const *v) {
+    auto ch = char(as<double>(*v));
     // weird to get one char string (not 0 terminated)
     std::string s{1, ch};
     s.erase(1);
     s[0] = ch;
     debug("chr: {}", s.size());
-    return OBJ_VAL(newString(s));
+    return value<Obj *>(newString(s));
 }
 
-Value ord(int /*argCount*/, Value const *value) {
-    auto *s = AS_STRING(*value);
+Value ord(int /*argCount*/, Value const *v) {
+    auto *s = as<ObjString *>(*v);
     debug("ord: '{}'", s->str);
-    return NUMBER_VAL(s->str[0]);
+    return value<double>(s->str[0]);
 }
 
 Value print_error(int /*argCount*/, Value const *value) {
@@ -58,9 +60,9 @@ Value print_error(int /*argCount*/, Value const *value) {
 }
 
 void VM::defineNative(const std::string &name, NativeFn function) {
-    push(OBJ_VAL(newString(name)));
-    push(OBJ_VAL(newNative(function)));
-    globals.set(AS_STRING(stack[0]), stack[1]);
+    push(value<Obj *>(newString(name)));
+    push(value<Obj *>(newNative(function)));
+    globals.set(as<ObjString *>(stack[0]), stack[1]);
     pop();
     pop();
 }
@@ -75,5 +77,7 @@ void VM::def_stdlib() {
 
     // Define generic empty class Object
     auto *obj_class = newClass(newString("Object"));
-    globals.set(obj_class->name, OBJ_VAL(obj_class));
+    globals.set(obj_class->name, value<Obj *>(obj_class));
 }
+
+} // namespace alox

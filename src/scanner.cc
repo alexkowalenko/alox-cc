@@ -12,6 +12,8 @@
 #include "scanner.hh"
 #include "utf8/checked.h"
 
+namespace alox {
+
 inline constexpr auto debug_scan{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
@@ -197,3 +199,5 @@ Token Scanner::scanToken() {
 
     return error_token("Unexpected character.");
 }
+
+} // namespace lox

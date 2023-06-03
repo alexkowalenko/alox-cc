@@ -14,13 +14,14 @@
 
 #include <string_view>
 
+namespace alox {
+
 class Compiler {
   public:
     Compiler(const Options &opt, ErrorManager &err) : options(opt), err(err), gen(err){};
     ~Compiler() = default;
 
     ObjFunction *compile(Declaration *ast);
-    void         markCompilerRoots();
 
   private:
     // Compile the AST
@@ -86,3 +87,5 @@ class Compiler {
     ClassContext *currentClass{nullptr};
     CodeGen       gen;
 };
+
+} // namespace alox

@@ -11,6 +11,8 @@
 #include "table.hh"
 #include "value.hh"
 
+namespace alox {
+
 using ObjType = uint8_t;
 
 constexpr ObjType OBJ_BOUND_METHOD = 0;
@@ -22,131 +24,147 @@ constexpr ObjType OBJ_NATIVE = 5;
 constexpr ObjType OBJ_STRING = 6;
 constexpr ObjType OBJ_UPVALUE = 7;
 
-struct Obj {
-    ObjType     type;
-    bool        isMarked;
-    struct Obj *next;
+class Obj {
+  public:
+    explicit Obj(ObjType t) : type(t){};
+
+    [[nodiscard]] ObjType get_type() const { return type; }
+
+  private:
+    ObjType type;
 };
 
-struct ObjFunction {
+class ObjFunction : public Obj {
   public:
-    Obj        obj;
-    int        arity;
-    int        upvalueCount;
+    ObjFunction() : Obj(OBJ_FUNCTION){};
+
+    int        arity{};
+    int        upvalueCount{};
     Chunk      chunk;
-    ObjString *name;
+    ObjString *name{};
 };
 
 using NativeFn = Value (*)(int, Value const *);
 
-struct ObjNative {
-    Obj      obj;
-    NativeFn function;
+class ObjNative : public Obj {
+  public:
+    ObjNative() : Obj(OBJ_NATIVE){};
+
+    NativeFn function{};
 };
 
-struct ObjString {
-    Obj         obj;
+class ObjString : public Obj {
+  public:
+    ObjString() : Obj(OBJ_STRING){};
+
     std::string str;
-    uint32_t    hash;
+    uint32_t    hash{};
 };
 
-struct ObjUpvalue {
-    Obj                obj;
-    Value             *location;
-    Value              closed;
-    struct ObjUpvalue *next;
+class ObjUpvalue : public Obj {
+  public:
+    ObjUpvalue() : Obj(OBJ_UPVALUE){};
+
+    Value      *location{};
+    Value       closed{};
+    ObjUpvalue *next{};
 };
 
-struct ObjClosure {
-    Obj          obj;
-    ObjFunction *function;
-    ObjUpvalue **upvalues;
-    int          upvalueCount;
+class ObjClosure : public Obj {
+  public:
+    ObjClosure() : Obj(OBJ_CLOSURE){};
+
+    ObjFunction *function{};
+    ObjUpvalue **upvalues{};
+    int          upvalueCount{};
 };
 
-struct ObjClass {
-    Obj        obj;
-    ObjString *name;
+class ObjClass : public Obj {
+  public:
+    ObjClass() : Obj(OBJ_CLASS){};
+
+    ObjString *name{};
     Table      methods;
 };
-struct ObjInstance {
-    Obj       obj;
-    ObjClass *klass;
+
+class ObjInstance : public Obj {
+  public:
+    ObjInstance() : Obj(OBJ_INSTANCE){};
+
+    ObjClass *klass{};
     Table     fields; // [fields]
 };
 
-struct ObjBoundMethod {
-    Obj         obj;
-    Value       receiver;
-    ObjClosure *method;
+class ObjBoundMethod : public Obj {
+  public:
+    ObjBoundMethod() : Obj(OBJ_BOUND_METHOD){};
+
+    Value       receiver{};
+    ObjClosure *method{};
 };
 
-constexpr ObjType OBJ_TYPE(Value value) {
-    return (AS_OBJ(value)->type);
+constexpr ObjType obj_type(Value value) {
+    return (as<Obj *>(value)->get_type());
 }
 
 constexpr bool isObjType(Value value, ObjType type) {
-    return IS_OBJ(value) && AS_OBJ(value)->type == type;
+    return is<Obj>(value) && as<Obj *>(value)->get_type() == type;
 }
 
-constexpr bool IS_BOUND_METHOD(Value value) {
+template <> constexpr bool is<ObjBoundMethod>(Value value) {
     return isObjType(value, OBJ_BOUND_METHOD);
 }
 
-constexpr bool IS_CLASS(Value value) {
+template <> constexpr bool is<ObjClass>(Value value) {
     return isObjType(value, OBJ_CLASS);
 }
 
-constexpr bool IS_CLOSURE(Value value) {
+template <> constexpr bool is<ObjClosure>(Value value) {
     return isObjType(value, OBJ_CLOSURE);
 }
 
-constexpr bool IS_FUNCTION(Value value) {
+template <> constexpr bool is<ObjFunction>(Value value) {
     return isObjType(value, OBJ_FUNCTION);
 }
 
-constexpr bool IS_INSTANCE(Value value) {
+template <> constexpr bool is<ObjInstance>(Value value) {
     return isObjType(value, OBJ_INSTANCE);
 }
 
-constexpr bool IS_NATIVE(Value value) {
+template <> constexpr bool is<ObjNative>(Value value) {
     return isObjType(value, OBJ_NATIVE);
 }
 
-constexpr bool IS_STRING(Value value) {
+template <> constexpr bool is<ObjString>(Value value) {
     return isObjType(value, OBJ_STRING);
 }
 
-inline ObjBoundMethod *AS_BOUND_METHOD(Value value) {
-    return reinterpret_cast<ObjBoundMethod *>(AS_OBJ(value));
+template <> inline ObjBoundMethod *as<ObjBoundMethod *>(Value value) {
+    return reinterpret_cast<ObjBoundMethod *>(as<Obj *>(value));
 }
 
-inline ObjClass *AS_CLASS(Value value) {
-    return reinterpret_cast<ObjClass *>(AS_OBJ(value));
+template <> inline ObjClass *as<ObjClass *>(Value value) {
+    return reinterpret_cast<ObjClass *>(as<Obj *>(value));
 }
 
-inline ObjClosure *AS_CLOSURE(Value value) {
-    return reinterpret_cast<ObjClosure *>(AS_OBJ(value));
+template <> inline ObjClosure *as<ObjClosure *>(Value value) {
+    return reinterpret_cast<ObjClosure *>(as<Obj *>(value));
 }
 
-inline ObjFunction *AS_FUNCTION(Value value) {
-    return reinterpret_cast<ObjFunction *>(AS_OBJ(value));
+template <> inline ObjFunction *as<ObjFunction *>(Value value) {
+    return reinterpret_cast<ObjFunction *>(as<Obj *>(value));
 }
 
-inline ObjInstance *AS_INSTANCE(Value value) {
-    return reinterpret_cast<ObjInstance *>(AS_OBJ(value));
+template <> inline ObjInstance *as<ObjInstance *>(Value value) {
+    return reinterpret_cast<ObjInstance *>(as<Obj *>(value));
 }
 
-inline NativeFn AS_NATIVE(Value value) {
-    return reinterpret_cast<ObjNative *>(AS_OBJ(value))->function;
+template <> inline NativeFn as<NativeFn>(Value value) {
+    return reinterpret_cast<ObjNative *>(as<Obj *>(value))->function;
 }
 
-inline ObjString *AS_STRING(Value value) {
-    return reinterpret_cast<ObjString *>(AS_OBJ(value));
-}
-
-inline const std::string &AS_CSTRING(Value value) {
-    return reinterpret_cast<ObjString *>(AS_OBJ(value))->str;
+template <> inline ObjString *as<ObjString *>(Value value) {
+    return reinterpret_cast<ObjString *>(as<Obj *>(value));
 }
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
@@ -158,3 +176,5 @@ ObjNative      *newNative(NativeFn function);
 ObjString      *newString(std::string const &s);
 ObjUpvalue     *newUpvalue(Value *slot);
 void            printObject(std::ostream &os, Value value);
+
+} // namespace alox

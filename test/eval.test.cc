@@ -15,6 +15,8 @@
 #include "parser.hh"
 #include "printer.hh"
 
+using namespace alox;
+
 struct ParseTests {
     std::string input;
     std::string output;
@@ -163,7 +165,6 @@ void do_eval_tests(std::vector<ParseTests> &tests) {
     Options            options(out, std::cin, err);
     options.silent = true;
     VM vm(options);
-    gc.init(&vm);
     vm.init();
     ErrorManager errors(options.err);
     vm.set_error_manager(&errors);
@@ -183,8 +184,7 @@ void do_eval_tests(std::vector<ParseTests> &tests) {
                 continue;
             }
 
-            Compiler compiler(options, errors);
-            gc.set_compiler(&compiler);
+            Compiler     compiler(options, errors);
             ObjFunction *function = compiler.compile(ast);
             if (errors.hadError) {
                 EXPECT_EQ(rtrim(err.str()), t.error);

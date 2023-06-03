@@ -8,6 +8,8 @@
 #include "val_array.hh"
 #include "value.hh"
 
+namespace alox {
+
 enum class OpCode {
     CONSTANT,
     NIL,
@@ -88,3 +90,5 @@ class Chunk {
     std::vector<size_t> lines;
     ValueArray          constants;
 };
+
+} // namespace lox

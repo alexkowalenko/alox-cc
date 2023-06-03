@@ -17,6 +17,8 @@
 #include <cstddef>
 #include <ostream>
 
+namespace alox {
+
 class AST_Printer {
   public:
     explicit AST_Printer(std::ostream &os, char nl = '\n', size_t indent = 4)
@@ -51,9 +53,11 @@ class AST_Printer {
     void string(String *num);
     void this_(This *num);
 
-     void args(const std::vector<Expr *> &args);
+    void args(const std::vector<Expr *> &args);
 
     std::ostream &os;
     const char    NL{};
     size_t        indent{4};
 };
+
+} // namespace lox

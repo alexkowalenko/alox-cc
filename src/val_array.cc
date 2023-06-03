@@ -8,6 +8,8 @@
 #include <memory>
 #include <vector>
 
+namespace alox {
+
 size_t ValueArray::write(const Value &value) {
     auto result = std::find_if(values.begin(), values.end(),
                                [&value](auto &x) { return valuesEqual(x, value); });
@@ -18,8 +20,4 @@ size_t ValueArray::write(const Value &value) {
     return values.size() - 1;
 }
 
-void ValueArray::mark() {
-    for (auto &v : values) {
-        gc.markValue(v);
-    }
-}
+} // namespace alox

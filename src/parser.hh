@@ -14,6 +14,8 @@
 #include "error.hh"
 #include "scanner.hh"
 
+namespace alox {
+
 enum class Precedence {
     NONE,
     ASSIGNMENT, // =
@@ -103,3 +105,5 @@ class Parser {
     Scanner      &scanner;
     ErrorManager &err;
 };
+
+} // namespace lox

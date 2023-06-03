@@ -10,28 +10,26 @@
 #include "object.hh"
 #include "scanner.hh"
 
+namespace alox {
+
 constexpr ObjType AST_{{name}} = {{index}};
 
-class {{name}} {
+class {{name}} : public AST_Base {
   public:
-    Obj obj;
-    int line{0};
+  
+    {{name}}(int l) : AST_Base(AST_{{name}}, l) {};
 
     {{#instances}}
     {{{type}}}     {{name}};
     {{/instances}}
 };
 
-inline  {{name}} *new{{name}}(int l) {
-    auto *ast = gc.allocateObject< {{name}}>(AST_{{name}});
-    ast->line = l;
-    return ast;
+template <> constexpr bool is<{{name}}>(Obj *obj) {
+    return obj->get_type() == AST_{{name}};
 }
 
-constexpr bool IS_{{name}}(Obj *obj) {
-    return obj->type == AST_{{name}};
-}
-
-inline {{name}} *AS_{{name}}(Obj *obj) {
+template <> inline {{name}}* as<{{name}}>(Obj *obj) {
     return reinterpret_cast<{{name}} *>(obj);
+}
+
 }

@@ -9,6 +9,8 @@
 #include "object.hh"
 #include "scanner.hh"
 
+namespace alox {
+
 struct Local {
     std::string name;
     int         depth{};
@@ -54,3 +56,5 @@ struct ClassContext {
     struct ClassContext *enclosing;
     bool                 hasSuperclass;
 };
+
+} // namespace lox

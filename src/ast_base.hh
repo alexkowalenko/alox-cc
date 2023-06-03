@@ -9,6 +9,8 @@
 #include "memory.hh"
 #include "object.hh"
 
+namespace alox {
+
 class Declaration;
 class Statement;
 class Expr;
@@ -22,8 +24,17 @@ template <typename T> Obj *OBJ_AST(T *obj) {
 
 constexpr auto START_AST = 100;
 
-// GC Functions for AST
+class AST_Base : public Obj {
+  public:
+    AST_Base(ObjType type, int l) : Obj(type), line(l) {}
 
-void blackenASTObject(Obj *object);
-void freeASTObject(Obj *object);
-void markASTRoots(Declaration *ast);
+    int get_line() const { return line; }
+
+  private:
+    int line;
+};
+
+template <typename T> bool is(Obj *obj);
+template <typename T> T   *as(Obj *obj);
+
+} // namespace alox

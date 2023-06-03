@@ -11,6 +11,8 @@
 #include "options.hh"
 #include "vm.hh"
 
+namespace alox {
+
 class Alox {
   public:
     Alox(const Options &opt);
@@ -27,3 +29,5 @@ class Alox {
     const Options &options;
     VM             vm;
 };
+
+} // namespace alox

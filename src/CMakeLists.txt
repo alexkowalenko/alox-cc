@@ -8,7 +8,6 @@ add_library(lox STATIC
    compiler.cc
    context.cc
    debug.cc
-   memory.cc
    object.cc
    parser.cc
    scanner.cc
@@ -28,3 +27,4 @@ target_link_libraries(lox fmt replxx)
 target_include_directories(lox PUBLIC "${CLI11_SOURCE_DIR}/include")
 target_include_directories(lox PUBLIC "${utfcpp_SOURCE_DIR}/source")
 target_include_directories(lox PUBLIC "${ICU_INCLUDE_DIRS}")
+target_include_directories(lox PUBLIC "${bdwgc_SOURCE_DIR}/include")

@@ -10,6 +10,8 @@
 #include "object.hh"
 #include "value.hh"
 
+namespace alox {
+
 void disassembleChunk(Chunk *chunk, const std::string_view &name) {
     fmt::print("== {} ==\n", name);
 
@@ -145,7 +147,7 @@ int disassembleInstruction(Chunk *chunk, int offset) {
         printValue(std::cout, chunk->get_value(constant));
         fmt::print("\n");
 
-        ObjFunction *function = AS_FUNCTION(chunk->get_value(constant));
+        ObjFunction *function = as<ObjFunction *>(chunk->get_value(constant));
         for (int j = 0; j < function->upvalueCount; j++) {
             const int isLocal = chunk->get_code(offset++);
             int       index = chunk->get_code(offset++);
@@ -170,3 +172,5 @@ int disassembleInstruction(Chunk *chunk, int offset) {
         return offset + 1;
     }
 }
+
+} // namespace alox

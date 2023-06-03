@@ -7,6 +7,8 @@
 #include "common.hh"
 #include "value.hh"
 
+namespace alox {
+
 struct Entry {
     ObjString *key;
     Value      value;
@@ -25,9 +27,6 @@ class Table {
     bool        del(ObjString *key);
     static void addAll(const Table &from, Table &to);
 
-    void removeWhite();
-    void mark();
-
   private:
     void adjustCapacity(size_t capacity);
 
@@ -35,3 +34,5 @@ class Table {
     size_t capacity{0};
     Entry *entries{nullptr};
 };
+
+} // namespace alox

@@ -7,10 +7,12 @@
 #include "object.hh"
 #include "value.hh"
 
+namespace alox {
+
 inline constexpr auto TABLE_MAX_LOAD = 0.75;
 
 void Table::free() {
-    gc.delete_array<Entry>(this->entries, this->capacity);
+    delete[] this->entries;
     this->entries = nullptr;
     this->capacity = 0;
 }
@@ -24,7 +26,7 @@ Entry *findEntry(Entry *entries, size_t capacity, ObjString *key) {
     for (;;) {
         Entry *entry = &entries[index];
         if (entry->key == nullptr) {
-            if (IS_NIL(entry->value)) {
+            if (is<nullptr_t>(entry->value)) {
                 // Empty entry.
                 return tombstone != nullptr ? tombstone : entry;
             }
@@ -57,7 +59,7 @@ bool Table::get(ObjString *key, Value *value) {
 }
 
 void Table::adjustCapacity(size_t capacity) {
-    auto *entries = gc.allocate_array<Entry>(capacity);
+    auto *entries = new Entry[capacity];
     for (int i = 0; i < capacity; i++) {
         entries[i].key = nullptr;
         entries[i].value = NIL_VAL;
@@ -76,7 +78,7 @@ void Table::adjustCapacity(size_t capacity) {
         this->count++;
     }
 
-    gc.delete_array<Entry>(this->entries, this->capacity);
+    delete[] this->entries;
     this->entries = entries;
     this->capacity = capacity;
 }
@@ -89,7 +91,7 @@ bool Table::set(ObjString *key, Value value) {
 
     Entry     *entry = findEntry(this->entries, this->capacity, key);
     const bool isNewKey = entry->key == nullptr;
-    if (isNewKey && IS_NIL(entry->value)) {
+    if (isNewKey && is<nullptr_t>(entry->value)) {
         this->count++;
     }
 
@@ -111,7 +113,7 @@ bool Table::del(ObjString *key) {
 
     // Place a tombstone in the entry.
     entry->key = nullptr;
-    entry->value = BOOL_VAL(true);
+    entry->value = value<bool>(true);
     return true;
 }
 
@@ -124,19 +126,4 @@ void Table::addAll(const Table &from, Table &to) {
     }
 }
 
-void Table::removeWhite() {
-    for (int i = 0; i < this->capacity; i++) {
-        Entry *entry = &this->entries[i];
-        if (entry->key != nullptr && !entry->key->obj.isMarked) {
-            del(entry->key);
-        }
-    }
-}
-
-void Table::mark() {
-    for (int i = 0; i < this->capacity; i++) {
-        Entry *entry = &this->entries[i];
-        gc.markObject((Obj *)entry->key);
-        gc.markValue(entry->value);
-    }
-}
+} // namespace alox
