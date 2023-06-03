@@ -19,14 +19,14 @@
 namespace alox {
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method) {
-    auto *bound = allocateObject<ObjBoundMethod>(OBJ_BOUND_METHOD);
+    auto *bound = new ObjBoundMethod();
     bound->receiver = receiver;
     bound->method = method;
     return bound;
 }
 
 ObjClass *newClass(ObjString *name) {
-    auto *klass = allocateObject<ObjClass>(OBJ_CLASS);
+    auto *klass = new ObjClass();
     klass->name = name; // [klass]
     return klass;
 }
@@ -37,7 +37,7 @@ ObjClosure *newClosure(ObjFunction *function) {
         upvalues[i] = nullptr;
     }
 
-    auto *closure = allocateObject<ObjClosure>(OBJ_CLOSURE);
+    auto *closure = new ObjClosure();
     closure->function = function;
     closure->upvalues = upvalues;
     closure->upvalueCount = function->upvalueCount;
@@ -45,7 +45,7 @@ ObjClosure *newClosure(ObjFunction *function) {
 }
 
 ObjFunction *newFunction() {
-    auto *function = allocateObject<ObjFunction>(OBJ_FUNCTION);
+    auto *function = new ObjFunction();
     function->arity = 0;
     function->upvalueCount = 0;
     function->name = nullptr;
@@ -53,13 +53,13 @@ ObjFunction *newFunction() {
 }
 
 ObjInstance *newInstance(ObjClass *klass) {
-    auto *instance = allocateObject<ObjInstance>(OBJ_INSTANCE);
+    auto *instance = new ObjInstance();
     instance->klass = klass;
     return instance;
 }
 
 ObjNative *newNative(NativeFn function) {
-    auto *native = allocateObject<ObjNative>(OBJ_NATIVE);
+    auto *native = new ObjNative();
     native->function = function;
     return native;
 }
@@ -81,7 +81,7 @@ ObjString *newString(std::string const &s) {
 }
 
 ObjUpvalue *newUpvalue(Value *slot) {
-    auto *upvalue = allocateObject<ObjUpvalue>(OBJ_UPVALUE);
+    auto *upvalue = new ObjUpvalue();
     upvalue->closed = NIL_VAL;
     upvalue->location = slot;
     upvalue->next = nullptr;

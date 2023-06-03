@@ -73,7 +73,7 @@ class VM {
     void        defineMethod(ObjString *name);
 
     static constexpr bool isFalsey(const Value value) noexcept {
-        return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
+        return is<nullptr_t>(value) || (is<bool>(value) && !as<bool>(value));
     };
     void            concatenate();
     InterpretResult run();

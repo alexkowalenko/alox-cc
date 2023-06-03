@@ -99,7 +99,7 @@ bool VM::call(ObjClosure *closure, int argCount) {
 }
 
 bool VM::callValue(Value callee, int argCount) {
-    if (IS_OBJ(callee)) {
+    if (is<Obj>(callee)) {
         switch (OBJ_TYPE(callee)) {
         case OBJ_BOUND_METHOD: {
             ObjBoundMethod *bound = AS_BOUND_METHOD(callee);
@@ -108,7 +108,7 @@ bool VM::callValue(Value callee, int argCount) {
         }
         case OBJ_CLASS: {
             ObjClass *klass = AS_CLASS(callee);
-            stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
+            stackTop[-argCount - 1] = value<Obj *>(newInstance(klass));
             Value initializer;
             if (klass->methods.get(initString, &initializer)) {
                 return call(AS_CLOSURE(initializer), argCount);
@@ -173,7 +173,7 @@ bool VM::bindMethod(ObjClass *klass, ObjString *name) {
 
     ObjBoundMethod *bound = newBoundMethod(peek(0), AS_CLOSURE(method));
     pop();
-    push(OBJ_VAL(bound));
+    push(value<Obj *>(bound));
     return true;
 }
 
@@ -223,11 +223,11 @@ void VM::concatenate() {
     ObjString *result = newString(a->str + b->str);
     pop();
     pop();
-    push(OBJ_VAL(result));
+    push(value<Obj *>(result));
 }
 
-const inline auto number_zero = NUMBER_VAL(0);
-const inline auto number_one = NUMBER_VAL(1);
+const inline auto number_zero = value<double>(0);
+const inline auto number_one = value<double>(1);
 
 InterpretResult VM::run() {
     CallFrame *frame = &frames[frameCount - 1];
@@ -242,13 +242,13 @@ InterpretResult VM::run() {
 #define READ_STRING() AS_STRING(READ_CONSTANT())
 #define BINARY_OP(valueType, op)                                                         \
     do {                                                                                 \
-        if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) {                                \
+        if (!is<double>(peek(0)) || !is<double>(peek(1))) {                              \
             frame->ip = ip;                                                              \
             runtimeError("Operands must be numbers.");                                   \
             return INTERPRET_RUNTIME_ERROR;                                              \
         }                                                                                \
-        const double b = AS_NUMBER(pop());                                               \
-        const double a = AS_NUMBER(pop());                                               \
+        const double b = as<double>(pop());                                              \
+        const double a = as<double>(pop());                                              \
         push(valueType(a op b));                                                         \
     } while (false)
 
@@ -279,10 +279,10 @@ InterpretResult VM::run() {
             push(NIL_VAL);
             break;
         case OpCode::TRUE:
-            push(BOOL_VAL(true));
+            push(value<bool>(true));
             break;
         case OpCode::FALSE:
-            push(BOOL_VAL(false));
+            push(value<bool>(false));
             break;
         case OpCode::ZERO:
             push(number_zero);
@@ -390,34 +390,34 @@ InterpretResult VM::run() {
         case OpCode::EQUAL: {
             const Value b = pop();
             const Value a = pop();
-            push(BOOL_VAL(valuesEqual(a, b)));
+            push(value<bool>(valuesEqual(a, b)));
             break;
         }
         case OpCode::NOT_EQUAL: {
             const Value b = pop();
             const Value a = pop();
-            push(BOOL_VAL(!valuesEqual(a, b)));
+            push(value<bool>(!valuesEqual(a, b)));
             break;
         }
         case OpCode::GREATER:
-            BINARY_OP(BOOL_VAL, >);
+            BINARY_OP(value<bool>, >);
             break;
         case OpCode::NOT_GREATER:
-            BINARY_OP(BOOL_VAL, <=);
+            BINARY_OP(value<bool>, <=);
             break;
         case OpCode::LESS:
-            BINARY_OP(BOOL_VAL, <);
+            BINARY_OP(value<bool>, <);
             break;
         case OpCode::NOT_LESS:
-            BINARY_OP(BOOL_VAL, >=);
+            BINARY_OP(value<bool>, >=);
             break;
         case OpCode::ADD: {
             if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
                 concatenate();
-            } else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
-                double b = AS_NUMBER(pop());
-                double a = AS_NUMBER(pop());
-                push(NUMBER_VAL(a + b));
+            } else if (is<double>(peek(0)) && is<double>(peek(1))) {
+                double b = as<double>(pop());
+                double a = as<double>(pop());
+                push(value<double>(a + b));
             } else {
                 frame->ip = ip;
                 runtimeError("Operands must be two numbers or two strings.");
@@ -426,24 +426,24 @@ InterpretResult VM::run() {
             break;
         }
         case OpCode::SUBTRACT:
-            BINARY_OP(NUMBER_VAL, -);
+            BINARY_OP(value<double>, -);
             break;
         case OpCode::MULTIPLY:
-            BINARY_OP(NUMBER_VAL, *);
+            BINARY_OP(value<double>, *);
             break;
         case OpCode::DIVIDE:
-            BINARY_OP(NUMBER_VAL, /);
+            BINARY_OP(value<double>, /);
             break;
         case OpCode::NOT:
-            push(BOOL_VAL(isFalsey(pop())));
+            push(value<bool>(isFalsey(pop())));
             break;
         case OpCode::NEGATE:
-            if (!IS_NUMBER(peek(0))) {
+            if (!is<double>(peek(0))) {
                 frame->ip = ip;
                 runtimeError("Operand must be a number.");
                 return INTERPRET_RUNTIME_ERROR;
             }
-            push(NUMBER_VAL(-AS_NUMBER(pop())));
+            push(value<double>(-as<double>(pop())));
             break;
         case OpCode::PRINT: {
             printValue(options.out, pop());
@@ -505,7 +505,7 @@ InterpretResult VM::run() {
         case OpCode::CLOSURE: {
             ObjFunction *function = AS_FUNCTION(READ_CONSTANT());
             ObjClosure  *closure = newClosure(function);
-            push(OBJ_VAL(closure));
+            push(value<Obj *>(closure));
             for (int i = 0; i < closure->upvalueCount; i++) {
                 const uint8_t isLocal = READ_BYTE();
                 const uint8_t index = READ_BYTE();
@@ -538,7 +538,7 @@ InterpretResult VM::run() {
             break;
         }
         case OpCode::CLASS:
-            push(OBJ_VAL(newClass(READ_STRING())));
+            push(value<Obj *>(newClass(READ_STRING())));
             break;
         case OpCode::INHERIT: {
             const Value superclass = peek(1);
@@ -568,10 +568,10 @@ InterpretResult VM::run() {
 
 InterpretResult VM::run(ObjFunction *function) {
 
-    push(OBJ_VAL(function));
+    push(value<Obj *>(function));
     ObjClosure *closure = newClosure(function);
     pop();
-    push(OBJ_VAL(closure));
+    push(value<Obj *>(closure));
     call(closure, 0);
 
     if (options.debug_code && !options.trace) {

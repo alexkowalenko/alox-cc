@@ -27,7 +27,7 @@ class {{name}} : public Obj {
 };
 
 inline  {{name}} *new{{name}}(int l) {
-    auto *ast = allocateObject< {{name}}>(AST_{{name}});
+    auto *ast = new  {{name}}();
     ast->line = l;
     return ast;
 }

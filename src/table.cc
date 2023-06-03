@@ -26,7 +26,7 @@ Entry *findEntry(Entry *entries, size_t capacity, ObjString *key) {
     for (;;) {
         Entry *entry = &entries[index];
         if (entry->key == nullptr) {
-            if (IS_NIL(entry->value)) {
+            if (is<nullptr_t>(entry->value)) {
                 // Empty entry.
                 return tombstone != nullptr ? tombstone : entry;
             }
@@ -91,7 +91,7 @@ bool Table::set(ObjString *key, Value value) {
 
     Entry     *entry = findEntry(this->entries, this->capacity, key);
     const bool isNewKey = entry->key == nullptr;
-    if (isNewKey && IS_NIL(entry->value)) {
+    if (isNewKey && is<nullptr_t>(entry->value)) {
         this->count++;
     }
 
@@ -113,7 +113,7 @@ bool Table::del(ObjString *key) {
 
     // Place a tombstone in the entry.
     entry->key = nullptr;
-    entry->value = BOOL_VAL(true);
+    entry->value = value<bool>(true);
     return true;
 }
 

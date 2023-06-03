@@ -99,16 +99,16 @@ class ObjBoundMethod : public Obj {
   public:
     ObjBoundMethod() : Obj(OBJ_BOUND_METHOD){};
 
-    Value       receiver;
-    ObjClosure *method;
+    Value       receiver{};
+    ObjClosure *method{};
 };
 
 constexpr ObjType OBJ_TYPE(Value value) {
-    return (AS_OBJ(value)->get_type());
+    return (as<Obj *>(value)->get_type());
 }
 
 constexpr bool isObjType(Value value, ObjType type) {
-    return IS_OBJ(value) && AS_OBJ(value)->get_type() == type;
+    return is<Obj>(value) && as<Obj *>(value)->get_type() == type;
 }
 
 constexpr bool IS_BOUND_METHOD(Value value) {
@@ -140,35 +140,35 @@ constexpr bool IS_STRING(Value value) {
 }
 
 inline ObjBoundMethod *AS_BOUND_METHOD(Value value) {
-    return reinterpret_cast<ObjBoundMethod *>(AS_OBJ(value));
+    return reinterpret_cast<ObjBoundMethod *>(as<Obj *>(value));
 }
 
 inline ObjClass *AS_CLASS(Value value) {
-    return reinterpret_cast<ObjClass *>(AS_OBJ(value));
+    return reinterpret_cast<ObjClass *>(as<Obj *>(value));
 }
 
 inline ObjClosure *AS_CLOSURE(Value value) {
-    return reinterpret_cast<ObjClosure *>(AS_OBJ(value));
+    return reinterpret_cast<ObjClosure *>(as<Obj *>(value));
 }
 
 inline ObjFunction *AS_FUNCTION(Value value) {
-    return reinterpret_cast<ObjFunction *>(AS_OBJ(value));
+    return reinterpret_cast<ObjFunction *>(as<Obj *>(value));
 }
 
 inline ObjInstance *AS_INSTANCE(Value value) {
-    return reinterpret_cast<ObjInstance *>(AS_OBJ(value));
+    return reinterpret_cast<ObjInstance *>(as<Obj *>(value));
 }
 
 inline NativeFn AS_NATIVE(Value value) {
-    return reinterpret_cast<ObjNative *>(AS_OBJ(value))->function;
+    return reinterpret_cast<ObjNative *>(as<Obj *>(value))->function;
 }
 
 inline ObjString *AS_STRING(Value value) {
-    return reinterpret_cast<ObjString *>(AS_OBJ(value));
+    return reinterpret_cast<ObjString *>(as<Obj *>(value));
 }
 
 inline const std::string &AS_CSTRING(Value value) {
-    return reinterpret_cast<ObjString *>(AS_OBJ(value))->str;
+    return reinterpret_cast<ObjString *>(as<Obj *>(value))->str;
 }
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);

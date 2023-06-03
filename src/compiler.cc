@@ -204,7 +204,7 @@ const_index_t Compiler::parseVariable(const std::string &var) {
 }
 
 const_index_t Compiler::identifierConstant(const std::string &name) {
-    return gen.makeConstant(OBJ_VAL(newString(name)));
+    return gen.makeConstant(value<Obj *>(newString(name)));
 }
 
 void Compiler::namedVariable(const std::string &name, bool canAssign) {
@@ -252,7 +252,7 @@ void Compiler::function(FunctDec *ast, FunctionType type) {
     block(ast->body);
 
     ObjFunction *function = endCompiler();
-    gen.emitByteConst(OpCode::CLOSURE, gen.makeConstant(OBJ_VAL(function)));
+    gen.emitByteConst(OpCode::CLOSURE, gen.makeConstant(value<Obj *>(function)));
 
     for (int i = 0; i < function->upvalueCount; i++) {
         gen.emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
@@ -750,11 +750,11 @@ void Compiler::number(Number *ast) {
         gen.emitByte(OpCode::ONE);
         return;
     }
-    gen.emitConstant(NUMBER_VAL(ast->value));
+    gen.emitConstant(value<double>(ast->value));
 }
 
 void Compiler::string(String *ast) {
-    gen.emitConstant(OBJ_VAL(newString(ast->value)));
+    gen.emitConstant(value<Obj *>(newString(ast->value)));
 }
 
 void Compiler::boolean(Boolean *ast) {

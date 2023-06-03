@@ -30,55 +30,53 @@ constexpr Value FALSE_VAL = ((Value)(uint64_t)(QNAN | TAG_FALSE));
 constexpr Value TRUE_VAL = ((Value)(uint64_t)(QNAN | TAG_TRUE));
 constexpr Value NIL_VAL = ((Value)(uint64_t)(QNAN | TAG_NIL));
 
-constexpr bool IS_BOOL(Value value) {
+template <typename T> bool is(Value value);
+
+template <> constexpr bool is<bool>(Value value) {
     return (((value) | 1) == TRUE_VAL);
 }
 
-constexpr bool IS_NIL(Value value) {
+template <> constexpr bool is<nullptr_t>(Value value) {
     return ((value) == NIL_VAL);
 }
 
-constexpr bool IS_NUMBER(Value value) {
+template <> constexpr bool is<double>(Value value) {
     return (((value)&QNAN) != QNAN);
 }
 
-constexpr bool IS_OBJ(Value value) {
+template <> constexpr bool is<Obj>(Value value) {
     return (((value) & (QNAN | SIGN_BIT)) == (QNAN | SIGN_BIT));
 }
 
-constexpr bool AS_BOOL(Value value) {
+template <typename T> T as(Value value);
+
+template <> constexpr bool as<bool>(Value value) {
     return ((value) == TRUE_VAL);
 }
 
-static inline double valueToNum(Value value) {
+template <> inline double as<double>(Value value) {
     double num;
     memcpy(&num, &value, sizeof(Value));
     return num;
 }
 
-static inline Value numToValue(double num) {
+template <typename T> Value value(T v);
+
+template <> inline Value value<double>(double v) {
     Value value;
-    memcpy(&value, &num, sizeof(double));
+    memcpy(&value, &v, sizeof(double));
     return value;
 }
 
-constexpr double AS_NUMBER(Value value) {
-    return valueToNum(value);
+template <> constexpr Value value<bool>(bool v) {
+    return ((v) ? TRUE_VAL : FALSE_VAL);
 }
 
-constexpr Value NUMBER_VAL(double num) {
-    return numToValue(num);
-}
-
-constexpr Value BOOL_VAL(bool b) {
-    return ((b) ? TRUE_VAL : FALSE_VAL);
-}
-
-inline Obj *AS_OBJ(Value value) {
+template <> inline Obj *as<Obj *>(Value value) {
     return (Obj *)(uintptr_t)((value) & ~(SIGN_BIT | QNAN));
 }
 
-template <typename T> Value OBJ_VAL(T *obj) {
+template <> inline Value value<Obj *>(Obj *obj) {
     return static_cast<Value>(SIGN_BIT | QNAN |
                               static_cast<uint64_t>(reinterpret_cast<uintptr_t>(obj)));
 }
