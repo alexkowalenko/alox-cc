@@ -14,29 +14,21 @@ namespace alox {
 
 constexpr ObjType AST_{{name}} = {{index}};
 
-class {{name}} : public Obj {
+class {{name}} : public AST_Base {
   public:
   
-    {{name}}() : Obj(AST_{{name}}) {};
-
-    int line{0};
+    {{name}}(int l) : AST_Base(AST_{{name}}, l) {};
 
     {{#instances}}
     {{{type}}}     {{name}};
     {{/instances}}
 };
 
-inline  {{name}} *new{{name}}(int l) {
-    auto *ast = new  {{name}}();
-    ast->line = l;
-    return ast;
-}
-
-constexpr bool IS_{{name}}(Obj *obj) {
+template <> constexpr bool is<{{name}}>(Obj *obj) {
     return obj->get_type() == AST_{{name}};
 }
 
-inline {{name}} *AS_{{name}}(Obj *obj) {
+template <> inline {{name}}* as<{{name}}>(Obj *obj) {
     return reinterpret_cast<{{name}} *>(obj);
 }
 

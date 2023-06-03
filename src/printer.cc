@@ -32,15 +32,15 @@ void AST_Printer::declaration(Declaration *ast) {
 }
 
 void AST_Printer::decs_statement(Obj *s) {
-    if (IS_VarDec(s)) {
-        varDec(AS_VarDec(s));
+    if (is<VarDec>(s)) {
+        varDec(as<VarDec>(s));
         os << ';';
-    } else if (IS_FunctDec(s)) {
-        funDec(AS_FunctDec(s));
-    } else if (IS_ClassDec(s)) {
-        classDec(AS_ClassDec(s));
+    } else if (is<FunctDec>(s)) {
+        funDec(as<FunctDec>(s));
+    } else if (is<ClassDec>(s)) {
+        classDec(as<ClassDec>(s));
     } else {
-        statement(AS_Statement(s));
+        statement(as<Statement>(s));
     }
     os << NL;
 }
@@ -84,22 +84,22 @@ void AST_Printer::classDec(ClassDec *ast) {
 }
 
 void AST_Printer::statement(Statement *s) {
-    if (IS_Print(s->stat)) {
-        printStatement(AS_Print(s->stat));
-    } else if (IS_For(s->stat)) {
-        for_stat(AS_For(s->stat));
-    } else if (IS_If(s->stat)) {
-        if_stat(AS_If(s->stat));
-    } else if (IS_Return(s->stat)) {
-        return_stat(AS_Return(s->stat));
-    } else if (IS_While(s->stat)) {
-        while_stat(AS_While(s->stat));
-    } else if (IS_Break(s->stat)) {
-        break_stat(AS_Break(s->stat));
-    } else if (IS_Block(s->stat)) {
-        block(AS_Block(s->stat));
+    if (is<Print>(s->stat)) {
+        printStatement(as<Print>(s->stat));
+    } else if (is<For>(s->stat)) {
+        for_stat(as<For>(s->stat));
+    } else if (is<If>(s->stat)) {
+        if_stat(as<If>(s->stat));
+    } else if (is<Return>(s->stat)) {
+        return_stat(as<Return>(s->stat));
+    } else if (is<While>(s->stat)) {
+        while_stat(as<While>(s->stat));
+    } else if (is<Break>(s->stat)) {
+        break_stat(as<Break>(s->stat));
+    } else if (is<Block>(s->stat)) {
+        block(as<Block>(s->stat));
     } else {
-        exprStatement(AS_Expr(s->stat));
+        exprStatement(as<Expr>(s->stat));
     }
 }
 
@@ -126,10 +126,10 @@ void AST_Printer::if_stat(If *s) {
 void AST_Printer::for_stat(For *s) {
     os << "for (";
     if (s->init) {
-        if (IS_VarDec(s->init)) {
-            varDec(AS_VarDec(s->init));
-        } else if (IS_Expr(s->init)) {
-            expr(AS_Expr(s->init));
+        if (is<VarDec>(s->init)) {
+            varDec(as<VarDec>(s->init));
+        } else if (is<Expr>(s->init)) {
+            expr(as<Expr>(s->init));
         }
     }
     os << ';';
@@ -180,29 +180,29 @@ void AST_Printer::exprStatement(Expr *s) {
 }
 
 void AST_Printer::expr(Expr *ast) {
-    if (IS_Expr(ast->expr)) {
-        expr(AS_Expr(ast->expr));
-    } else if (IS_Unary(ast->expr)) {
-        unary(AS_Unary(ast->expr));
-    } else if (IS_Binary(ast->expr)) {
-        binary(AS_Binary(ast->expr));
-    } else if (IS_Identifier(ast->expr)) {
-        identifier(AS_Identifier(ast->expr));
-    } else if (IS_Number(ast->expr)) {
-        number(AS_Number(ast->expr));
-    } else if (IS_String(ast->expr)) {
-        string(AS_String(ast->expr));
-    } else if (IS_Boolean(ast->expr)) {
-        boolean(AS_Boolean(ast->expr));
-    } else if (IS_Assign(ast->expr)) {
-        assign(AS_Assign(ast->expr));
-    } else if (IS_Call(ast->expr)) {
-        call(AS_Call(ast->expr));
-    } else if (IS_Dot(ast->expr)) {
-        dot(AS_Dot(ast->expr));
-    } else if (IS_This(ast->expr)) {
-        this_(AS_This(ast->expr));
-    } else if (IS_Nil(ast->expr)) {
+    if (is<Expr>(ast->expr)) {
+        expr(as<Expr>(ast->expr));
+    } else if (is<Unary>(ast->expr)) {
+        unary(as<Unary>(ast->expr));
+    } else if (is<Binary>(ast->expr)) {
+        binary(as<Binary>(ast->expr));
+    } else if (is<Identifier>(ast->expr)) {
+        identifier(as<Identifier>(ast->expr));
+    } else if (is<Number>(ast->expr)) {
+        number(as<Number>(ast->expr));
+    } else if (is<String>(ast->expr)) {
+        string(as<String>(ast->expr));
+    } else if (is<Boolean>(ast->expr)) {
+        boolean(as<Boolean>(ast->expr));
+    } else if (is<Assign>(ast->expr)) {
+        assign(as<Assign>(ast->expr));
+    } else if (is<Call>(ast->expr)) {
+        call(as<Call>(ast->expr));
+    } else if (is<Dot>(ast->expr)) {
+        dot(as<Dot>(ast->expr));
+    } else if (is<This>(ast->expr)) {
+        this_(as<This>(ast->expr));
+    } else if (is<Nil>(ast->expr)) {
         os << "nil";
     }
 }
@@ -339,4 +339,4 @@ void AST_Printer::args(const std::vector<Expr *> &args) {
     os << ')';
 }
 
-} // namespace lox
+} // namespace alox

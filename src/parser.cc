@@ -27,7 +27,7 @@ constexpr auto MAX_ARGS = UINT8_MAX;
 
 Declaration *Parser::parse() {
     advance();
-    auto *ast = newDeclaration(current.line);
+    auto *ast = new Declaration(current.line);
 
     while (!match(TokenType::EOFS)) {
         auto *s = declaration();
@@ -55,7 +55,7 @@ Obj *Parser::declaration() {
 }
 
 VarDec *Parser::varDeclaration() {
-    auto *ast = newVarDec(current.line);
+    auto *ast = new VarDec(current.line);
     consume(TokenType::IDENTIFIER, "Expect variable name.");
     ast->var = ident();
 
@@ -70,7 +70,7 @@ VarDec *Parser::varDeclaration() {
 FunctDec *Parser::funDeclaration(FunctionType type) {
     debug("fun");
     auto  type_name = (type == TYPE_METHOD) ? "method" : "function";
-    auto *ast = newFunctDec(current.line);
+    auto *ast = new FunctDec(current.line);
     consume(TokenType::IDENTIFIER, fmt::format("Expect {} name.", type_name));
     ast->name = ident();
 
@@ -94,7 +94,7 @@ FunctDec *Parser::funDeclaration(FunctionType type) {
 
 ClassDec *Parser::classDeclaration() {
     debug("class");
-    auto *ast = newClassDec(current.line);
+    auto *ast = new ClassDec(current.line);
     consume(TokenType::IDENTIFIER, "Expect class name.");
     ast->name = previous.text;
     Token className = previous;
@@ -116,7 +116,7 @@ ClassDec *Parser::classDeclaration() {
 }
 
 Statement *Parser::statement() {
-    auto *ast = newStatement(current.line);
+    auto *ast = new Statement(current.line);
     if (match(TokenType::PRINT)) {
         ast->stat = OBJ_AST(printStatement());
     } else if (match(TokenType::FOR)) {
@@ -140,7 +140,7 @@ Statement *Parser::statement() {
 }
 
 If *Parser::if_stat() {
-    auto *ast = newIf(current.line);
+    auto *ast = new If(current.line);
     consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.");
     ast->cond = expr();
     consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
@@ -154,7 +154,7 @@ If *Parser::if_stat() {
 }
 
 While *Parser::while_stat() {
-    auto *ast = newWhile(current.line);
+    auto *ast = new While(current.line);
     consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.");
     ast->cond = expr();
     consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
@@ -164,7 +164,7 @@ While *Parser::while_stat() {
 
 For *Parser::for_stat() {
     debug("for");
-    auto *ast = newFor(current.line);
+    auto *ast = new For(current.line);
 
     //  initialiser expression
     consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.");
@@ -204,7 +204,7 @@ For *Parser::for_stat() {
 }
 
 Return *Parser::return_stat() {
-    auto *ast = newReturn(current.line);
+    auto *ast = new Return(current.line);
     if (!match(TokenType::SEMICOLON)) {
         ast->expr = expr();
         consume(TokenType::SEMICOLON, "Expect ';' after value.");
@@ -215,7 +215,7 @@ Return *Parser::return_stat() {
 }
 
 Break *Parser::break_stat(TokenType t) {
-    auto *ast = newBreak(current.line);
+    auto *ast = new Break(current.line);
     auto  name = "break";
     if (t == TokenType::CONTINUE) {
         name = "break";
@@ -226,14 +226,14 @@ Break *Parser::break_stat(TokenType t) {
 }
 
 Print *Parser::printStatement() {
-    auto *ast = newPrint(current.line);
+    auto *ast = new Print(current.line);
     ast->expr = expr();
     consume(TokenType::SEMICOLON, "Expect ';' after value.");
     return ast;
 }
 
 Block *Parser::block() {
-    auto *ast = newBlock(current.line);
+    auto *ast = new Block(current.line);
     while (!check(TokenType::RIGHT_BRACE) && !check(TokenType::EOFS)) {
         auto *s = declaration();
         ast->stats.push_back(s);
@@ -330,7 +330,7 @@ Expr *Parser::expr() {
 
 Expr *Parser::parsePrecedence(Precedence precedence) {
     debug("parsePrecedence {}", int(precedence));
-    auto *left = newExpr(current.line);
+    auto *left = new Expr(current.line);
     advance();
     auto prefixRule = getRule(previous.type)->prefix;
     if (prefixRule == nullptr) {
@@ -355,46 +355,46 @@ Expr *Parser::parsePrecedence(Precedence precedence) {
 }
 
 Expr *Parser::unary(bool /*canAssign*/) {
-    auto *ast = newUnary(current.line);
+    auto *ast = new Unary(current.line);
     ast->token = previous.type;
     ast->expr = parsePrecedence(Precedence::UNARY);
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     e->expr = OBJ_AST(ast);
     return e;
 }
 
 Expr *Parser::binary(Expr *left, bool /*canAssign*/) {
-    auto *binary = newBinary(current.line);
+    auto *binary = new Binary(current.line);
     binary->left = left;
     binary->token = previous.type;
     const auto precedence = get_precedence(previous.type);
     binary->right = parsePrecedence((Precedence)(int(precedence) + 1));
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     e->expr = OBJ_AST(binary);
     return e;
 }
 
 Expr *Parser::assign(Expr *left, bool /*canAssign*/) {
     debug("assign");
-    auto *a = newAssign(current.line);
+    auto *a = new Assign(current.line);
     a->left = left;
     a->right = parsePrecedence(Precedence::ASSIGNMENT);
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     e->expr = OBJ_AST(a);
     return e;
 }
 
 Expr *Parser::call(Expr *left, bool /*canAssign*/) {
-    auto *call = newCall(current.line);
+    auto *call = new Call(current.line);
     call->fname = left;
     argumentList(call->args);
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     e->expr = OBJ_AST(call);
     return e;
 }
 
 Expr *Parser::dot(Expr *left, bool canAssign) {
-    auto *dot = newDot(current.line);
+    auto *dot = new Dot(current.line);
     dot->left = left;
     consume(TokenType::IDENTIFIER, "Expect property name after '.'.");
     dot->id = previous.text;
@@ -408,7 +408,7 @@ Expr *Parser::dot(Expr *left, bool canAssign) {
     } else {
         // Get - collect nothing
     }
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     e->expr = OBJ_AST(dot);
     return e;
 }
@@ -420,45 +420,45 @@ Expr *Parser::grouping(bool /*canAssign*/) {
 }
 
 Expr *Parser::identifier(bool /*canAssign*/) {
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     e->expr = OBJ_AST(ident());
     return e;
 }
 
 Expr *Parser::number(bool /*canAssign*/) {
-    auto  *ast = newNumber(current.line);
+    auto  *ast = new Number(current.line);
     double value = strtod(previous.text.data(), nullptr);
     debug("number {}", value);
     ast->value = value;
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     e->expr = OBJ_AST(ast);
     return e;
 }
 
 Expr *Parser::string(bool /*canAssign*/) {
-    auto *ast = newString(current.line);
+    auto *ast = new String(current.line);
     ast->value = previous.text;
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     e->expr = OBJ_AST(ast);
     return e;
 }
 
 Expr *Parser::primary(bool /*canAssign*/) {
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     switch (previous.type) {
     case TokenType::FALSE: {
-        auto b = newBoolean(current.line);
+        auto b = new Boolean(current.line);
         b->value = false;
         e->expr = OBJ_AST(b);
         return e;
     }
     case TokenType::NIL: {
-        auto b = newNil(current.line);
+        auto b = new Nil(current.line);
         e->expr = OBJ_AST(b);
         return e;
     }
     case TokenType::TRUE: {
-        auto b = newBoolean(current.line);
+        auto b = new Boolean(current.line);
         b->value = true;
         e->expr = OBJ_AST(b);
         return e;
@@ -469,13 +469,13 @@ Expr *Parser::primary(bool /*canAssign*/) {
 }
 
 Identifier *Parser::ident() {
-    auto *id = newIdentifier(current.line);
+    auto *id = new Identifier(current.line);
     id->name = previous.text;
     return id;
 }
 
 Expr *Parser::super_(bool /*canAssign*/) {
-    auto *ast = newThis(current.line);
+    auto *ast = new This(current.line);
     ast->token = TokenType::SUPER;
     consume(TokenType::DOT, "Expect '.' after 'super'.");
     consume(TokenType::IDENTIFIER, "Expect superclass method name.");
@@ -485,15 +485,15 @@ Expr *Parser::super_(bool /*canAssign*/) {
         ast->has_args = true;
         argumentList(ast->args);
     }
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     e->expr = OBJ_AST(ast);
     return e;
 }
 
 Expr *Parser::this_(bool /*canAssign*/) {
-    auto *t = newThis(current.line);
+    auto *t = new This(current.line);
     t->token = TokenType::THIS;
-    auto *e = newExpr(current.line);
+    auto *e = new Expr(current.line);
     e->expr = OBJ_AST(t);
     return e;
 }

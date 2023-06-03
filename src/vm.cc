@@ -100,18 +100,18 @@ bool VM::call(ObjClosure *closure, int argCount) {
 
 bool VM::callValue(Value callee, int argCount) {
     if (is<Obj>(callee)) {
-        switch (OBJ_TYPE(callee)) {
+        switch (obj_type(callee)) {
         case OBJ_BOUND_METHOD: {
-            ObjBoundMethod *bound = AS_BOUND_METHOD(callee);
+            ObjBoundMethod *bound = as<ObjBoundMethod *>(callee);
             stackTop[-argCount - 1] = bound->receiver;
             return call(bound->method, argCount);
         }
         case OBJ_CLASS: {
-            ObjClass *klass = AS_CLASS(callee);
+            ObjClass *klass = as<ObjClass *>(callee);
             stackTop[-argCount - 1] = value<Obj *>(newInstance(klass));
             Value initializer;
             if (klass->methods.get(initString, &initializer)) {
-                return call(AS_CLOSURE(initializer), argCount);
+                return call(as<ObjClosure *>(initializer), argCount);
             }
             if (argCount != 0) {
                 runtimeError("Expected 0 arguments but got {:d}.", argCount);
@@ -120,9 +120,9 @@ bool VM::callValue(Value callee, int argCount) {
             return true;
         }
         case OBJ_CLOSURE:
-            return call(AS_CLOSURE(callee), argCount);
+            return call(as<ObjClosure *>(callee), argCount);
         case OBJ_NATIVE: {
-            NativeFn    native = AS_NATIVE(callee);
+            NativeFn    native = as<NativeFn>(callee);
             const Value result = native(argCount, stackTop - argCount);
             stackTop -= argCount + 1;
             push(result);
@@ -142,18 +142,18 @@ bool VM::invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
         runtimeError("Undefined property '{}'.", name->str);
         return false;
     }
-    return call(AS_CLOSURE(method), argCount);
+    return call(as<ObjClosure *>(method), argCount);
 }
 
 bool VM::invoke(ObjString *name, int argCount) {
     const Value receiver = peek(argCount);
 
-    if (!IS_INSTANCE(receiver)) {
+    if (!is<ObjInstance>(receiver)) {
         runtimeError("Only instances have methods.");
         return false;
     }
 
-    ObjInstance *instance = AS_INSTANCE(receiver);
+    ObjInstance *instance = as<ObjInstance *>(receiver);
 
     Value value;
     if (instance->fields.get(name, &value)) {
@@ -171,7 +171,7 @@ bool VM::bindMethod(ObjClass *klass, ObjString *name) {
         return false;
     }
 
-    ObjBoundMethod *bound = newBoundMethod(peek(0), AS_CLOSURE(method));
+    ObjBoundMethod *bound = newBoundMethod(peek(0), as<ObjClosure *>(method));
     pop();
     push(value<Obj *>(bound));
     return true;
@@ -212,14 +212,14 @@ void VM::closeUpvalues(Value const *last) {
 
 void VM::defineMethod(ObjString *name) {
     const Value method = peek(0);
-    ObjClass   *klass = AS_CLASS(peek(1));
+    ObjClass   *klass = as<ObjClass *>(peek(1));
     klass->methods.set(name, method);
     pop();
 }
 
 void VM::concatenate() {
-    ObjString *b = AS_STRING(peek(0));
-    ObjString *a = AS_STRING(peek(1));
+    ObjString *b = as<ObjString *>(peek(0));
+    ObjString *a = as<ObjString *>(peek(1));
     ObjString *result = newString(a->str + b->str);
     pop();
     pop();
@@ -239,7 +239,7 @@ InterpretResult VM::run() {
 
 #define READ_CONSTANT() (frame->closure->function->chunk.get_value(READ_SHORT()))
 
-#define READ_STRING() AS_STRING(READ_CONSTANT())
+#define READ_STRING() as<ObjString *>(READ_CONSTANT())
 #define BINARY_OP(valueType, op)                                                         \
     do {                                                                                 \
         if (!is<double>(peek(0)) || !is<double>(peek(1))) {                              \
@@ -341,13 +341,13 @@ InterpretResult VM::run() {
             break;
         }
         case OpCode::GET_PROPERTY: {
-            if (!IS_INSTANCE(peek(0))) {
+            if (!is<ObjInstance>(peek(0))) {
                 frame->ip = ip;
                 runtimeError("Only instances have properties.");
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            ObjInstance *instance = AS_INSTANCE(peek(0));
+            ObjInstance *instance = as<ObjInstance *>(peek(0));
             ObjString   *name = READ_STRING();
 
             Value value;
@@ -364,13 +364,13 @@ InterpretResult VM::run() {
             break;
         }
         case OpCode::SET_PROPERTY: {
-            if (!IS_INSTANCE(peek(1))) {
+            if (!is<ObjInstance>(peek(1))) {
                 frame->ip = ip;
                 runtimeError("Only instances have fields.");
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            ObjInstance *instance = AS_INSTANCE(peek(1));
+            ObjInstance *instance = as<ObjInstance *>(peek(1));
             instance->fields.set(READ_STRING(), peek(0));
             const Value value = pop();
             pop();
@@ -379,7 +379,7 @@ InterpretResult VM::run() {
         }
         case OpCode::GET_SUPER: {
             ObjString *name = READ_STRING();
-            ObjClass  *superclass = AS_CLASS(pop());
+            ObjClass  *superclass = as<ObjClass *>(pop());
 
             if (!bindMethod(superclass, name)) {
                 frame->ip = ip;
@@ -412,7 +412,7 @@ InterpretResult VM::run() {
             BINARY_OP(value<bool>, >=);
             break;
         case OpCode::ADD: {
-            if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+            if (is<ObjString>(peek(0)) && is<ObjString>(peek(1))) {
                 concatenate();
             } else if (is<double>(peek(0)) && is<double>(peek(1))) {
                 double b = as<double>(pop());
@@ -492,7 +492,7 @@ InterpretResult VM::run() {
         case OpCode::SUPER_INVOKE: {
             ObjString *method = READ_STRING();
             const int  argCount = READ_BYTE();
-            ObjClass  *superclass = AS_CLASS(pop());
+            ObjClass  *superclass = as<ObjClass *>(pop());
             frame->ip = ip;
             if (!invokeFromClass(superclass, method, argCount)) {
                 frame->ip = ip;
@@ -503,7 +503,7 @@ InterpretResult VM::run() {
             break;
         }
         case OpCode::CLOSURE: {
-            ObjFunction *function = AS_FUNCTION(READ_CONSTANT());
+            ObjFunction *function = as<ObjFunction *>(READ_CONSTANT());
             ObjClosure  *closure = newClosure(function);
             push(value<Obj *>(closure));
             for (int i = 0; i < closure->upvalueCount; i++) {
@@ -542,14 +542,14 @@ InterpretResult VM::run() {
             break;
         case OpCode::INHERIT: {
             const Value superclass = peek(1);
-            if (!IS_CLASS(superclass)) {
+            if (!is<ObjClass>(superclass)) {
                 frame->ip = ip;
                 runtimeError("Superclass must be a class.");
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            ObjClass *subclass = AS_CLASS(peek(0));
-            Table::addAll(AS_CLASS(superclass)->methods, subclass->methods);
+            ObjClass *subclass = as<ObjClass *>(peek(0));
+            Table::addAll(as<ObjClass *>(superclass)->methods, subclass->methods);
             pop(); // Subclass.
             break;
         }

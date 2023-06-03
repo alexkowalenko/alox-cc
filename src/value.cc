@@ -46,9 +46,9 @@ bool valuesEqual(Value a, Value b) {
     if (is<double>(a) && is<double>(b)) {
         return as<double>(a) == as<double>(b);
     }
-    if (IS_STRING(a) && IS_STRING(b)) {
+    if (is<ObjString>(a) && is<ObjString>(b)) {
         // fmt::print("{:d} {:d}\n", AS_STRING(a)->str.size(), AS_STRING(b)->str.size());
-        return AS_STRING(a)->str == AS_STRING(b)->str;
+        return as<ObjString *>(a)->str == as<ObjString *>(b)->str;
     }
     return a == b;
 #else

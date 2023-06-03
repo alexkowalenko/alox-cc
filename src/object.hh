@@ -103,7 +103,7 @@ class ObjBoundMethod : public Obj {
     ObjClosure *method{};
 };
 
-constexpr ObjType OBJ_TYPE(Value value) {
+constexpr ObjType obj_type(Value value) {
     return (as<Obj *>(value)->get_type());
 }
 
@@ -111,64 +111,60 @@ constexpr bool isObjType(Value value, ObjType type) {
     return is<Obj>(value) && as<Obj *>(value)->get_type() == type;
 }
 
-constexpr bool IS_BOUND_METHOD(Value value) {
+template <> constexpr bool is<ObjBoundMethod>(Value value) {
     return isObjType(value, OBJ_BOUND_METHOD);
 }
 
-constexpr bool IS_CLASS(Value value) {
+template <> constexpr bool is<ObjClass>(Value value) {
     return isObjType(value, OBJ_CLASS);
 }
 
-constexpr bool IS_CLOSURE(Value value) {
+template <> constexpr bool is<ObjClosure>(Value value) {
     return isObjType(value, OBJ_CLOSURE);
 }
 
-constexpr bool IS_FUNCTION(Value value) {
+template <> constexpr bool is<ObjFunction>(Value value) {
     return isObjType(value, OBJ_FUNCTION);
 }
 
-constexpr bool IS_INSTANCE(Value value) {
+template <> constexpr bool is<ObjInstance>(Value value) {
     return isObjType(value, OBJ_INSTANCE);
 }
 
-constexpr bool IS_NATIVE(Value value) {
+template <> constexpr bool is<ObjNative>(Value value) {
     return isObjType(value, OBJ_NATIVE);
 }
 
-constexpr bool IS_STRING(Value value) {
+template <> constexpr bool is<ObjString>(Value value) {
     return isObjType(value, OBJ_STRING);
 }
 
-inline ObjBoundMethod *AS_BOUND_METHOD(Value value) {
+template <> inline ObjBoundMethod *as<ObjBoundMethod *>(Value value) {
     return reinterpret_cast<ObjBoundMethod *>(as<Obj *>(value));
 }
 
-inline ObjClass *AS_CLASS(Value value) {
+template <> inline ObjClass *as<ObjClass *>(Value value) {
     return reinterpret_cast<ObjClass *>(as<Obj *>(value));
 }
 
-inline ObjClosure *AS_CLOSURE(Value value) {
+template <> inline ObjClosure *as<ObjClosure *>(Value value) {
     return reinterpret_cast<ObjClosure *>(as<Obj *>(value));
 }
 
-inline ObjFunction *AS_FUNCTION(Value value) {
+template <> inline ObjFunction *as<ObjFunction *>(Value value) {
     return reinterpret_cast<ObjFunction *>(as<Obj *>(value));
 }
 
-inline ObjInstance *AS_INSTANCE(Value value) {
+template <> inline ObjInstance *as<ObjInstance *>(Value value) {
     return reinterpret_cast<ObjInstance *>(as<Obj *>(value));
 }
 
-inline NativeFn AS_NATIVE(Value value) {
+template <> inline NativeFn as<NativeFn>(Value value) {
     return reinterpret_cast<ObjNative *>(as<Obj *>(value))->function;
 }
 
-inline ObjString *AS_STRING(Value value) {
+template <> inline ObjString *as<ObjString *>(Value value) {
     return reinterpret_cast<ObjString *>(as<Obj *>(value));
-}
-
-inline const std::string &AS_CSTRING(Value value) {
-    return reinterpret_cast<ObjString *>(as<Obj *>(value))->str;
 }
 
 ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);

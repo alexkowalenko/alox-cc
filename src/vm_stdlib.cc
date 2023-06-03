@@ -49,7 +49,7 @@ Value chr(int /*argCount*/, Value const *v) {
 }
 
 Value ord(int /*argCount*/, Value const *v) {
-    auto *s = AS_STRING(*v);
+    auto *s = as<ObjString *>(*v);
     debug("ord: '{}'", s->str);
     return value<double>(s->str[0]);
 }
@@ -62,7 +62,7 @@ Value print_error(int /*argCount*/, Value const *value) {
 void VM::defineNative(const std::string &name, NativeFn function) {
     push(value<Obj *>(newString(name)));
     push(value<Obj *>(newNative(function)));
-    globals.set(AS_STRING(stack[0]), stack[1]);
+    globals.set(as<ObjString *>(stack[0]), stack[1]);
     pop();
     pop();
 }

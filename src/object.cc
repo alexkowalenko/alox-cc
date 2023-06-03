@@ -97,27 +97,27 @@ static void printFunction(std::ostream &os, ObjFunction *function) {
 }
 
 void printObject(std::ostream &os, Value value) {
-    switch (OBJ_TYPE(value)) {
+    switch (obj_type(value)) {
     case OBJ_BOUND_METHOD:
-        printFunction(os, AS_BOUND_METHOD(value)->method->function);
+        printFunction(os, as<ObjBoundMethod *>(value)->method->function);
         break;
     case OBJ_CLASS:
-        fmt::print("{}", AS_CLASS(value)->name->str);
+        fmt::print("{}", as<ObjClass *>(value)->name->str);
         break;
     case OBJ_CLOSURE:
-        printFunction(os, AS_CLOSURE(value)->function);
+        printFunction(os, as<ObjClosure *>(value)->function);
         break;
     case OBJ_FUNCTION:
-        printFunction(os, AS_FUNCTION(value));
+        printFunction(os, as<ObjFunction *>(value));
         break;
     case OBJ_INSTANCE:
-        os << fmt::format("{} instance", AS_INSTANCE(value)->klass->name->str);
+        os << fmt::format("{} instance", as<ObjInstance *>(value)->klass->name->str);
         break;
     case OBJ_NATIVE:
         os << "<native fn>";
         break;
     case OBJ_STRING:
-        os << fmt::format("{}", AS_CSTRING(value));
+        os << fmt::format("{}", as<ObjString *>(value)->str);
         break;
     case OBJ_UPVALUE:
         os << "upvalue";
