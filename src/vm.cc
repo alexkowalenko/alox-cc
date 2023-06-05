@@ -75,7 +75,6 @@ void VM::init() {
 }
 
 void VM::free() {
-    globals.free();
     initString = nullptr;
 }
 

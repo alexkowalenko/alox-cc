@@ -11,12 +11,6 @@ namespace alox {
 
 inline constexpr auto TABLE_MAX_LOAD = 0.75;
 
-void Table::free() {
-    delete[] this->entries;
-    this->entries = nullptr;
-    this->capacity = 0;
-}
-
 // NOTE: The "Optimization" chapter has a manual copy of this function.
 // If you change it here, make sure to update that copy.
 Entry *findEntry(Entry *entries, size_t capacity, ObjString *key) {

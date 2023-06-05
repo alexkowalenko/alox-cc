@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.24)
 
 # Change compiler here
-set(AX_BASE_CLANG /opt/homebrew/opt/llvm)
+set(AX_BASE_CLANG /opt/homebrew/Cellar/llvm/16.0.4)
 set(CMAKE_CXX_COMPILER ${AX_BASE_CLANG}/bin/clang++)
 message(STATUS "C++ compiler = ${CMAKE_CXX_COMPILER}")
 
 # set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE DEBUG)
+set(CMAKE_BUILD_TYPE Debug)
 
 # Set the project name to your project name, my project isn't very descriptive
 project(alox-cc CXX)

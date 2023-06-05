@@ -14,13 +14,15 @@ struct Entry {
     Value      value;
 };
 
+/*
+ * Table for associative map. Table appears to be faster than
+ * std::map<std::string,Value>.
+ */
 class Table {
   public:
     Table() = default;
 
     Table(const Table &) = delete;
-
-    void free();
 
     bool        get(ObjString *key, Value *value);
     bool        set(ObjString *key, Value value);
