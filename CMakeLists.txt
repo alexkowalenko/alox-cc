@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 # Change compiler here
-set(AX_BASE_CLANG /opt/homebrew/Cellar/llvm/16.0.4)
+set(AX_BASE_CLANG /opt/homebrew/Cellar/llvm/19.0.0)
 set(CMAKE_CXX_COMPILER ${AX_BASE_CLANG}/bin/clang++)
 message(STATUS "C++ compiler = ${CMAKE_CXX_COMPILER}")
 
@@ -46,7 +46,8 @@ enable_doxygen()
 # allow for static analysis options
 include(cmake/StaticAnalyzers.cmake)
 
-option(BUILD_SHARED_LIBS "Enable compilation of shared libraries" OFF)
+#option(BUILD_SHARED_LIBS "Enable compilation of shared libraries" OFF)
+set(BUILD_SHARED_LIBS OFF)
 option(ENABLE_TESTING "Enable Test Builds" ON)
 option(ENABLE_BENCHMARKS "Enable Benchmarks Builds" OFF)
 option(ENABLE_FUZZING "Enable Fuzzing Builds" OFF)
@@ -61,7 +62,7 @@ if(ENABLE_TESTING)
     OPTIONS
       "INSTALL_GTEST OFF"
       "BUILD_GMOCK OFF"
-      "gtest_force_shared_crt ON"
+      "gtest_force_shared_crt OFF"
       "gtest_disable_pthreads ON" 
       "gtest_hide_internal_symbols ON"
   )

@@ -63,7 +63,7 @@ std::string Alox::readFile(const std::string_view &path) {
     if (!std::filesystem::exists(file)) {
         throw std::runtime_error(fmt::format("file {} doesn't exist.", path));
     }
-    std::ifstream ifs(path);
+    std::ifstream ifs(file);
     std::string   buffer((std::istreambuf_iterator<char>(ifs)),
                          std::istreambuf_iterator<char>());
     return buffer;

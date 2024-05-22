@@ -46,8 +46,18 @@ link_directories(${ICU_LIBRARY_DIRS})
 message(STATUS "icuuc: [${ICU_LIBRARY_DIRS}]")
 
 include(cmake/CPM.cmake)
-CPMAddPackage("gh:fmtlib/fmt#10.0.0")
+CPMAddPackage(NAME fmt 
+              GITHUB_REPOSITORY fmtlib/fmt
+              GIT_TAG 10.0.0
+              OPTIONS "BUILD_SHARED_LIBS OFF"
+              "FMT_INSTALL OFF" )
 CPMAddPackage("gh:AmokHuginnsson/replxx#release-0.0.4")
 CPMAddPackage("gh:nemtrif/utfcpp#v3.2.1")
 CPMAddPackage("gh:CLIUtils/CLI11#v2.3.0")
-CPMAddPackage("gh:ivmai/bdwgc#v8.2.4")
+CPMAddPackage(NAME bdwgc  
+              GITHUB_REPOSITORY ivmai/bdwgc
+              GIT_TAG v8.2.6
+              OPTIONS "BUILD_SHARED_LIBS OFF"
+              "install_headers OFF"
+              "enable_docs OFF"
+              "build_cord OFF")

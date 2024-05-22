@@ -13,7 +13,7 @@ namespace alox {
 
 class CodeGen {
   public:
-    CodeGen(ErrorManager &e) : err(e){};
+    CodeGen(ErrorManager &e) : err(e) {};
 
     void           emitByte(uint8_t byte);
     constexpr void emitByte(OpCode byte) { return emitByte(uint8_t(byte)); };
@@ -45,4 +45,4 @@ class CodeGen {
     ErrorManager &err;
 };
 
-} // namespace lox
+} // namespace alox
