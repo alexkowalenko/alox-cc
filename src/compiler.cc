@@ -11,6 +11,7 @@
 #include <memory>
 
 #include <fmt/core.h>
+#include <ranges>
 
 #include "chunk.hh"
 #include "common.hh"
@@ -28,6 +29,12 @@ static void debug(const S &format, const Args &...msg) {
         std::cout << "compiler: " << fmt::format(fmt::runtime(format), msg...) << '\n';
     }
 }
+
+auto make_index = [idx = std::size_t{0}]<typename T>(const T &elem) mutable {
+    return std::pair<std::size_t, const T &>{idx++, elem};
+};
+
+namespace ranges = std::ranges;
 
 constexpr auto MAX_ARGS = UINT8_MAX;
 
@@ -113,9 +120,10 @@ int Compiler::resolveLocal(Context *compiler, const std::string &name) {
 int Compiler::addUpvalue(Context *compiler, uint8_t index, bool isLocal) {
     const int upvalueCount = compiler->function->upvalueCount;
 
-    for (int i = 0; i < upvalueCount; i++) {
-        Upvalue *upvalue = &compiler->upvalues[i];
-        if (upvalue->index == index && upvalue->isLocal == isLocal) {
+    for (const auto &[i, upvalue] : compiler->upvalues |
+                                        ranges::views::take(upvalueCount) |
+                                        ranges::views::transform(make_index)) {
+        if (upvalue.index == index && upvalue.isLocal == isLocal) {
             return i;
         }
     }
@@ -254,9 +262,10 @@ void Compiler::function(FunctDec *ast, FunctionType type) {
     ObjFunction *function = endCompiler();
     gen.emitByteConst(OpCode::CLOSURE, gen.makeConstant(value<Obj *>(function)));
 
-    for (int i = 0; i < function->upvalueCount; i++) {
-        gen.emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
-        gen.emitByte(compiler.upvalues[i].index);
+    for (auto &upvalue :
+         compiler.upvalues | ranges::views::take(function->upvalueCount)) {
+        gen.emitByte(upvalue.isLocal ? 1 : 0);
+        gen.emitByte(upvalue.index);
     }
 }
 

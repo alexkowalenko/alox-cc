@@ -7,6 +7,8 @@
 #include "object.hh"
 #include "value.hh"
 
+#include <span>
+
 namespace alox {
 
 inline constexpr auto TABLE_MAX_LOAD = 0.75;
@@ -54,21 +56,20 @@ bool Table::get(ObjString *key, Value *value) {
 
 void Table::adjustCapacity(size_t capacity) {
     auto *entries = new Entry[capacity];
-    for (int i = 0; i < capacity; i++) {
-        entries[i].key = nullptr;
-        entries[i].value = NIL_VAL;
+    for (auto &entry : std::span{entries, capacity}) {
+        entry.key = nullptr;
+        entry.value = NIL_VAL;
     }
 
     this->count = 0;
-    for (int i = 0; i < this->capacity; i++) {
-        Entry *entry = &this->entries[i];
-        if (entry->key == nullptr) {
+    for (auto &entry : std::span{this->entries, this->capacity}) {
+        if (entry.key == nullptr) {
             continue;
         }
 
-        Entry *dest = findEntry(entries, capacity, entry->key);
-        dest->key = entry->key;
-        dest->value = entry->value;
+        Entry *dest = findEntry(entries, capacity, entry.key);
+        dest->key = entry.key;
+        dest->value = entry.value;
         this->count++;
     }
 
@@ -112,10 +113,9 @@ bool Table::del(ObjString *key) {
 }
 
 void Table::addAll(const Table &from, Table &to) {
-    for (int i = 0; i < from.capacity; i++) {
-        Entry *entry = &from.entries[i];
-        if (entry->key != nullptr) {
-            to.set(entry->key, entry->value);
+    for (auto &entry : std::span{from.entries, from.capacity}) {
+        if (entry.key != nullptr) {
+            to.set(entry.key, entry.value);
         }
     }
 }
