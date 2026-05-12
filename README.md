@@ -2,7 +2,36 @@
 
 LOX converted to C++ and refactored.
 
-Additions:
+## Build
+
+Configure and build from the repository root:
+
+```sh
+cmake -S . -B build
+cmake --build build
+```
+
+This produces the CLI executable at `bin/alox`.
+
+## Run Tests
+
+Run the C++ unit tests with CTest:
+
+```sh
+ctest --test-dir build --output-on-failure
+```
+
+Run the integration tests under `tools/`:
+
+```sh
+cd tools
+npm install
+npm test
+```
+
+The `tools` test harness runs `../bin/alox` against the `.lox` files in `../xtest`, so build the project first.
+
+## Additions
 
 * [x] `break`, `continue`.
 * [x] Unicode strings and identifiers.
@@ -17,7 +46,7 @@ Additions:
 * [ ] module system `import`, `export`. Namespaces.
 * [ ] Exceptions.
 
-Modifications:
+### Modifications
 
 * [x] more than 255 constants in a function. Re-using constants. Opcodes ZERO, ONE.
 * [x] Opcodes ZERO, ONE for number constants.
@@ -27,7 +56,7 @@ Modifications:
 * [x] moved from char* to std::string.
 * [x] separate Parser and Compiler with an AST.
 
-Book modifications:
+### Book modifications
 
 * [ ] More efficient line number storage (Chapter 14, Q.1)
 * [ ] Conditional expressions: `print x == 5 ? "5" : nil;` (Chapter 17 Q.3)

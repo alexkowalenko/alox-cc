@@ -24,7 +24,7 @@ struct Upvalue {
 
 enum FunctionType { TYPE_FUNCTION, TYPE_INITIALIZER, TYPE_METHOD, TYPE_SCRIPT };
 
-using BreakContext = std::tuple<int, int, int>;
+using BreakContext = std::tuple<size_t, size_t, int>;
 
 /**
  * @brief This has all the info for the current function being compiled.

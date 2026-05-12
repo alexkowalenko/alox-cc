@@ -25,8 +25,8 @@ class CodeGen {
     constexpr void emitBytes(OpCode byte1, uint8_t byte2) {
         return emitBytes(uint8_t(byte1), byte2);
     }
-    void          emitLoop(int loopStart);
-    int           emitJump(OpCode instruction);
+    void          emitLoop(size_t loopStart);
+    size_t        emitJump(OpCode instruction);
     void          emitReturn(FunctionType type);
     const_index_t makeConstant(Value value);
     void          emitConstant(Value value);

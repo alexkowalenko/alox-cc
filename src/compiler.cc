@@ -434,11 +434,11 @@ void Compiler::statement(Statement *ast) {
 
 void Compiler::ifStatement(If *ast) {
     expr(ast->cond);
-    int thenJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
+    auto thenJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
     gen.emitByte(OpCode::POP);
     statement(ast->then_stat);
 
-    int elseJump = gen.emitJump(OpCode::JUMP);
+    auto elseJump = gen.emitJump(OpCode::JUMP);
     gen.patchJump(thenJump);
     gen.emitByte(OpCode::POP);
 
@@ -694,7 +694,7 @@ void Compiler::binary(Binary *ast, bool canAssign) {
 
 void Compiler::and_(Binary *ast, bool canAssign) {
     expr(ast->left, canAssign);
-    const int endJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
+    const auto endJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
     gen.emitByte(OpCode::POP);
 
     expr(ast->right, canAssign);
@@ -703,8 +703,8 @@ void Compiler::and_(Binary *ast, bool canAssign) {
 
 void Compiler::or_(Binary *ast, bool canAssign) {
     expr(ast->left, canAssign);
-    int elseJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
-    int endJump = gen.emitJump(OpCode::JUMP);
+    auto elseJump = gen.emitJump(OpCode::JUMP_IF_FALSE);
+    auto endJump = gen.emitJump(OpCode::JUMP);
 
     gen.patchJump(elseJump);
     gen.emitByte(OpCode::POP);

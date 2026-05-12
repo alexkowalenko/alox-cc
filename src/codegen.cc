@@ -23,7 +23,7 @@ void CodeGen::emitByteConst(OpCode byte1, const_index_t c) {
     emitByte(c & 0xff);
 }
 
-void CodeGen::emitLoop(int loopStart) {
+void CodeGen::emitLoop(size_t loopStart) {
     emitByte(OpCode::LOOP);
 
     auto offset = cur->get_count() - loopStart + 2;
@@ -35,7 +35,7 @@ void CodeGen::emitLoop(int loopStart) {
     emitByte(offset & 0xff);
 }
 
-int CodeGen::emitJump(OpCode instruction) {
+size_t CodeGen::emitJump(OpCode instruction) {
     emitByte(instruction);
     emitByte(0xff);
     emitByte(0xff);
@@ -58,7 +58,7 @@ const_index_t CodeGen::makeConstant(Value value) {
         err.errorAt(linenumber, "Too many constants in one chunk.");
         return 0;
     }
-    return constant;
+    return static_cast<const_index_t>(constant);
 }
 
 void CodeGen::emitConstant(Value value) {

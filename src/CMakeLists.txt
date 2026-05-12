@@ -22,9 +22,9 @@ add_library(lox STATIC
    alox.cc
    )
 
-target_link_libraries(lox replxx)
+target_link_libraries(lox PRIVATE project_options replxx)
 
-target_include_directories(lox PUBLIC "${CLI11_SOURCE_DIR}/include")
-target_include_directories(lox PUBLIC "${utfcpp_SOURCE_DIR}/source")
-target_include_directories(lox PUBLIC "${ICU_INCLUDE_DIRS}")
-target_include_directories(lox PUBLIC "${bdwgc_SOURCE_DIR}/include")
+target_include_directories(lox SYSTEM PUBLIC "${CLI11_SOURCE_DIR}/include")
+target_include_directories(lox SYSTEM PUBLIC "${utfcpp_SOURCE_DIR}/source")
+target_include_directories(lox SYSTEM PUBLIC "${ICU_INCLUDE_DIRS}")
+target_include_directories(lox SYSTEM PUBLIC "${bdwgc_SOURCE_DIR}/include")

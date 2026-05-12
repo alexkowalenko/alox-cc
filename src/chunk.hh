@@ -74,7 +74,7 @@ class Chunk {
     }
 
     [[nodiscard]] constexpr ValueArray &get_constants() { return constants; }
-    const_index_t                       add_constant(Value value);
+    size_t                              add_constant(Value value);
     [[nodiscard]] constexpr Value      &get_value(const_index_t n) {
         return constants.get_value(n);
     }

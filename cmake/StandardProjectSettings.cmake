@@ -1,6 +1,3 @@
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Set a default build type if none was specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -36,23 +33,3 @@ if(ENABLE_IPO)
     message(SEND_ERROR "IPO is not supported: ${output}")
   endif()
 endif()
-
-# ICU unicode library
-set(ICU_INCLUDE_DIRS /opt/homebrew/opt/icu4c/include)
-set(ICU_LIBRARY_DIRS /opt/homebrew/opt/icu4c/lib)
-set(ICU_LIBRARIES icuuc)
-link_directories(${ICU_LIBRARY_DIRS})
-
-message(STATUS "icuuc: [${ICU_LIBRARY_DIRS}]")
-
-include(cmake/CPM.cmake)
-CPMAddPackage("gh:AmokHuginnsson/replxx#release-0.0.4")
-CPMAddPackage("gh:nemtrif/utfcpp#v3.2.1")
-CPMAddPackage("gh:CLIUtils/CLI11#v2.3.0")
-CPMAddPackage(NAME bdwgc  
-              GITHUB_REPOSITORY ivmai/bdwgc
-              GIT_TAG v8.2.6
-              OPTIONS "BUILD_SHARED_LIBS OFF"
-              "install_headers OFF"
-              "enable_docs OFF"
-              "build_cord OFF")

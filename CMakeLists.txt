@@ -1,22 +1,20 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 4.0)
 
 # Change compiler here
 set(AX_BASE_CLANG /opt/homebrew/opt/llvm)
 set(CMAKE_CXX_COMPILER ${AX_BASE_CLANG}/bin/clang++)
 message(STATUS "C++ compiler = ${CMAKE_CXX_COMPILER}")
 
-# set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE Debug)
-
 # Set the project name to your project name, my project isn't very descriptive
 project(alox-cc CXX)
 include(cmake/StandardProjectSettings.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
-
-# Link this 'library' to set the c++ standard / compile-time options requested
 add_library(project_options INTERFACE)
 target_compile_features(project_options INTERFACE cxx_std_23)
+
+# Dependency management
+include(Dependencies.cmake)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
   option(ENABLE_BUILD_WITH_TIME_TRACE "Enable -ftime-trace to generate time tracing .json files on clang" OFF)
@@ -25,9 +23,16 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
   endif()
 endif()
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${AX_BASE_CLANG}/lib -Wl,-rpath,${AX_BASE_CLANG}/lib")
+# Ensure libc++ is used consistently when using Homebrew LLVM on macOS
+if (APPLE)
+    message(STATUS "Configuring macOS libc++ and runtime flags for Homebrew LLVM")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${AX_BASE_CLANG}/lib/c++ -L${AX_BASE_CLANG}/lib/unwind -lunwind")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libc++")
+    # Also ensure 64-bit arch is explicit
+    set(CMAKE_OSX_ARCHITECTURES arm64)
+endif ()
 
-# Link this 'library' to use the warnings specified in CompilerWarnings.cmake
 add_library(project_warnings INTERFACE)
 
 # enable cache system
@@ -55,20 +60,6 @@ option(ENABLE_BENCHMARKS "Enable Benchmarks Builds" OFF)
 option(ENABLE_FUZZING "Enable Fuzzing Builds" OFF)
 
 if(ENABLE_TESTING)
-
-  CPMAddPackage(
-    NAME googletest
-    GITHUB_REPOSITORY google/googletest
-    GIT_TAG release-1.12.1
-    VERSION 1.12.1
-    OPTIONS
-      "INSTALL_GTEST OFF"
-      "BUILD_GMOCK OFF"
-      "gtest_force_shared_crt OFF"
-      "gtest_disable_pthreads ON" 
-      "gtest_hide_internal_symbols ON"
-  )
-
   enable_testing()
   add_subdirectory(test)
 endif()
@@ -79,14 +70,6 @@ if(ENABLE_FUZZING)
 endif()
 
 if(ENABLE_BENCHMARKS)
-  CPMAddPackage(
-    NAME benchmark
-    GITHUB_REPOSITORY google/benchmark
-    GIT_TAG v1.7.1
-    OPTIONS
-      "BENCHMARK_ENABLE_INSTALL OFF"
-      "BENCHMARK_ENABLE_TESTING OFF"
-  )
   message("Building Benchmarks")
   add_subdirectory(benchmarks)
 endif()

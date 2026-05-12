@@ -23,7 +23,7 @@ void Chunk::write(uint8_t byte, size_t line) {
     count++;
 }
 
-const_index_t Chunk::add_constant(Value value) {
+size_t Chunk::add_constant(Value value) {
     return this->constants.write(value);
 }
 
