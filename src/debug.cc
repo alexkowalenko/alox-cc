@@ -2,67 +2,66 @@
 // ALOX-CC
 //
 
-#include <iostream>
-
-#include <fmt/core.h>
-
 #include "debug.hh"
 #include "object.hh"
 #include "value.hh"
+#include <iostream>
 
 namespace alox {
 
 void disassembleChunk(Chunk *chunk, const std::string_view &name) {
-    fmt::print("== {} ==\n", name);
+    std::print("== {} ==\n", name);
 
     for (int offset = 0; offset < chunk->get_count();) {
         offset = disassembleInstruction(chunk, offset);
     }
 }
 
-static int constantInstruction(const char *name, Chunk *chunk, int offset) {
+namespace {
+int constantInstruction(std::string_view name, Chunk *chunk, int offset) {
     auto constant = const_index_t(chunk->get_code(offset + 1) << UINT8_WIDTH);
     constant |= chunk->get_code(offset + 2);
-    fmt::print("{:<16}    {:d} '", name, constant);
+    std::print("{:<16}    {:d} '", name, constant);
     printValue(std::cout, chunk->get_value(constant));
-    std::cout << "'\n";
+    std::println("'");
     return offset + 3;
 }
 
-static int invokeInstruction(const char *name, Chunk *chunk, int offset) {
+int invokeInstruction(std::string_view name, Chunk *chunk, int offset) {
     auto constant = const_index_t(chunk->get_code(offset + 1) << UINT8_WIDTH);
     constant |= chunk->get_code(offset + 2);
     uint8_t argCount = chunk->get_code(offset + 3);
-    fmt::print("{:<16}    ({:d} args) {:4d} '", name, argCount, constant);
+    std::print("{:<16}    ({:d} args) {:4d} '", name, argCount, constant);
     printValue(std::cout, chunk->get_value(constant));
-    std::cout << "'\n";
+    std::println("'");
     return offset + 4;
 }
 
-static int simpleInstruction(const char *name, int offset) {
-    fmt::print("{}\n", name);
+int simpleInstruction(std::string_view name, int offset) {
+    std::println("{}", name);
     return offset + 1;
 }
 
-static int byteInstruction(const char *name, Chunk *chunk, int offset) {
+int byteInstruction(std::string_view name, Chunk *chunk, int offset) {
     uint8_t slot = chunk->get_code(offset + 1);
-    fmt::print("{:<16} {:4d}\n", name, slot);
+    std::println("{:<16} {:4d}", name, slot);
     return offset + 2; // [debug]
 }
 
-static int jumpInstruction(const char *name, int sign, Chunk *chunk, int offset) {
+int jumpInstruction(std::string_view name, int sign, Chunk *chunk, int offset) {
     auto jump = (uint16_t)(chunk->get_code(offset + 1) << UINT8_WIDTH);
     jump |= chunk->get_code(offset + 2);
-    fmt::print("{:<16}   {:4d} -> {:d}\n", name, offset, offset + 3 + sign * jump);
+    std::println("{:<16}   {:4d} -> {:d}", name, offset, offset + 3 + sign * jump);
     return offset + 3;
 }
+} // namespace
 
 int disassembleInstruction(Chunk *chunk, int offset) {
-    fmt::print("{:04d} ", offset);
+    std::print("{:04d} ", offset);
     if (offset > 0 && chunk->get_line(offset) == chunk->get_line(offset - 1)) {
-        fmt::print("   | ");
+        std::print("   | ");
     } else {
-        fmt::print("{:04d} ", chunk->get_line(offset));
+        std::print("{:04d} ", chunk->get_line(offset));
     }
 
     auto instruction = OpCode(chunk->get_code(offset));
@@ -143,15 +142,15 @@ int disassembleInstruction(Chunk *chunk, int offset) {
         offset++;
         auto constant = const_index_t(chunk->get_code(offset++) << UINT8_WIDTH);
         constant |= chunk->get_code(offset++);
-        fmt::print("{:<16} {:4d} ", "CLOSURE", constant);
+        std::print("{:<16} {:4d} ", "CLOSURE", constant);
         printValue(std::cout, chunk->get_value(constant));
-        fmt::print("\n");
+        std::println();
 
         ObjFunction *function = as<ObjFunction *>(chunk->get_value(constant));
         for (int j = 0; j < function->upvalueCount; j++) {
             const int isLocal = chunk->get_code(offset++);
             int       index = chunk->get_code(offset++);
-            fmt::print("{:04d}      |                     {} {:d}\n", offset - 2,
+            std::print("{:04d}      |                     {} {:d}\n", offset - 2,
                        isLocal ? "local" : "upvalue", index);
         }
 
@@ -168,7 +167,7 @@ int disassembleInstruction(Chunk *chunk, int offset) {
     case OpCode::METHOD:
         return constantInstruction("METHOD", chunk, offset);
     default:
-        fmt::print("Unknown opcode {:d}\n", uint8_t(instruction));
+        std::print("Unknown opcode {:d}\n", uint8_t(instruction));
         return offset + 1;
     }
 }

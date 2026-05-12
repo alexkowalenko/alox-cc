@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 # Change compiler here
-set(AX_BASE_CLANG /opt/homebrew/Cellar/llvm/19.0.0)
+set(AX_BASE_CLANG /opt/homebrew/opt/llvm)
 set(CMAKE_CXX_COMPILER ${AX_BASE_CLANG}/bin/clang++)
 message(STATUS "C++ compiler = ${CMAKE_CXX_COMPILER}")
 
@@ -24,6 +24,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     add_compile_definitions(project_options INTERFACE -ftime-trace)
   endif()
 endif()
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${AX_BASE_CLANG}/lib -Wl,-rpath,${AX_BASE_CLANG}/lib")
 
 # Link this 'library' to use the warnings specified in CompilerWarnings.cmake
 add_library(project_warnings INTERFACE)

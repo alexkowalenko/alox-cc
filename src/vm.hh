@@ -5,6 +5,7 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
 
 #include "error.hh"
 #include "object.hh"
@@ -34,7 +35,7 @@ enum InterpretResult {
 
 class VM {
   public:
-    VM(const Options &opt) : options(opt){};
+    VM(const Options &opt) : options(opt) {};
     ~VM() = default;
 
     void init();
@@ -58,7 +59,7 @@ class VM {
         return stackTop[-1 - distance];
     }
 
-    template <typename... T> void runtimeError(const char *format, const T &...msg);
+    template <typename... T> void runtimeError(std::string_view format, const T &...msg);
 
     void def_stdlib();
     void defineNative(const std::string &name, NativeFn function);

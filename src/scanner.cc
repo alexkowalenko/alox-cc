@@ -5,12 +5,10 @@
 #include <iostream>
 #include <map>
 
-#include <fmt/core.h>
 #include <string>
 #include <unicode/uchar.h>
 
 #include "scanner.hh"
-#include "utf8/checked.h"
 
 namespace alox {
 
@@ -18,7 +16,8 @@ inline constexpr auto debug_scan{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
     if constexpr (debug_scan) {
-        std::cout << "scanner: " << fmt::format(fmt::runtime(format), msg...) << '\n';
+        std::cout << "scanner: " << std::vformat(format, std::make_format_args(msg...))
+                  << '\n';
     }
 }
 
@@ -62,10 +61,10 @@ const std::map<std::string, TokenType> keyword_map = {
     {"var", TokenType::VAR},     {"while", TokenType::WHILE},
 };
 
-Token Scanner::error_token(const char *message) const {
+Token Scanner::error_token(std::string_view message) const {
     Token token{};
     token.type = TokenType::ERROR;
-    token.text = {message, strlen(message)};
+    token.text = message;
     token.line = line;
     return token;
 }
@@ -200,4 +199,4 @@ Token Scanner::scanToken() {
     return error_token("Unexpected character.");
 }
 
-} // namespace lox
+} // namespace alox

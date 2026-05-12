@@ -5,16 +5,13 @@
 #include <cstdarg>
 #include <cstdio>
 #include <ctime>
-#include <functional>
+#include <format>
 #include <iostream>
 
-#include <fmt/core.h>
-#include <memory>
+#include <string_view>
 
 #include "common.hh"
-#include "compiler.hh"
 #include "debug.hh"
-#include "memory.hh"
 #include "object.hh"
 #include "value.hh"
 #include "vm.hh"
@@ -25,7 +22,8 @@ inline constexpr auto debug_vm{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
     if constexpr (debug_vm) {
-        std::cout << "compiler: " << fmt::format(fmt::runtime(format), msg...) << '\n';
+        std::cout << "vm: " << std::vformat(format, std::make_format_args(msg...))
+                  << '\n';
     }
 }
 
@@ -37,20 +35,20 @@ void VM::resetStack() {
     openUpvalues = nullptr;
 }
 
-template <typename... T> void VM::runtimeError(const char *format, const T &...msg) {
-    options.err << fmt::format(fmt::runtime(format), msg...); // NOLINT
+template <typename... T> void VM::runtimeError(std::string_view format, const T &...msg) {
+    options.err << std::vformat(format, std::make_format_args(msg...)); // NOLINT
     options.err << '\n';
 
     for (int i = frameCount - 1; i >= 0; i--) {
         CallFrame   *frame = &frames[i];
         ObjFunction *function = frame->closure->function;
         const size_t instruction = frame->ip - function->chunk.get_code() - 1;
-        options.err << fmt::format("[line {:d}] in ", // [minus]
+        options.err << std::format("[line {:d}] in ", // [minus]
                                    function->chunk.get_line(instruction));
         if (function->name == nullptr) {
             options.err << "script\n";
         } else {
-            options.err << fmt::format("{}()\n", function->name->str);
+            options.err << std::format("{}()\n", function->name->str);
         }
     }
 

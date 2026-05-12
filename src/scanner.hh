@@ -80,7 +80,7 @@ class Scanner {
     Token scanToken();
 
   private:
-    Token error_token(const char *message) const;
+    Token error_token(std::string_view message) const;
 
     Char peek() {
         return (current != end(source)) ? utf8::peek_next(current, end(source)) : 0;

@@ -6,7 +6,6 @@
 
 #include "scanner.hh"
 
-#include <fmt/core.h>
 #include <gtest/gtest.h>
 
 using namespace alox;
@@ -108,14 +107,14 @@ void test_Lexer(const std::vector<TestLexer> &tests) { // NOLINT
             Scanner scanner(test.input);
             auto    tok = scanner.scanToken();
 
-            std::cout << fmt::format("type {} wanted {}\n", test.input, tok.text);
+            std::cout << std::format("type {} wanted {}\n", test.input, tok.text);
             EXPECT_EQ(tok.type, test.tok);
             if (test.tok == TokenType::NUMBER || test.tok == TokenType::IDENTIFIER) {
-                std::cout << fmt::format("     {} = {}->{}\n", test.input, test.atom,
+                std::cout << std::format("     {} = {}->{}\n", test.input, test.atom,
                                          tok.text);
                 EXPECT_EQ(tok.text, test.atom);
             } else if (test.tok == TokenType::STRING) {
-                std::cout << fmt::format("     {} -> {}\n", test.input, tok.text);
+                std::cout << std::format("     {} -> {}\n", test.input, tok.text);
                 EXPECT_EQ(tok.text, test.atom);
             }
         } catch (std::exception &e) {

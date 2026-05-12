@@ -7,7 +7,6 @@
 #include <sstream>
 #include <string>
 
-#include <fmt/core.h>
 #include <gtest/gtest.h>
 
 #include "parser.hh"
@@ -52,6 +51,7 @@ TEST(Parser, binary) { // NOLINT
         {"2 * 3 + 4;", "((2 * 3) + 4);", ""},
         {"2 + 3 * 4;", "(2 + (3 * 4));", ""},
         {"2 + 3 * 4 / 5;", "(2 + ((3 * 4) / 5));", ""},
+        {"- 2 + 3 * 4 / 5;", "(-2 + ((3 * 4) / 5));", ""},
 
         {"1 and 2;", "(1 and 2);", ""},
         {"1 and 2 or 3;", "((1 and 2) or 3);", ""},

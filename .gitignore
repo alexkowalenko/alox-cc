@@ -6,6 +6,7 @@ lib/**
 .clangd
 .cache
 compile_commands.json
+.idea/***
 
 tools/coverage
 tools/node_modules

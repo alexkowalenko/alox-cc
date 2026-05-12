@@ -10,7 +10,6 @@
 #include <iostream>
 #include <pwd.h>
 
-#include <fmt/core.h>
 #include <replxx.hxx>
 #include <sstream>
 #include <unistd.h>
@@ -18,7 +17,6 @@
 #include "alox.hh"
 #include "compiler.hh"
 #include "error.hh"
-#include "memory.hh"
 #include "parser.hh"
 #include "printer.hh"
 #include "scanner.hh"
@@ -61,7 +59,7 @@ void Alox::repl() {
 std::string Alox::readFile(const std::string_view &path) {
     const std::filesystem::path file{path};
     if (!std::filesystem::exists(file)) {
-        throw std::runtime_error(fmt::format("file {} doesn't exist.", path));
+        throw std::runtime_error(std::format("file {} doesn't exist.", path));
     }
     std::ifstream ifs(file);
     std::string   buffer((std::istreambuf_iterator<char>(ifs)),

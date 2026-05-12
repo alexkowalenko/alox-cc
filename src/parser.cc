@@ -4,7 +4,6 @@
 
 #include <iostream>
 
-#include <fmt/core.h>
 #include <map>
 #include <string_view>
 
@@ -19,7 +18,7 @@ inline constexpr auto debug_parse{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
     if constexpr (debug_parse) {
-        std::cout << "parse: " << fmt::format(fmt::runtime(format), msg...) << '\n';
+        std::cout << "parse: " << std::vformat(format, std::make_format_args(msg...)) << '\n';
     }
 }
 
@@ -71,15 +70,15 @@ FunctDec *Parser::funDeclaration(FunctionType type) {
     debug("fun");
     auto  type_name = (type == TYPE_METHOD) ? "method" : "function";
     auto *ast = new FunctDec(current.line);
-    consume(TokenType::IDENTIFIER, fmt::format("Expect {} name.", type_name));
+    consume(TokenType::IDENTIFIER, std::format("Expect {} name.", type_name));
     ast->name = ident();
 
-    consume(TokenType::LEFT_PAREN, fmt::format("Expect '(' after {} name.", type_name));
+    consume(TokenType::LEFT_PAREN, std::format("Expect '(' after {} name.", type_name));
     if (!check(TokenType::RIGHT_PAREN)) {
         do {
             if (ast->parameters.size() > MAX_ARGS) {
                 errorAtCurrent(
-                    fmt::format("Can't have more than {} parameters.", MAX_ARGS));
+                    std::format("Can't have more than {} parameters.", MAX_ARGS));
             }
             consume(TokenType::IDENTIFIER, "Expect parameter name.");
             auto *p = ident();
@@ -87,7 +86,7 @@ FunctDec *Parser::funDeclaration(FunctionType type) {
         } while (match(TokenType::COMMA));
     }
     consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters.");
-    consume(TokenType::LEFT_BRACE, fmt::format("Expect '{{' before {} body.", type_name));
+    consume(TokenType::LEFT_BRACE, std::format("Expect '{{' before {} body.", type_name));
     ast->body = block();
     return ast;
 }
@@ -220,7 +219,7 @@ Break *Parser::break_stat(TokenType t) {
     if (t == TokenType::CONTINUE) {
         name = "break";
     }
-    consume(TokenType::SEMICOLON, fmt::format("Expect ';' after {}.", name));
+    consume(TokenType::SEMICOLON, std::format("Expect ';' after {}.", name));
     ast->tok = t;
     return ast;
 }
@@ -564,4 +563,4 @@ bool Parser::match(TokenType type) {
     return true;
 }
 
-} // namespace lox
+} // namespace alox

@@ -4,9 +4,6 @@
 
 #include <iostream>
 
-#include <fmt/core.h>
-
-#include "memory.hh"
 #include "object.hh"
 #include "value.hh"
 
@@ -19,7 +16,7 @@ void printValue(std::ostream &os, Value value) {
     } else if (is<nullptr_t>(value)) {
         os << "nil";
     } else if (is<double>(value)) {
-        os << fmt::format("{:g}", as<double>(value));
+        os << std::format("{:g}", as<double>(value));
     } else if (is<Obj>(value)) {
         printObject(os, value);
     }
@@ -32,7 +29,7 @@ void printValue(std::ostream &os, Value value) {
         os << "nil";
         break;
     case VAL_NUMBER:
-        os << fmt::format("{:g}", AS_NUMBER(value));
+        os << std::format("{:g}", AS_NUMBER(value));
         break;
     case VAL_OBJ:
         printObject(os, value);
@@ -47,7 +44,7 @@ bool valuesEqual(Value a, Value b) {
         return as<double>(a) == as<double>(b);
     }
     if (is<ObjString>(a) && is<ObjString>(b)) {
-        // fmt::print("{:d} {:d}\n", AS_STRING(a)->str.size(), AS_STRING(b)->str.size());
+        // std::print("{:d} {:d}\n", AS_STRING(a)->str.size(), AS_STRING(b)->str.size());
         return as<ObjString *>(a)->str == as<ObjString *>(b)->str;
     }
     return a == b;

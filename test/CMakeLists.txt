@@ -16,7 +16,7 @@ macro(package_add_test TESTNAME)
     # the test executable.  Remove g_test_main if writing your own main function.
     target_link_libraries(${TESTNAME} PRIVATE project_options project_warnings
     lox
-    gtest gtest_main fmt icuuc
+    gtest gtest_main icuuc
     )
     
     # gtest_discover_tests replaces gtest_add_tests,

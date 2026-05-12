@@ -6,18 +6,15 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <format>
 #include <iostream>
-#include <map>
-#include <memory>
 
-#include <fmt/core.h>
 #include <ranges>
 
 #include "chunk.hh"
 #include "common.hh"
 #include "compiler.hh"
 #include "debug.hh"
-#include "memory.hh"
 #include "scanner.hh"
 
 namespace alox {
@@ -26,7 +23,8 @@ inline constexpr auto debug_compile{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
     if constexpr (debug_compile) {
-        std::cout << "compiler: " << fmt::format(fmt::runtime(format), msg...) << '\n';
+        std::cout << "compiler: " << std::vformat(format, std::make_format_args(msg...))
+                  << '\n';
     }
 }
 
@@ -562,7 +560,7 @@ void Compiler::breakStatement(Break *ast) {
     debug("breakStatement");
     const auto *name = ast->tok == TokenType::BREAK ? "break" : "continue";
     if (current->enclosing_loop == 0) {
-        error(ast->get_line(), fmt::format("{} must be used in a loop.", name));
+        error(ast->get_line(), std::format("{} must be used in a loop.", name));
     }
 
     // take off local variables

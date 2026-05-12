@@ -6,8 +6,6 @@
 #include "value.hh"
 #include "vm.hh"
 
-#include <fmt/core.h>
-
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -18,7 +16,7 @@ inline constexpr auto debug_stdlib{false};
 template <typename S, typename... Args>
 static void debug(const S &format, const Args &...msg) {
     if constexpr (debug_stdlib) {
-        std::cout << "stdlib: " << fmt::format(fmt::runtime(format), msg...) << '\n';
+        std::cout << "stdlib: " << std::vformat(format, std::make_format_args(msg...)) << '\n';
     }
 }
 

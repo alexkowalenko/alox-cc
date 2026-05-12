@@ -8,12 +8,10 @@
 #include <sstream>
 #include <string>
 
-#include <fmt/core.h>
 #include <gtest/gtest.h>
 
 #include "compiler.hh"
 #include "parser.hh"
-#include "printer.hh"
 
 using namespace alox;
 

@@ -3,17 +3,13 @@
 //
 
 #include <cstring>
-#include <functional>
 #include <iostream>
 
-#include <fmt/core.h>
 #include <string_view>
 
 #include <gc_cpp.h>
 
-#include "memory.hh"
 #include "object.hh"
-#include "table.hh"
 #include "value.hh"
 
 namespace alox {
@@ -93,7 +89,7 @@ static void printFunction(std::ostream &os, ObjFunction *function) {
         os << "<script>";
         return;
     }
-    os << fmt::format("<fn {}>", function->name->str);
+    os << std::format("<fn {}>", function->name->str);
 }
 
 void printObject(std::ostream &os, Value value) {
@@ -102,7 +98,7 @@ void printObject(std::ostream &os, Value value) {
         printFunction(os, as<ObjBoundMethod *>(value)->method->function);
         break;
     case OBJ_CLASS:
-        fmt::print("{}", as<ObjClass *>(value)->name->str);
+        std::print("{}", as<ObjClass *>(value)->name->str);
         break;
     case OBJ_CLOSURE:
         printFunction(os, as<ObjClosure *>(value)->function);
@@ -111,13 +107,13 @@ void printObject(std::ostream &os, Value value) {
         printFunction(os, as<ObjFunction *>(value));
         break;
     case OBJ_INSTANCE:
-        os << fmt::format("{} instance", as<ObjInstance *>(value)->klass->name->str);
+        os << std::format("{} instance", as<ObjInstance *>(value)->klass->name->str);
         break;
     case OBJ_NATIVE:
         os << "<native fn>";
         break;
     case OBJ_STRING:
-        os << fmt::format("{}", as<ObjString *>(value)->str);
+        os << std::format("{}", as<ObjString *>(value)->str);
         break;
     case OBJ_UPVALUE:
         os << "upvalue";
